@@ -17,8 +17,10 @@ create table if not exists public.profiles (
   council_registry text,            -- ex.: CRP 20/12345
   clinic_name      text,
   consent_text     text,            -- texto de consentimento personalizado
+  preferences      jsonb not null default '{}'::jsonb, -- preferências do profissional (IA, editor)
   created_at       timestamptz not null default now()
 );
+alter table public.profiles add column if not exists preferences jsonb not null default '{}'::jsonb;
 
 -- Cria o perfil automaticamente quando alguém se cadastra
 create or replace function public.handle_new_user()
@@ -258,7 +260,11 @@ returns table (
 )
 language sql stable security definer set search_path = public as $$
   select r.id, r.title, r.kind, r.session_date, r.period_start, r.period_end,
-         r.sections, r.ai_generated, r.released_at,
+         -- só as seções que o profissional deixou visíveis ao paciente
+         (select coalesce(jsonb_agg(sec order by ord), '[]'::jsonb)
+            from jsonb_array_elements(r.sections) with ordinality as t(sec, ord)
+           where coalesce((sec->>'patient_visible')::boolean, true)) as sections,
+         r.ai_generated, r.released_at,
          pr.full_name, pr.specialty, pr.council_registry, pr.clinic_name
   from public.reports r
   join public.patients p  on p.id = r.patient_id

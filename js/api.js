@@ -11,6 +11,7 @@ function friendly(error) {
   if (/already registered|already been registered/i.test(m)) return 'Este e-mail já está cadastrado.';
   if (/Password should be at least/i.test(m)) return 'A senha precisa ter pelo menos 6 caracteres.';
   if (/row-level security/i.test(m)) return 'Você não tem permissão para esta ação.';
+  if (/preferences/i.test(m) && /column|schema cache/i.test(m)) return 'O banco precisa ser atualizado: rode de novo o arquivo supabase/schema.sql no SQL Editor do Supabase.';
   if (/released_only_if_reviewed/i.test(m)) return 'Só é possível liberar ao paciente um relatório já revisado.';
   return m;
 }
@@ -33,7 +34,7 @@ export const updateProfile = (id, patch) =>
 
 /* ---------- pacientes ---------- */
 export const listPatients = (includeArchived = false) => {
-  let q = sb.from('patients').select('id,name,email,phone,birth_date,archived,created_at,consents(id,revoked_at)').order('name');
+  let q = sb.from('patients').select('id,name,email,phone,birth_date,archived,created_at,consents(id,revoked_at),reports(session_date,status,kind)').order('name');
   if (!includeArchived) q = q.eq('archived', false);
   return q.then(unwrap);
 };
@@ -66,7 +67,7 @@ export const saveTemplate = (t) => {
 export const deleteTemplate = (id) => sb.from('templates').delete().eq('id', id).then(unwrap);
 
 /* ---------- relatórios ---------- */
-const LIST_COLS = 'id,title,kind,session_date,period_start,period_end,status,released_to_patient,ai_generated,patient_id,created_at,patients(name)';
+const LIST_COLS = 'id,title,kind,session_date,period_start,period_end,status,released_to_patient,ai_generated,patient_id,created_at,patients(name,email)';
 export const listReports = ({ patientId, kind, status, limit, from, to, withSections } = {}) => {
   let q = sb.from('reports').select(withSections ? LIST_COLS + ',sections' : LIST_COLS)
     .order('session_date', { ascending: false }).order('created_at', { ascending: false });
@@ -82,10 +83,26 @@ export const getReport = (id) => sb.from('reports').select('*,patients(id,name,e
 export const createReport = (r) => sb.from('reports').insert(r).select().single().then(unwrap);
 export const updateReport = (id, patch) => sb.from('reports').update(patch).eq('id', id).select().single().then(unwrap);
 export const deleteReport = (id) => sb.from('reports').delete().eq('id', id).then(unwrap);
+export const updateReports = (ids, patch) => sb.from('reports').update(patch).in('id', ids).select('id').then(unwrap);
+export const deleteReports = (ids) => sb.from('reports').delete().in('id', ids).then(unwrap);
 
 /* ---------- auditoria ---------- */
 export const listAudit = (entityId) =>
   sb.from('audit_log').select('action,detail,created_at').eq('entity_id', entityId).order('created_at', { ascending: false }).limit(30).then(unwrap);
+
+export const listAuditAll = () =>
+  sb.from('audit_log').select('action,entity,entity_id,detail,created_at').order('created_at', { ascending: false }).limit(100).then(unwrap);
+
+/* ---------- backup dos dados do profissional ---------- */
+export async function exportEverything() {
+  const [patients, consents, reports, templates] = await Promise.all([
+    sb.from('patients').select('*').then(unwrap),
+    sb.from('consents').select('*').then(unwrap),
+    sb.from('reports').select('*').then(unwrap),
+    sb.from('templates').select('*').not('professional_id', 'is', null).then(unwrap),
+  ]);
+  return { exported_at: new Date().toISOString(), patients, consents, reports, templates };
+}
 
 /* ---------- portal do paciente ---------- */
 export const portalReports = () => sb.rpc('portal_list_reports').then(unwrap);

@@ -1,6 +1,6 @@
 import * as api from './api.js';
 import { exportPdf } from './export.js';
-import { $, $$, esc, fmtDate, shell, loading, pageHeader, toast } from './ui.js';
+import { $, esc, fmtDate, shell, loading, pageHeader, backLink, meta, callout, icon } from './ui.js';
 import { state } from './state.js';
 
 const asProfessional = (r) => ({
@@ -11,28 +11,29 @@ const asProfessional = (r) => ({
 export async function renderPortal() {
   const main = shell('portal'); loading(main);
   const list = await api.portalReports();
-  main.innerHTML = pageHeader('Meus relatórios', 'Aqui aparecem apenas os relatórios que seu profissional revisou e liberou para você.') +
-    (list.length ? `<div class="card">${list.map((r) => `
-      <a class="row-item" href="#/portal/${r.id}">
-        <div><div class="t">${esc(r.title)}</div>
-        <div class="muted small">${esc(r.professional_name || 'Profissional')} · ${r.kind === 'periodo' ? `Período ${fmtDate(r.period_start)} a ${fmtDate(r.period_end)}` : fmtDate(r.session_date)}</div></div>
-        <span class="muted">Abrir →</span></a>`).join('')}</div>`
-      : `<div class="card"><p>Você ainda não tem relatórios liberados.</p>
-         <p class="muted small">Use o mesmo e-mail (${esc(state.user?.email || '')}) que seu profissional cadastrou para você. Quando ele liberar um relatório, ele aparecerá aqui.</p></div>`);
+  main.innerHTML = pageHeader('Meus relatórios', 'Aqui aparecem os relatórios que seu profissional revisou e liberou para você.') +
+    (list.length ? `<div class="list">${list.map((r) => `
+      <a class="li" href="#/portal/${r.id}">
+        <div class="grow"><div class="t">${esc(r.title)}</div>
+        ${meta([esc(r.professional_name || 'Profissional'), r.kind === 'periodo' ? `Período ${fmtDate(r.period_start)} a ${fmtDate(r.period_end)}` : fmtDate(r.session_date)])}</div>
+        ${icon('right', 'go')}</a>`).join('')}</div>`
+      : `<div class="empty"><b>Você ainda não tem relatórios liberados</b>
+         Use o mesmo e-mail (${esc(state.user?.email || '')}) que seu profissional cadastrou. Quando ele liberar um relatório, ele aparecerá aqui.</div>`);
 }
 
 export async function renderPortalReport(id) {
   const main = shell('portal'); loading(main);
   const r = (await api.portalReports()).find((x) => x.id === id);
-  if (!r) { main.innerHTML = '<p class="pad">Relatório não encontrado ou não está mais disponível.</p><a href="#/portal">Voltar</a>'; return; }
-  main.innerHTML = `
-    <p class="crumb"><a href="#/portal">← Meus relatórios</a></p>
-    ${pageHeader(r.title, `${esc(r.professional_name || '')}${r.professional_specialty ? ' · ' + esc(r.professional_specialty) : ''}${r.professional_registry ? ' · ' + esc(r.professional_registry) : ''}`,
-      '<button class="btn ghost" id="pdf">Baixar / imprimir PDF</button>')}
-    ${r.ai_generated ? '<div class="notice">Documento elaborado com apoio de ferramenta de inteligência artificial e revisado pelo(a) profissional responsável.</div>' : ''}
-    ${r.sections.map((s) => `<section class="card"><h3>${esc(s.title)}</h3><p class="pre">${esc(s.text)}</p></section>`).join('')}`;
+  if (!r) { main.innerHTML = backLink('#/portal', 'Meus relatórios') + '<div class="empty"><b>Relatório não encontrado</b>Ele pode ter sido retirado pelo profissional.</div>'; return; }
+  main.innerHTML = backLink('#/portal', 'Meus relatórios') +
+    pageHeader(r.title, meta([esc(r.professional_name || ''), esc(r.professional_specialty || ''), esc(r.professional_registry || '')]),
+      `<button class="btn quiet" id="pdf">${icon('download')}Baixar ou imprimir PDF</button>`) +
+    (r.ai_generated ? callout('<p>Documento elaborado com apoio de ferramenta de inteligência artificial e revisado pelo(a) profissional responsável.</p>') : '') + `
+    <article class="sheet">
+      <div class="sheet-head"><b>${esc(r.clinic_name || r.professional_name || '')}</b><span>${esc(r.professional_name || '')}${r.professional_specialty ? ', ' + esc(r.professional_specialty) : ''}</span></div>
+      ${r.sections.map((s) => `<div class="sec"><div class="sec-side"><div class="sec-title" style="border:0;font-weight:600;color:var(--petrol)">${esc(s.title)}</div></div><p class="pre" style="font:17px/1.65 var(--serif)">${esc(s.text)}</p></div>`).join('')}
+    </article>`;
   $('#pdf').onclick = () => exportPdf({
     report: r, patientName: state.profile?.full_name || '', professional: asProfessional(r), sections: r.sections,
   });
-  void $$; void toast;
 }

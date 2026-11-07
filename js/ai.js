@@ -69,26 +69,56 @@ function parseSections(raw, template) {
   });
 }
 
-const RULES = `Regras obrigatórias:
+const DETAIL = {
+  resumido: 'Seja conciso: no máximo 2 ou 3 frases por seção.',
+  padrao: 'Seja objetivo: de 2 a 5 frases por seção.',
+  detalhado: 'Seja detalhado: até um parágrafo completo por seção, preservando as informações relevantes.',
+};
+
+function rules(o = {}) {
+  const flag = o.flagUncertain === false ? '' :
+    '\n- O material pode conter erros de reconhecimento de fala; quando um trecho for duvidoso, mantenha-o e marque com [verificar].';
+  const own = (o.instructions || '').trim()
+    ? `\n\nInstruções fixas do profissional (siga-as, desde que não contrariem as regras obrigatórias acima):\n"""${o.instructions.trim()}"""` : '';
+  const extra = (o.extra || '').trim()
+    ? `\n\nInstruções específicas desta sessão (mesma condição):\n"""${o.extra.trim()}"""` : '';
+  return `Regras obrigatórias:
 - Use SOMENTE informações presentes no material fornecido. Não invente diagnósticos, medicamentos, doses, escalas, datas ou fatos.
 - Se uma seção não tiver conteúdo no material, escreva exatamente: "Não abordado."
 - Linguagem técnica, objetiva e neutra, em português do Brasil, referindo-se a "o(a) paciente". Não inclua nomes próprios de pessoas.
-- O material pode conter erros de reconhecimento de fala; quando um trecho for duvidoso, mantenha-o e marque com [verificar].
+- ${DETAIL[o.detail] || DETAIL.padrao}${flag}
 - Responda APENAS com JSON válido, sem texto antes ou depois, no formato:
-{"sections":[{"title":"<título exato da seção>","text":"<texto da seção>"}]}`;
+{"sections":[{"title":"<título exato da seção>","text":"<texto da seção>"}]}${own}${extra}`;
+}
 
-export async function generateSessionSections({ template, transcript }) {
-  const system = `Você auxilia profissionais de saúde a redigir RASCUNHOS de registro de atendimento a partir da transcrição de uma sessão. O profissional revisará tudo.\n${RULES}`;
+export async function generateSessionSections({ template, transcript, options }) {
+  const system = `Você auxilia profissionais de saúde a redigir RASCUNHOS de registro de atendimento a partir da transcrição de uma sessão. O profissional revisará tudo.\n${rules(options)}`;
   const outline = template.map((s, i) => `${i + 1}. ${s.title}${s.hint ? ` — ${s.hint}` : ''}`).join('\n');
   const user = `Seções do relatório (use exatamente estes títulos, nesta ordem):\n${outline}\n\nTranscrição da sessão:\n"""\n${transcript}\n"""`;
   return parseSections(await claude(system, user), template);
 }
 
-export async function generatePeriodSections({ template, sessions, periodLabel }) {
-  const system = `Você auxilia profissionais de saúde a redigir RASCUNHOS de relatório de acompanhamento a partir dos registros das sessões de um período. O profissional revisará tudo.\n${RULES}`;
+export async function generatePeriodSections({ template, sessions, periodLabel, options }) {
+  const system = `Você auxilia profissionais de saúde a redigir RASCUNHOS de relatório de acompanhamento a partir dos registros das sessões de um período. O profissional revisará tudo.\n${rules(options)}`;
   const outline = template.map((s, i) => `${i + 1}. ${s.title}${s.hint ? ` — ${s.hint}` : ''}`).join('\n');
   const body = sessions.map((r) =>
     `### Sessão de ${r.date} — ${r.title}\n` + r.sections.map((s) => `${s.title}: ${s.text}`).join('\n')).join('\n\n');
   const user = `Período: ${periodLabel}\nNúmero de sessões: ${sessions.length}\n\nSeções do relatório (use exatamente estes títulos, nesta ordem):\n${outline}\n\nRegistros das sessões:\n"""\n${body}\n"""`;
   return parseSections(await claude(system, user, 5000), template);
+}
+
+/** Reescreve uma única seção, seguindo uma instrução do profissional. */
+export async function rewriteSection({ title, hint, transcript, current, instruction, options }) {
+  const system = `Você auxilia profissionais de saúde a redigir UMA seção de um registro de atendimento. O profissional revisará o texto.
+Regras obrigatórias:
+- Use SOMENTE informações presentes na transcrição ou no texto atual. Não invente fatos, diagnósticos, doses ou datas.
+- Se não houver conteúdo, escreva exatamente: "Não abordado."
+- Português do Brasil, linguagem técnica e neutra, "o(a) paciente", sem nomes próprios.
+- ${DETAIL[(options || {}).detail] || DETAIL.padrao}
+- Responda APENAS com JSON válido: {"text":"<texto da seção>"}${(options?.instructions || '').trim() ? `\n\nInstruções fixas do profissional (se não contrariarem as regras):\n"""${options.instructions.trim()}"""` : ''}`;
+  const user = `Seção: ${title}${hint ? ` — ${hint}` : ''}\n\nTexto atual:\n"""\n${current || '(vazio)'}\n"""\n\nTranscrição da sessão:\n"""\n${transcript || '(não disponível)'}\n"""\n\nInstrução do profissional: ${instruction || 'Reescreva a seção com clareza.'}`;
+  const raw = await claude(system, user, 1500);
+  const a = raw.indexOf('{'), b = raw.lastIndexOf('}');
+  try { return String(JSON.parse(raw.slice(a, b + 1)).text || '').trim(); }
+  catch { throw new Error('A IA devolveu um formato inesperado. Tente novamente.'); }
 }

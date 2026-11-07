@@ -2,18 +2,23 @@ import * as api from './api.js';
 import { state } from './state.js';
 import { $, esc, toast, confirmBox } from './ui.js';
 import { renderSetup, renderAuth, promptNewPassword } from './views-auth.js';
-import * as pro from './views-pro.js';
+import * as home from './views-home.js';
+import * as session from './views-session.js';
+import * as report from './views-report.js';
+import * as lists from './views-lists.js';
+import * as settings from './views-settings.js';
 import * as portal from './views-portal.js';
 
 const PRO_ROUTES = [
-  [/^#\/painel$/, () => pro.renderDashboard()],
-  [/^#\/pacientes$/, () => pro.renderPatients()],
-  [/^#\/pacientes\/([\w-]+)$/, (m) => pro.renderPatientDetail(m[1])],
-  [/^#\/nova$/, (m, q) => pro.renderNewSession(q)],
-  [/^#\/relatorio\/([\w-]+)$/, (m) => pro.renderReport(m[1])],
-  [/^#\/periodo$/, (m, q) => pro.renderPeriod(q)],
-  [/^#\/modelos$/, () => pro.renderTemplates()],
-  [/^#\/config$/, () => pro.renderSettings()],
+  [/^#\/painel$/, () => home.renderDashboard()],
+  [/^#\/pacientes$/, () => home.renderPatients()],
+  [/^#\/pacientes\/([\w-]+)$/, (m) => home.renderPatientDetail(m[1])],
+  [/^#\/nova$/, (m, q) => session.renderNewSession(q)],
+  [/^#\/relatorios$/, (m, q) => lists.renderReports(q)],
+  [/^#\/relatorio\/([\w-]+)$/, (m) => report.renderReport(m[1])],
+  [/^#\/periodo$/, (m, q) => lists.renderPeriod(q)],
+  [/^#\/modelos$/, () => settings.renderTemplates()],
+  [/^#\/config$/, (m, q) => settings.renderSettings(q)],
 ];
 const PATIENT_ROUTES = [
   [/^#\/portal$/, () => portal.renderPortal()],
@@ -71,8 +76,14 @@ if (api.configured) {
   });
 }
 
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && state.profile?.role === 'professional') {
+    e.preventDefault(); import('./search.js').then((m) => m.openSearch());
+  }
+});
+
 document.addEventListener('click', async (e) => {
-  if (e.target.id !== 'logout') return;
+  if (!e.target.closest('#logout')) return;
   await api.signOut(); state.profile = null; state.user = null; location.hash = '';
 });
 

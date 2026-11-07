@@ -21,6 +21,18 @@ supabase/schema.sql banco de dados + regras de segurança (PostgreSQL)
 local/              versão antiga de arquivo único (dados só no navegador, sem login)
 ```
 
+## O que há de novo na versão 2 (interface redesenhada)
+
+- **Início orientado à ação**: escolha o paciente e inicie a sessão; fila de "o que precisa da sua atenção" (rascunhos, relatórios revisados não liberados, pacientes sem consentimento) e checklist de configuração.
+- **Busca rápida (Ctrl+K)** por páginas, pacientes e relatórios.
+- **Nova sessão em 3 passos**: paciente e modelo, captação (gravar ou enviar áudio, transcrição editável), opções da IA (nível de detalhe, marcar trechos `[verificar]`, instruções extras).
+- **Editor de relatório com controle por seção**: reordenar, ocultar do paciente (ícone de olho), reescrever uma seção com IA, remover; salvamento automático; fluxo Rascunho → Revisado → Liberado; prévia do portal; exportar só o que o paciente vê.
+- **Lista de relatórios com filtros e ações em lote** (revisar, liberar, retirar, excluir).
+- **Preferências**: detalhamento padrão da IA, instruções permanentes, modelo padrão, padrão de título, salvamento automático.
+- **Dados**: backup completo em JSON, planilha CSV de pacientes e registro de atividades.
+
+> **Atualizando de uma versão anterior?** Execute novamente `supabase/schema.sql` no SQL Editor (é seguro repetir). Ele adiciona a coluna `preferences` e atualiza o portal para respeitar a visibilidade por seção.
+
 ## Como colocar no ar
 
 1. **Crie um projeto no [Supabase](https://supabase.com)** (plano gratuito serve para começar). Escolha a região **South America (São Paulo)**.
