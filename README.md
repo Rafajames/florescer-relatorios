@@ -95,3 +95,6 @@ Campos longos do relatório têm barra de formatação (negrito, itálico, subli
 
 ## Documento livre (versão 4.3)
 Na ficha do paciente, "Novo documento": página livre com formatação e tabelas. O paciente só vê depois de revisado e liberado. Exige a atualização do `reports_kind_check` (já em `supabase/schema.sql`).
+
+## Versão sem cache
+`python3 tools/stamp.py` carimba a versão em `index.html` (mapa de módulos). Roda sozinho antes de cada commit; assim o navegador não mostra uma versão antiga.
