@@ -27,7 +27,11 @@ export async function renderReport(id) {
   const reg = [pro.specialty, pro.council_registry].filter(Boolean).join(', ');
   const brand = brandOf(pro);
 
-  main.innerHTML = backLink(`#/pacientes/${r.patients.id}`, r.patients.name) + `
+  let queue = [];
+  try { queue = JSON.parse(sessionStorage.getItem('florescer.queue') || '[]'); } catch { queue = []; }
+  const qi = queue.indexOf(id), nextId = qi >= 0 ? queue[qi + 1] : null;
+  const queueBar = qi >= 0 && queue.length > 1 ? `<div class="callout">${icon('info')}<div class="grow"><p>Editando ${qi + 1} de ${queue.length} relatórios selecionados.</p></div>${nextId ? `<a class="btn sm" href="#/relatorio/${nextId}">Próximo →</a>` : '<a class="btn sm quiet" href="#/relatorios">Voltar à lista</a>'}</div>` : '';
+  main.innerHTML = backLink(`#/pacientes/${r.patients.id}`, r.patients.name) + queueBar + `
     <div class="editor">
       <div>
         <input id="title" class="title-input" value="${esc(r.title)}" aria-label="Título do relatório">

@@ -30,7 +30,7 @@ const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 export async function renderSettings(params) {
   const main = shell('config');
   const tab = TABS.some(([k]) => k === params.get('aba')) ? params.get('aba') : 'perfil';
-  main.innerHTML = pageHeader('Configurações', 'Ajuste o sistema ao seu jeito de trabalhar.', `<button class="btn quiet" data-logout>${icon('logout')}Sair da conta</button>`) + `
+  main.innerHTML = pageHeader('Configurações', 'Ajuste o sistema ao seu jeito de trabalhar.', `<a class="btn quiet" href="#/ajuda">${icon('info')}Ajuda</a><button class="btn quiet" data-logout>${icon('logout')}Sair da conta</button>`) + `
     <div class="settings">
       <nav class="subnav" aria-label="Seções">${TABS.map(([k, l]) => `<a href="#/config?aba=${k}" class="${k === tab ? 'on' : ''}">${l}</a>`).join('')}</nav>
       <div id="pane"></div>

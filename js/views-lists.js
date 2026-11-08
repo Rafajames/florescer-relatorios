@@ -70,12 +70,18 @@ export async function renderReports(params) {
   const drawBulk = () => {
     const n = selected.size;
     $('#bulk').innerHTML = n ? `<div class="bulk"><b>${n} selecionado${n > 1 ? 's' : ''}</b><span class="grow"></span>
+      <button class="btn sm" id="b-edit">${icon('edit')}Editar${n > 1 ? ' um por vez' : ''}</button>
       <button class="btn quiet sm" id="b-rev">${icon('check')}Marcar como revisados</button>
       <button class="btn quiet sm" id="b-rel">${icon('eye')}Liberar ao paciente</button>
       <button class="btn quiet sm" id="b-unrel">${icon('eyeoff')}Retirar do portal</button>
       <button class="btn danger sm" id="b-del">${icon('trash')}Excluir</button></div>` : '';
     if (!n) return;
     const picked = () => rows.filter((r) => selected.has(r.id));
+    $('#b-edit').onclick = () => {
+      const ids = picked().map((r) => r.id);
+      try { sessionStorage.setItem('florescer.queue', JSON.stringify(ids)); } catch { /* sem armazenamento */ }
+      location.hash = `#/relatorio/${ids[0]}`;
+    };
     $('#b-rev').onclick = async (e) => {
       const targets = picked().filter((r) => r.status === 'rascunho');
       if (!targets.length) return toast('Nenhum dos selecionados está em rascunho.', 'err');

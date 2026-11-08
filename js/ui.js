@@ -98,6 +98,7 @@ const NAV = [
   ['periodo', '#/periodo', 'calendar', 'Por período'],
   ['modelos', '#/modelos', 'layout', 'Modelos'],
   ['config', '#/config', 'sliders', 'Configurações'],
+  ['ajuda', '#/ajuda', 'info', 'Ajuda'],
 ];
 const NAV_PATIENT = [['portal', '#/portal', 'file', 'Meus relatórios']];
 const TAB = [

@@ -8,6 +8,7 @@ import * as report from './views-report.js';
 import * as lists from './views-lists.js';
 import * as settings from './views-settings.js';
 import * as portal from './views-portal.js';
+import { renderHelp } from './views-help.js';
 import { renderOnboarding } from './views-onboarding.js';
 import { applyLook } from './theme.js';
 import { brandOf, applyBrand, rememberBrand, cachedBrand, DEFAULT_BRAND } from './brand.js';
@@ -21,6 +22,7 @@ const PRO_ROUTES = [
   [/^#\/relatorio\/([\w-]+)$/, (m) => report.renderReport(m[1])],
   [/^#\/periodo$/, (m, q) => lists.renderPeriod(q)],
   [/^#\/modelos$/, () => settings.renderTemplates()],
+  [/^#\/ajuda$/, () => renderHelp()],
   [/^#\/config$/, (m, q) => settings.renderSettings(q)],
 ];
 const PATIENT_ROUTES = [
