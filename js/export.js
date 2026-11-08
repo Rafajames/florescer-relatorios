@@ -1,4 +1,5 @@
 import { esc, fmtDate } from './ui.js';
+import { settings } from './state.js';
 import { brandOf, darken } from './brand.js';
 import { bodyHtml } from './richtext.js';
 
@@ -48,7 +49,7 @@ function header(professional) {
   };
 }
 
-const footer = (b, ai) => `<div class="foot">${b.footer ? esc(b.footer) + '<br>' : ''}${ai ? 'Documento elaborado com apoio de ferramenta de inteligência artificial e revisado pelo(a) profissional responsável. ' : ''}Documento confidencial, contém dados pessoais sensíveis de saúde (LGPD – Lei nº 13.709/2018).</div>`;
+const footer = (b, ai) => `<div class="foot">${(b.footer || settings.doc_footer) ? esc(b.footer || settings.doc_footer) + '<br>' : ''}${ai ? 'Documento elaborado com apoio de ferramenta de inteligência artificial e revisado pelo(a) profissional responsável. ' : ''}Documento confidencial, contém dados pessoais sensíveis de saúde (LGPD – Lei nº 13.709/2018).</div>`;
 
 const signature = (professional, b, reg) => `<div class="sign">${b.signature ? `<img src="${b.signature}" alt="">` : ''}<div class="line">${esc(professional.full_name || '')}<br>${esc(reg)}</div></div>`;
 

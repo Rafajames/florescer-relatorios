@@ -584,3 +584,8 @@ h1{font-size:34px;line-height:1.12} h2{font-size:22px;line-height:1.2} h3{font-w
 .new-opt b{display:block;font-weight:600}.new-opt small{display:block;color:var(--ink-2);font-size:13px;margin-top:2px}
 .new-opt svg{margin-top:2px;color:var(--link)}
 @media (max-width:760px){.new-grid{grid-template-columns:1fr}.topbar [data-new]{display:none}}
+
+.notice{display:flex;gap:10px;align-items:center;padding:10px 20px;background:color-mix(in srgb,var(--petrol,#134B5F) 12%,var(--field));border-bottom:1px solid var(--edge);font-size:.92rem}
+.notice.warn{background:color-mix(in srgb,#C9892B 18%,var(--field))}
+.notice svg{flex:none;width:18px;height:18px}
+.adm-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}

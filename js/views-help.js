@@ -1,5 +1,6 @@
 // Central de ajuda: mapa de todas as funções e um passo a passo de cada uma.
 import { $, $$, esc, shell, pageHeader, icon } from './ui.js';
+import { settings } from './state.js';
 
 const FIRST = [
   ['Complete seu perfil', 'Configurações → Perfil e timbre: nome, conselho, número, UF e categoria.', '#/config?aba=perfil'],
@@ -77,12 +78,14 @@ const TOPICS = [
 
 export async function renderHelp() {
   const main = shell('ajuda');
+  const extra = Array.isArray(settings.help_extra) ? settings.help_extra.filter((x) => x && x.t && x.text) : [];
   main.innerHTML = pageHeader('Ajuda', 'Onde fazer cada coisa, passo a passo.') + `
     <section class="panel"><h2>Primeiros passos</h2>
       <ol class="help-steps">${FIRST.map(([t, d, h]) => `<li><a href="${h}"><b>${esc(t)}</b></a><span class="muted">${esc(d)}</span></li>`).join('')}</ol></section>
     <label class="field">Procurar na ajuda<input id="hq" type="search" placeholder="Ex.: liberar, logo, microfone, tabela"></label>
     <div id="topics">${TOPICS.map((tp) => `<details class="panel help-topic" open><summary><h2>${esc(tp.t)}</h2><a class="btn quiet sm" href="${tp.link}">${icon('right')}${esc(tp.where)}</a></summary>
       <dl class="help-list">${tp.items.map(([k, v]) => `<div class="help-item"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></details>`).join('')}</div>
+    ${extra.map((x) => `<details class="panel help-topic" open><summary><h2>${esc(x.t)}</h2></summary><dl class="help-list"><div class="help-item"><dd style="white-space:pre-wrap">${esc(x.text)}</dd></div></dl></details>`).join('')}
     <p id="hnone" class="muted hide">Nada encontrado. Tente outra palavra.</p>`;
   $('#hq').oninput = (e) => {
     const q = e.target.value.trim().toLowerCase(); let any = false;

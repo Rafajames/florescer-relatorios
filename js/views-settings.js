@@ -320,9 +320,9 @@ export async function renderSettings(params) {
 const TYPES = [['longo', 'Texto longo'], ['curto', 'Texto curto'], ['data', 'Data'], ['marcar', 'Sim ou não'], ['escolha', 'Escolha']];
 const KINDS = { sessao: 'Evolução', anamnese: 'Anamnese', periodo: 'Período' };
 
-async function templateModal(t = {}) {
+export async function templateModal(t = {}) {
   let rows = (t.sections || [{ title: '', hint: '', type: 'longo' }]).map((s) => ({ type: 'longo', ...s }));
-  const heading = t.imported ? 'Revisar modelo importado' : t.id && t.professional_id ? 'Editar modelo' : 'Novo modelo';
+  const heading = t.imported ? 'Revisar modelo importado' : t.id && (t.professional_id || t.sys) ? 'Editar modelo' : 'Novo modelo';
   return openModal(heading, `
     ${t.imported ? `<div class="callout ok">${icon('info')}<div class="grow"><p>Importado de <b>${esc(t.imported.source)}</b>${t.imported.usedAI ? ' com ajuda da IA' : ' por leitura automática'}. Confira os campos, ajuste os tipos e acrescente o que faltar.</p></div></div>` : ''}
     <label class="field">Nome do modelo<input name="name" required value="${esc(t.name || '')}"></label>
@@ -373,7 +373,7 @@ async function templateModal(t = {}) {
       })).filter((r) => r.title);
       if (!sections.length) throw new Error('Informe ao menos um campo com título.');
       const meta = t.imported ? { source: t.imported.source, ai: t.imported.usedAI } : (t.meta || {});
-      return api.saveTemplate({ ...(t.id && t.professional_id ? { id: t.id } : {}), name: g('name'), specialty: g('specialty'), kind: g('kind'), sections, meta });
+      return api.saveTemplate({ ...(t.id && (t.professional_id || t.sys) ? { id: t.id } : {}), ...(t.sys ? { professional_id: null } : {}), name: g('name'), specialty: g('specialty'), kind: g('kind'), sections, meta });
     },
   });
 }

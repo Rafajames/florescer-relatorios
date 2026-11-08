@@ -33,6 +33,13 @@ export const getProfile = () => sb.from('profiles').select('*').single().then(un
 export const updateProfile = (id, patch) =>
   sb.from('profiles').update(patch).eq('id', id).select().single().then(unwrap);
 
+/* ---------- administração ---------- */
+export const loadSettings = () => sb.from('app_settings').select('key,value').then(unwrap);
+export const saveSetting = (key, value) =>
+  sb.from('app_settings').upsert({ key, value, updated_at: new Date().toISOString() }).then(unwrap);
+export const adminProfessionals = () => sb.rpc('admin_list_professionals').then(unwrap);
+export const adminSetDisabled = (uid, off) => sb.rpc('admin_set_disabled', { uid, off }).then(unwrap);
+
 /* ---------- pacientes ---------- */
 export const listPatients = (includeArchived = false) => {
   let q = sb.from('patients').select('id,name,email,phone,birth_date,archived,created_at,consents(id,revoked_at),reports(session_date,status,kind)').order('name');

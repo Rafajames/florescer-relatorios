@@ -1,4 +1,4 @@
-import { state } from './state.js';
+import { state, settings } from './state.js';
 import { icon } from './icons.js';
 import { brandOf } from './brand.js';
 
@@ -112,7 +112,8 @@ const TAB = [
 export function shell(active) {
   const p = state.profile;
   const isPatient = p && p.role === 'patient';
-  const nav = isPatient ? NAV_PATIENT : NAV;
+  const nav = isPatient ? NAV_PATIENT : (p && p.is_admin ? [...NAV, ['admin', '#/admin', 'sliders', 'Administração']] : NAV);
+  const nt = settings.notice && settings.notice.on && settings.notice.text ? settings.notice : null;
   const br = isPatient ? { logo: '', org_name: '' } : brandOf(p);
   $('#app').innerHTML = `
     <div class="app">
@@ -134,6 +135,7 @@ export function shell(active) {
           <button class="icon-btn help-btn" id="open-help" title="Atalhos do teclado (?)" aria-label="Atalhos do teclado">${icon('info')}</button>
           <a class="btn bloom" href="#/nova" data-new>${icon('plus')}<span>Novo</span></a>
         </div>`}
+        ${nt ? `<div class="notice ${nt.level === 'warn' ? 'warn' : ''}" role="status">${icon('info')}<span>${esc(nt.text)}</span></div>` : ''}
         <main id="main" class="page"></main>
       </div>
       ${isPatient ? '' : `<nav class="tabbar" aria-label="Atalhos">

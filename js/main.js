@@ -10,6 +10,8 @@ import * as settings from './views-settings.js';
 import * as portal from './views-portal.js';
 import { renderHelp } from './views-help.js';
 import { renderOnboarding } from './views-onboarding.js';
+import { applySettings } from './state.js';
+import { PROVIDERS } from './ai.js';
 import { applyLook } from './theme.js';
 import { brandOf, applyBrand, rememberBrand, cachedBrand, DEFAULT_BRAND } from './brand.js';
 
@@ -23,6 +25,7 @@ const PRO_ROUTES = [
   [/^#\/periodo$/, (m, q) => lists.renderPeriod(q)],
   [/^#\/modelos$/, () => settings.renderTemplates()],
   [/^#\/ajuda$/, () => renderHelp()],
+  [/^#\/admin$/, () => import('./views-admin.js').then((m) => m.renderAdmin())],
   [/^#\/config$/, (m, q) => settings.renderSettings(q)],
 ];
 const PATIENT_ROUTES = [
@@ -40,6 +43,7 @@ async function doRoute() {
 
   if (!api.configured) return renderSetup();
   try {
+    if (!state.settingsLoaded) { try { applySettings(await api.loadSettings(), PROVIDERS); } catch { /* tabela ainda não criada */ } state.settingsLoaded = true; }
     const session = await api.getSession();
     if (!session) {
       state.user = null; state.profile = null;
@@ -54,6 +58,11 @@ async function doRoute() {
     if (!state.profile || state.profile.id !== session.user.id) {
       state.user = session.user;
       state.profile = await api.getProfile();
+    }
+    if (state.profile.disabled) {
+      $('#app').innerHTML = `<div class="auth-wrap"><div class="card auth-card"><h2>Conta desativada</h2><p>O acesso desta conta foi desativado pela administração. Entre em contato com o suporte.</p><button class="btn ghost" id="out">Sair</button></div></div>`;
+      $('#out').onclick = async () => { await api.signOut(); state.profile = null; route(); };
+      return;
     }
     const isPatient = state.profile.role === 'patient';
     if (isPatient) applyBrand(DEFAULT_BRAND);

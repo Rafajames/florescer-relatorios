@@ -98,3 +98,6 @@ Na ficha do paciente, "Novo documento": página livre com formatação e tabelas
 
 ## Versão sem cache
 `python3 tools/stamp.py` carimba a versão em `index.html` (mapa de módulos). Roda sozinho antes de cada commit; assim o navegador não mostra uma versão antiga.
+
+## v5 — Administração
+Painel `#/admin` (só para quem tem `is_admin`): modelos do sistema, textos padrão (consentimento, rodapé, áreas), nomes dos modelos de IA, aviso geral, lista de profissionais (ativar/desativar) e tópicos extras da Ajuda. O administrador não acessa pacientes, relatórios nem transcrições. SQL em `supabase/admin.sql`. Para conceder o acesso: `update public.profiles set is_admin = true where id = (select id from auth.users where email = 'SEU@EMAIL');`
