@@ -46,9 +46,12 @@ export function lembreteTexto({ patient, professional, date, time, specialty }) 
 
 /** Cobrança das sessões realizadas e não pagas, com o PIX copia-e-cola. */
 export function cobrancaTexto({ patient, professional, items, pix }) {
-  const total = items.reduce((s, i) => s + i.amount, 0);
+  const total = items.reduce((s, i) => s + Number(i.amount || 0), 0);
   const linhas = items.map((i) => `• ${dmy(i.date)}${i.time ? ' (' + hm(i.time) + ')' : ''}: ${brl(i.amount)}`).join('\n');
-  return `Olá, ${patient}! Tudo bem?\n\nSegue o resumo das sessões pendentes de pagamento:\n${linhas}\n\nTotal: ${brl(total)}\n\nPagamento por PIX (copia e cola):\n${pix}\n\nDepois do pagamento, pode me enviar o comprovante. Obrigada(o)!\n${professional}`;
+  const pag = pix
+    ? `Pagamento por PIX (copia e cola):\n${pix}\n\nDepois do pagamento, pode me enviar o comprovante.`
+    : 'Me avise a forma de pagamento de sua preferência e envio os dados.';
+  return `Olá, ${patient}! Tudo bem?\n\nSegue o resumo das sessões pendentes de pagamento:\n${linhas}\n\nTotal: ${brl(total)}\n\n${pag}\n\nObrigada(o)!\n${professional}`;
 }
 
 /** Valor por extenso em reais (ex.: "cento e cinquenta reais e vinte centavos"). */

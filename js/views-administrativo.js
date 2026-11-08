@@ -111,7 +111,7 @@ async function agenda(params, patients) {
 }
 
 /** Nova sessão (com repetição semanal) ou edição. Resolve true se salvou. */
-function appointmentModal({ patients, appointment: a, date }) {
+export function appointmentModal({ patients, appointment: a, date }) {
   const edit = Boolean(a);
   const d0 = a?.date || date || todayISO();
   const body = `

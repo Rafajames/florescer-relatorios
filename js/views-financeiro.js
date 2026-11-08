@@ -2,7 +2,7 @@
 // orçamento, recibo e dados de pagamento. Cada profissional vê só os próprios dados.
 import * as api from './api.js';
 import { state } from './state.js';
-import { pixCode, cobrancaTexto, waLink } from './cobranca.js';
+import { abrirCobranca } from './cobrar.js';
 import {
   buildOrcamento, exportOrcamentoPdf, exportOrcamentoWord, exportReciboPdf, exportReciboWord, brl,
 } from './export.js';
@@ -86,7 +86,7 @@ async function chargesTab(pane, mes, from, to) {
         return `<div class="tr" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <span class="grow t">${esc(d.name)}<small class="muted"> · ${d.items.length} sessão(ões) · mais antiga em ${fmtDate(maisAntiga(d.items))}</small></span>
           ${chip(dias ? `${dias} dia(s) em aberto` : 'hoje', dias > 14 ? 'warn' : '')}<b>${brl(total)}</b>
-          <button class="btn quiet sm" data-cobrar="${d.id}">Cobrar pelo WhatsApp</button></div>`;
+          <button class="btn quiet sm" data-cobrar="${d.id}">Cobrar</button></div>`;
       }).join('')}</div></section>` : '';
   const devById = Object.fromEntries(devedores.map((d) => [d.id, d]));
 
@@ -301,24 +301,7 @@ async function saveBranding(patch) {
   state.profile = { ...state.profile, branding: row.branding };
 }
 
-/** Monta a cobrança: resumo das sessões em aberto e código PIX copia-e-cola. */
+/** Cobrança a partir da lista de inadimplência. */
 function cobrar(d, pat) {
-  const pay = state.profile?.branding?.payment || {};
-  if (!pay.pix) return toast('Cadastre a chave PIX em Dados de pagamento antes de cobrar.', 'err');
-  const total = d.items.reduce((s, i) => s + i.amount, 0);
-  const pixTxt = pixCode({ key: pay.pix, name: state.profile.branding?.org_name || state.profile.full_name, city: pay.city, amount: total });
-  const msg = cobrancaTexto({ patient: d.name, professional: state.profile.full_name, items: d.items, pix: pixTxt });
-  const url = waLink(pat?.phone, msg);
-  openModal('Cobrança pronta', `
-    <p>Mensagem para <b>${esc(d.name)}</b> com o total de <b>${brl(total)}</b> e o código PIX.</p>
-    <label class="field">Código PIX copia-e-cola<textarea readonly rows="3" id="pix-txt">${esc(pixTxt)}</textarea></label>
-    <div class="row"><button type="button" class="btn quiet" id="pix-copy">Copiar código PIX</button>${url
-      ? `<a class="btn" target="_blank" rel="noopener" href="${esc(url)}">Enviar pelo WhatsApp</a>`
-      : '<span class="small muted">Cadastre o telefone do paciente para enviar pelo WhatsApp.</span>'}</div>`,
-  { cancelText: 'Fechar', onOpen: (dlg) => {
-    $('#pix-copy', dlg).onclick = async () => {
-      try { await navigator.clipboard.writeText(pixTxt); toast('Código PIX copiado.'); }
-      catch { $('#pix-txt', dlg).select(); toast('Selecione o código e copie.', 'err'); }
-    };
-  } });
+  return abrirCobranca({ profile: state.profile, patient: { name: d.name, phone: pat?.phone }, items: d.items });
 }

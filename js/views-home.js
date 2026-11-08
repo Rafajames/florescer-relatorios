@@ -2,8 +2,10 @@ import * as api from './api.js';
 import * as ai from './ai.js';
 import { state, DEFAULT_CONSENT } from './state.js';
 import { createDemo, removeDemo, isDemo } from './demo.js';
-import { exportDossierWord, exportDossierPdf, exportAuditoriaPdf, KIND_LABEL, brl } from './export.js';
+import { exportDossierWord, exportDossierPdf, exportAuditoriaPdf, KIND_LABEL, brl, ATT_STATUS } from './export.js';
 import { newToken, sha256, waLink } from './cobranca.js';
+import { abrirCobranca } from './cobrar.js';
+import { appointmentModal } from './views-administrativo.js';
 import {
   $, $$, esc, fmtDate, fmtDateTime, toast, openModal, confirmBox, busy, statusChip, chip, meta, callout,
   shell, loading, pageHeader, backLink, icon, greeting, longDate, emptyState, todayISO,
@@ -258,10 +260,19 @@ export async function renderPatientDetail(id) {
     api.listAppointments({ patientId: id }), api.getPatientAdmin(id), api.listShareLinks(id)]);
   const active = api.hasActiveConsent(consents);
   const payments = paymentsOf(apts, admin);
+  const pendentes = apts.filter((a) => a.status === 'realizado' && a.payment_status !== 'pago');
+  const hoje = todayISO();
+  const proximas = apts.filter((a) => a.date >= hoje && a.status !== 'cancelado')
+    .sort((x, y) => (x.date + (x.time || '')).localeCompare(y.date + (y.time || ''))).slice(0, 8);
+  const proximasHtml = `<div class="panel-head" style="margin-top:22px"><h2>Próximas sessões</h2></div>
+    ${proximas.length ? `<div class="table">${proximas.map((a) => `<div class="tr" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="grow t">${fmtDate(a.date)} · ${esc(String(a.time || '').slice(0, 5))}<small class="muted"> · ${a.duration_min || 50} min</small></span>
+      <select data-pst="${a.id}" aria-label="Situação da sessão" style="width:auto;margin:0;min-height:0;padding:5px 8px">${Object.entries(ATT_STATUS).map(([k, l]) => `<option value="${k}" ${k === a.status ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      </div>`).join('')}</div>` : '<p class="muted small">Nenhuma sessão agendada. Use “Agendar sessão”.</p>'}`;
   const financeiroPanel = `<div class="panel">
           <div class="panel-head"><h3>Financeiro e agenda</h3></div>
           <p class="small">Recebido: <b>${brl(payments.paid)}</b><br>A receber: <b>${brl(payments.open)}</b><br>Sessões realizadas: <b>${payments.realizados}</b> · Valor da sessão: <b>${admin?.session_price != null ? brl(admin.session_price) : 'não definido'}</b></p>
-          <a class="btn quiet sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a>
+          <div class="row" style="gap:8px;flex-wrap:wrap">${pendentes.length ? `<button class="btn sm" id="cobrar-pac">Cobrar ${brl(payments.open)}</button>` : ''}<a class="btn quiet sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a></div>
         </div>`;
   const anamneses = reports.filter((r) => r.kind === 'anamnese');
   const evolucoes = reports.filter((r) => r.kind === 'sessao');
@@ -278,6 +289,7 @@ export async function renderPatientDetail(id) {
       <a class="btn quiet" href="#/nova?paciente=${p.id}&tipo=anamnese">${icon('file')}${anamneses.length ? 'Nova anamnese' : 'Fazer anamnese'}</a>
       <button class="btn quiet" id="newdoc">${icon('edit')}Novo documento</button>
       <a class="btn quiet" href="#/periodo?paciente=${p.id}">${icon('calendar')}Por período</a>
+      <button class="btn quiet" id="agendar">${icon('calendar')}Agendar sessão</button>
       <button class="btn quiet" id="dossier">${icon('download')}Prontuário</button>
       <button class="btn quiet" id="audit">${icon('shield')}Auditoria (PDF)</button>
       <button class="btn quiet" id="link-anamnese">${icon('file')}Anamnese por link</button>
@@ -290,6 +302,7 @@ export async function renderPatientDetail(id) {
     (!p.email ? callout('<p>Sem e-mail cadastrado, não é possível liberar relatórios no portal do paciente.</p>', '', '<button class="btn sm quiet" id="edit-mail">Adicionar e-mail</button>') : '') + `
     <div class="cols">
       <section>
+        ${proximasHtml}
         <div class="panel-head" style="margin-top:22px"><h2>Linha do tempo</h2><span class="muted small">${anamneses.length} anamnese · ${evolucoes.length} evoluções · ${periodos.length} por período</span></div>
         ${timeline || emptyState('Nenhum registro ainda', 'Comece pela anamnese (entrevista inicial) ou registre a primeira evolução.', `<div class="row"><a class="btn quiet" href="#/nova?paciente=${p.id}&tipo=anamnese">${icon('file')}Fazer anamnese</a><a class="btn bloom" href="#/nova?paciente=${p.id}">${icon('mic')}Nova evolução</a></div>`)}
         ${p.notes ? `<h3 style="margin-top:26px">Observações</h3><p class="pre">${esc(p.notes)}</p>` : ''}
@@ -350,6 +363,13 @@ export async function renderPatientDetail(id) {
       audits: Object.fromEntries(full.map((r, i) => [r.id, audits[i]])),
     });
   };
+  $('#agendar').onclick = async () => { if (await appointmentModal({ patients: [p], date: hoje })) renderPatientDetail(id); };
+  $$('[data-pst]').forEach((sel) => (sel.onchange = async () => {
+    try { await api.updateAppointment(sel.dataset.pst, { status: sel.value }); toast('Situação atualizada.'); renderPatientDetail(id); }
+    catch (err) { toast(err.message, 'err'); }
+  }));
+  if ($('#cobrar-pac')) $('#cobrar-pac').onclick = () => abrirCobranca({ profile: state.profile, patient: { name: p.name, phone: p.phone },
+    items: pendentes.map((a) => ({ date: a.date, time: a.time, amount: a.amount != null ? Number(a.amount) : Number(admin?.session_price) || 0 })) });
   $('#link-anamnese').onclick = () => anamneseLinkModal(p, id);
   $('#link-rel').onclick = () => relatorioLinkModal(p, id, reports);
   $$('[data-rlink]').forEach((b) => (b.onclick = async () => {
