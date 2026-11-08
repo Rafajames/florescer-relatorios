@@ -535,3 +535,4 @@ h1{font-size:34px;line-height:1.12} h2{font-size:22px;line-height:1.2} h3{font-w
 /* crítica: sem cartão dentro de cartão na semana */
 .wd{border:0;border-radius:10px;background:transparent;border-bottom:1px solid var(--line-2)}
 .wd.today{border:0;background:var(--petrol-tint);box-shadow:none}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 16px}@media (max-width:760px){.grid3{grid-template-columns:1fr}}

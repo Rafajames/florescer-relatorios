@@ -86,3 +86,6 @@ Dados de saúde são **dados pessoais sensíveis** (LGPD, art. 11). Este projeto
 - Atalhos: Ctrl K, Ctrl S, Alt N, Alt H e `?` para ajuda.
 - Estilo dos documentos (letra, margem, cabeçalho) e prévia do PDF antes de imprimir.
 Não exige mudança no banco.
+
+## Registro profissional e redes (versão 4.1)
+Em Configurações → Perfil: conselho, número, UF, categoria e links (Instagram, site, outra rede). O paciente vê isso no portal. Não há verificação automática. **Rode o `supabase/schema.sql` de novo** (cria a coluna `credentials` e atualiza a função do portal).

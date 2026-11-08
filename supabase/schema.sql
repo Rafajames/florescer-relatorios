@@ -299,12 +299,15 @@ create policy audit_select_own on public.audit_log
 -- liberados, para o paciente cujo e-mail de login é o e-mail cadastrado.
 -- (a transcrição nunca é exposta)
 -- ---------------------------------------------------------------------
+alter table public.profiles add column if not exists credentials jsonb;
+
+drop function if exists public.portal_list_reports();
 create or replace function public.portal_list_reports()
 returns table (
   id uuid, title text, kind text, session_date date,
   period_start date, period_end date, sections jsonb, ai_generated boolean,
   released_at timestamptz, professional_name text, professional_specialty text,
-  professional_registry text, clinic_name text
+  professional_registry text, clinic_name text, professional_credentials jsonb
 )
 language sql stable security definer set search_path = public as $$
   select r.id, r.title, r.kind, r.session_date, r.period_start, r.period_end,
@@ -313,7 +316,7 @@ language sql stable security definer set search_path = public as $$
             from jsonb_array_elements(r.sections) with ordinality as t(sec, ord)
            where coalesce((sec->>'patient_visible')::boolean, true)) as sections,
          r.ai_generated, r.released_at,
-         pr.full_name, pr.specialty, pr.council_registry, pr.clinic_name
+         pr.full_name, pr.specialty, pr.council_registry, pr.clinic_name, pr.credentials
   from public.reports r
   join public.patients p  on p.id = r.patient_id
   join public.profiles pr on pr.id = r.professional_id

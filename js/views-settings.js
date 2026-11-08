@@ -6,6 +6,7 @@ import { brandOf, applyBrand, rememberBrand, imageToDataUrl, PALETTES, slugify }
 import { connectorHtml, bindConnector } from './ai-connect.js';
 import { importTemplate } from './import-template.js';
 import { getLook, setLook } from './theme.js';
+import { COUNCILS, UFS, registryText, cleanUrl } from './credentials.js';
 import {
   $, $$, esc, fmtDateTime, todayISO, toast, openModal, confirmBox, busy, chip, callout, shell, loading, pageHeader, icon, dropzone, bindDrops, emptyState,
 } from './ui.js';
@@ -40,6 +41,7 @@ export async function renderSettings(params) {
   const savePrefs = (changes) => saveProfile({ preferences: { ...getPrefs(), ...changes } });
 
   if (tab === 'perfil') {
+    const cr = p.credentials || {};
     pane.innerHTML = `
       <section class="panel"><h2>Perfil e timbre</h2>
         <p class="muted">Estas informações aparecem no topo dos relatórios e nas exportações.</p>
@@ -47,8 +49,21 @@ export async function renderSettings(params) {
           <div class="grid2">
             <label class="field">Nome completo<input name="full_name" required value="${esc(p.full_name)}"></label>
             <label class="field">Área de atuação<select name="specialty">${SPECIALTIES.map((s) => `<option ${s === p.specialty ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
-            <label class="field">Registro no conselho<input name="council_registry" value="${esc(p.council_registry || '')}" placeholder="Ex.: CRP 20/12345"></label>
             <label class="field">Nome do consultório ou clínica<input name="clinic_name" value="${esc(p.clinic_name || '')}"></label>
+            <label class="field">Categoria ou especialidade<input name="category" value="${esc(cr.category || '')}" placeholder="Ex.: Psicóloga clínica, Fisioterapeuta neurofuncional"></label>
+          </div>
+          <h3 style="margin:6px 0 4px">Registro no conselho</h3>
+          <p class="muted small" style="margin-bottom:8px">Aparece para seus pacientes no portal e nos documentos. É informado por você; o sistema não confere junto ao conselho.</p>
+          <div class="grid3">
+            <label class="field">Conselho<select name="council">${COUNCILS.map((c) => `<option ${c === (cr.council || '') ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
+            <label class="field">Número<input name="number" value="${esc(cr.number || '')}" placeholder="Ex.: 12345"></label>
+            <label class="field">Estado (UF)<select name="uf"><option value=""></option>${UFS.map((u) => `<option ${u === (cr.uf || '') ? 'selected' : ''}>${u}</option>`).join('')}</select></label>
+          </div>
+          <h3 style="margin:6px 0 4px">Redes sociais e site (opcional)</h3>
+          <div class="grid3">
+            <label class="field">Instagram<input name="instagram" value="${esc(cr.instagram || '')}" placeholder="instagram.com/seuperfil"></label>
+            <label class="field">Site<input name="site" value="${esc(cr.site || '')}" placeholder="www.seusite.com.br"></label>
+            <label class="field">Outra rede<input name="other" value="${esc(cr.other || '')}" placeholder="linkedin.com/in/..."></label>
           </div>
           <h3 style="margin:6px 0 8px">Prévia do timbre</h3>
           <div class="letterhead" id="lh" style="margin-bottom:16px"></div>
@@ -56,14 +71,18 @@ export async function renderSettings(params) {
         </form></section>`;
     const lh = () => {
       const f = new FormData($('#prof'));
-      const reg = [f.get('specialty'), f.get('council_registry')].filter(Boolean).join(', ');
+      const reg = [f.get('specialty'), registryText({ council: f.get('council'), uf: f.get('uf'), number: (f.get('number') || '').trim() })].filter(Boolean).join(', ');
       $('#lh').innerHTML = `<b>${esc(f.get('clinic_name') || f.get('full_name') || '')}</b><span>${esc(f.get('full_name') || '')}${reg ? ', ' + esc(reg) : ''}</span>`;
     };
     lh(); $('#prof').oninput = lh;
     $('#prof').onsubmit = (e) => {
       e.preventDefault(); const f = new FormData(e.target);
       return busy(e.target.querySelector('[type=submit]'), 'Salvando…', async () => {
-        await saveProfile({ full_name: f.get('full_name').trim(), specialty: f.get('specialty'), council_registry: f.get('council_registry').trim() || null, clinic_name: f.get('clinic_name').trim() || null });
+        const g = (n) => (f.get(n) || '').trim();
+        const bad = ['instagram', 'site', 'other'].filter((n) => g(n) && !cleanUrl(g(n)));
+        if (bad.length) throw new Error('Confira o endereço digitado em Redes sociais e site. Use algo como instagram.com/seuperfil.');
+        const credentials = { council: g('council'), number: g('number'), uf: g('uf'), category: g('category'), instagram: cleanUrl(g('instagram')), site: cleanUrl(g('site')), other: cleanUrl(g('other')) };
+        await saveProfile({ full_name: g('full_name'), specialty: f.get('specialty'), council_registry: registryText(credentials) || null, credentials, clinic_name: g('clinic_name') || null });
         toast('Perfil salvo.');
       });
     };

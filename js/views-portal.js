@@ -2,6 +2,7 @@ import * as api from './api.js';
 import { exportPdf } from './export.js';
 import { $, esc, fmtDate, shell, loading, pageHeader, backLink, meta, callout, icon } from './ui.js';
 import { state } from './state.js';
+import { registryText } from './credentials.js';
 
 const asProfessional = (r) => ({
   full_name: r.professional_name, specialty: r.professional_specialty,
@@ -11,7 +12,17 @@ const asProfessional = (r) => ({
 export async function renderPortal() {
   const main = shell('portal'); loading(main);
   const list = await api.portalReports();
+  const pros = [...new Map(list.map((r) => [r.professional_name, r])).values()];
+  const proCard = (r) => {
+    const c = r.professional_credentials || {};
+    const links = [['Instagram', c.instagram], ['Site', c.site], ['Rede', c.other]].filter(([, u]) => /^https?:\/\//.test(u || ''));
+    return `<section class="panel pro-card"><h3>${esc(r.professional_name || 'Profissional')}</h3>
+      ${meta([esc(c.category || r.professional_specialty || ''), esc(registryText(c) || r.professional_registry || '')])}
+      ${links.length ? `<p class="small" style="margin:8px 0 0">${links.map(([l, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${l}</a>`).join(' · ')}</p>` : ''}
+      <p class="muted small" style="margin:8px 0 0">Informações fornecidas pelo profissional. Para conferir o registro, consulte o site do conselho da categoria.</p></section>`;
+  };
   main.innerHTML = pageHeader('Meus relatórios', 'Aqui aparecem os relatórios que seu profissional revisou e liberou para você.') +
+    pros.map(proCard).join('') +
     (list.length ? `<div class="list">${list.map((r) => `
       <a class="li" href="#/portal/${r.id}">
         <div class="grow"><div class="t">${esc(r.title)}</div>
