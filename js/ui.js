@@ -109,6 +109,8 @@ const TAB = [
   ['config', '#/config', 'sliders', 'Ajustes'],
 ];
 
+const TAB_ADMIN = [['admin', '#/admin', 'home', 'Início'], ['config', '#/config?aba=seguranca', 'shield', 'Segurança'], ['sair', '#', 'logout', 'Sair']];
+
 export function shell(active) {
   const p = state.profile;
   const isPatient = p && p.role === 'patient';
@@ -139,8 +141,8 @@ export function shell(active) {
         ${nt ? `<div class="notice ${nt.level === 'warn' ? 'warn' : ''}" role="status">${icon('info')}<span>${esc(nt.text)}</span></div>` : ''}
         <main id="main" class="page"></main>
       </div>
-      ${isPatient || isAdm ? '' : `<nav class="tabbar" aria-label="Atalhos">
-        ${TAB.map(([k, h, ic, l, cta]) => `<a href="${h}" ${cta ? 'data-new' : ''} class="${k === active ? 'on' : ''} ${cta ? 'cta' : ''}">${cta ? `<span class="circle">${icon(ic)}</span>` : icon(ic)}${l}</a>`).join('')}
+      ${isPatient ? '' : `<nav class="tabbar" aria-label="Atalhos" ${isAdm ? 'style="grid-template-columns:repeat(3,1fr)"' : ''}>
+        ${(isAdm ? TAB_ADMIN : TAB).map(([k, h, ic, l, cta]) => `<a href="${h}" ${cta ? 'data-new' : ''} ${k === 'sair' ? 'data-logout' : ''} class="${k === active ? 'on' : ''} ${cta ? 'cta' : ''}">${cta ? `<span class="circle">${icon(ic)}</span>` : icon(ic)}${l}</a>`).join('')}
       </nav>`}
     </div>`;
   const s = $('#open-search');

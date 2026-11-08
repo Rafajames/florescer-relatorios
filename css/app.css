@@ -589,3 +589,5 @@ h1{font-size:34px;line-height:1.12} h2{font-size:22px;line-height:1.2} h3{font-w
 .notice.warn{background:color-mix(in srgb,#C9892B 18%,var(--field))}
 .notice svg{flex:none;width:18px;height:18px}
 .adm-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+
+.adm-tabs{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:4px}.adm-tabs .btn{flex:none}
