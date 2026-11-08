@@ -139,7 +139,7 @@ export async function renderReport(id) {
     if (s.type === 'marcar') return `<select data-f="text" class="fld" ${label}>${['', 'Sim', 'Não', 'Não abordado.'].map((o) => `<option ${o === (s.text || '') ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
     if (s.type === 'escolha') { const opts = ['', ...(s.options || [])]; if (s.text && !opts.includes(s.text)) opts.push(s.text); return `<select data-f="text" class="fld" ${label}>${opts.map((o) => `<option ${o === (s.text || '') ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`; }
     if (s.type === 'curto' || s.type === 'data') return `<input data-f="text" class="fld" ${label} value="${esc(s.text)}" ${s.type === 'data' ? 'placeholder="DD/MM/AAAA"' : ''}>`;
-    return `<div class="rt-wrap">${toolbarHtml()}<div class="rt fld" contenteditable="true" role="textbox" aria-multiline="true" data-f="html" ${label}>${s.html ? sanitize(s.html) : textToHtml(s.text)}</div></div>`;
+    return `<div class="rt-wrap">${toolbarHtml()}<div class="rt fld" contenteditable="true" role="textbox" aria-multiline="true" data-f="html" data-empty="${!(s.text || '').trim()}" ${label}>${s.html ? sanitize(s.html) : textToHtml(s.text)}</div></div>`;
   };
 
   const drawSheet = () => {
@@ -158,7 +158,7 @@ export async function renderReport(id) {
     const secs = $('#secs');
     secs.addEventListener('input', (e) => {
       const card = e.target.closest('.sec'); if (!card) return;
-      if (e.target.dataset.f === 'html') { const sec = sections[+card.dataset.i]; sec.html = sanitize(e.target.innerHTML); sec.text = e.target.innerText.trim(); markDirty(); return; }
+      if (e.target.dataset.f === 'html') { const sec = sections[+card.dataset.i]; sec.html = sanitize(e.target.innerHTML); sec.text = e.target.innerText.trim(); e.target.dataset.empty = String(!sec.text); markDirty(); return; }
       sections[+card.dataset.i][e.target.dataset.f] = e.target.value;
       if (e.target.tagName === 'TEXTAREA') autosize(e.target);
       markDirty();

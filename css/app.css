@@ -552,3 +552,17 @@ h1{font-size:34px;line-height:1.12} h2{font-size:22px;line-height:1.2} h3{font-w
 .doc-free .sec .rt{min-height:46vh}
 .rt table,.rt-view table{border-collapse:collapse;width:100%;margin:0 0 .8em}
 .rt td,.rt th,.rt-view td,.rt-view th{border:1px solid var(--line);padding:6px 8px;vertical-align:top}
+
+/* campos editáveis sempre visíveis */
+.sec .fld,.sec .rt,.sec textarea{background:var(--field);border:1px solid var(--edge);border-radius:8px;padding:9px 12px;margin:0;width:100%}
+.sec .fld:hover,.sec .rt:hover,.sec textarea:hover{background:var(--field);border-color:var(--edge-2)}
+.sec .fld:focus,.sec .rt:focus,.sec textarea:focus{background:var(--field);border-color:var(--petrol);box-shadow:0 0 0 3px var(--petrol-tint)}
+.sec .rt{position:relative;min-height:3.2em}
+.rt[data-empty=true]::before{content:"Toque aqui para escrever…";color:var(--ink-2);opacity:.75;position:absolute;pointer-events:none}
+.sec-title{background:transparent}
+.rt-bar{margin-left:0}
+@media (max-width:760px){
+  .sec-side{position:relative;padding-right:44px}
+  .sec .sec-toggle{position:absolute;right:0;top:-4px;border:1px solid var(--edge);background:var(--field)}
+  .sec.collapsed .sec-title{font-size:15px}
+}
