@@ -682,3 +682,228 @@ create policy patient_admin_all_own on public.patient_admin
   with check (professional_id = auth.uid() and public.is_professional()
     and exists (select 1 from public.patients p where p.id = patient_id and p.professional_id = auth.uid()));
 grant select, insert, update, delete on public.appointments, public.patient_admin to authenticated;
+
+-- ---------------------------------------------------------------------
+-- Modelos de terapia ocupacional (v3) — PROPOSTA, revisar antes de aplicar.
+-- Idempotente: cada modelo só é inserido se ainda não existir um modelo
+-- do sistema com o mesmo nome. Não altera nem remove os modelos existentes
+-- (a "Evolução em terapia ocupacional" original continua igual).
+-- tipos de campo: curto | longo | data | marcar | escolha (+ options)
+-- ---------------------------------------------------------------------
+do $seed3$
+begin
+
+-- 1) Anamnese infantil (base: anamnese.pdf)
+if not exists (select 1 from public.templates where professional_id is null and name = 'Anamnese de terapia ocupacional (infantil)') then
+insert into public.templates (professional_id, name, specialty, kind, sections) values
+(null, 'Anamnese de terapia ocupacional (infantil)', 'Terapia Ocupacional', 'anamnese', '[
+  {"title":"Data da avaliação","hint":"Data em que a anamnese foi realizada.","type":"data"},
+  {"title":"Responsáveis","hint":"Vínculo dos responsáveis com o(a) paciente (mãe, pai, outro).","type":"curto"},
+  {"title":"Idade dos pais","hint":"Somente se informada.","type":"curto"},
+  {"title":"Profissão dos pais","hint":"Somente se informada.","type":"curto"},
+  {"title":"Com quem mora","hint":"Composição do núcleo familiar, sem nomes próprios.","type":"curto"},
+  {"title":"Motivo do encaminhamento e queixa principal","hint":"Motivo da procura e queixas, nas palavras dos responsáveis.","type":"longo"},
+  {"title":"Diagnóstico/Suspeita","hint":"Somente diagnóstico ou suspeita citados. Não inventar diagnósticos ou níveis de suporte.","type":"curto"},
+  {"title":"História do diagnóstico","hint":"Quem notou, quando percebeu, ações dos responsáveis e como lidaram com a situação.","type":"longo"},
+  {"title":"Histórico familiar de deficiências/transtornos","hint":"Somente o relatado.","type":"longo"},
+  {"title":"Potencialidades da criança","hint":"Interesses, habilidades e pontos fortes relatados.","type":"longo"},
+  {"title":"Gestação","hint":"Pré-natal, período gestacional, intercorrências, tipo de parto, enjoos e refluxo. Somente o relatado.","type":"longo"},
+  {"title":"Peso ao nascer","hint":"Somente se informado. Não inventar valores.","type":"curto"},
+  {"title":"Condições ao nascer","hint":"Choro ao nascer, convulsões, icterícia, refluxo, internação, vacinação, uso de chupeta.","type":"longo"},
+  {"title":"Alimentação","hint":"Amamentação e duração, fórmula, introdução alimentar, autonomia para comer e seletividade alimentar.","type":"longo"},
+  {"title":"Marcos do desenvolvimento","hint":"Idades relatadas para sustentar a cabeça, sentar, engatinhar, andar, balbuciar, falar e primeiras palavras. Não inventar idades.","type":"longo"},
+  {"title":"Usa gestos significativos apontando o que deseja?","hint":"","type":"marcar"},
+  {"title":"É exposto(a) a mais de uma língua?","hint":"","type":"marcar"},
+  {"title":"Acata ordens simples?","hint":"","type":"marcar"},
+  {"title":"Apresenta ecolalia?","hint":"","type":"marcar"},
+  {"title":"Brincar","hint":"Brincar funcional, simbólico e faz de conta, preferências, divisão e espera, se guarda os brinquedos, se os pais brincam e horários.","type":"longo"},
+  {"title":"Aspectos comportamentais","hint":"Reação ao não, limiar de frustração, choro, birras, comportamento autoagressivo ou heteroagressivo.","type":"longo"},
+  {"title":"Aspectos sensoriais","hint":"Aversão tátil, recusa alimentar, reação ao lavar o cabelo, a sons altos, busca por pular e correr, esbarrar em pessoas e objetos.","type":"longo"},
+  {"title":"Aspectos motores","hint":"Coordenação motora grossa e fina, lateralidade e equilíbrio.","type":"longo"},
+  {"title":"Aspectos cognitivos","hint":"Percepção, atenção, memória, raciocínio, imaginação, linguagem e imitação.","type":"longo"},
+  {"title":"Interação social","hint":"Contato visual, resposta ao nome, interação com crianças e adultos, comunicação, apontar e gesticular.","type":"longo"},
+  {"title":"Vestir/despir","hint":"Zíper, botões, noção de avesso, frente e trás, calçados e cadarço.","type":"longo"},
+  {"title":"Uso do banheiro","hint":"Fralda, uso do vaso, higiene íntima, escovação dos dentes e banho.","type":"longo"},
+  {"title":"Sono","hint":"Horário, duração e despertares noturnos.","type":"longo"},
+  {"title":"Escola","hint":"Ano escolar, idade de início, queixas de comportamento, dificuldades em matérias, dominância. Sem nome da escola.","type":"longo"},
+  {"title":"Reforçadores","hint":"Itens e atividades de interesse citados.","type":"longo"},
+  {"title":"Uso do celular e TV","hint":"Tempo e contexto de uso relatados.","type":"longo"},
+  {"title":"Uso de medicamento","hint":"Somente os citados. Não inventar medicamentos ou doses.","type":"longo"},
+  {"title":"Rotina da criança","hint":"Rotina diária relatada.","type":"longo"},
+  {"title":"Terapias","hint":"Terapias atuais, dias e horários, por área profissional, sem nomes próprios.","type":"longo"},
+  {"title":"Observações","hint":"Outras informações relevantes relatadas.","type":"longo"}
+]'::jsonb);
+end if;
+
+-- 2) Ficha de avaliação adulto/reabilitação (base: FICHA DE AVALIAÇÃO TO.pdf)
+if not exists (select 1 from public.templates where professional_id is null and name = 'Ficha de avaliação em terapia ocupacional (adulto)') then
+insert into public.templates (professional_id, name, specialty, kind, sections) values
+(null, 'Ficha de avaliação em terapia ocupacional (adulto)', 'Terapia Ocupacional', 'anamnese', '[
+  {"title":"Naturalidade","hint":"","type":"curto"},
+  {"title":"Escolaridade","hint":"","type":"curto"},
+  {"title":"Profissão","hint":"","type":"curto"},
+  {"title":"Ocupação atual","hint":"","type":"curto"},
+  {"title":"Situação previdenciária","hint":"Somente se informada.","type":"curto"},
+  {"title":"Acompanhante","hint":"Vínculo do acompanhante, sem nome próprio.","type":"curto"},
+  {"title":"Diagnóstico clínico","hint":"Somente o diagnóstico citado. Não inventar.","type":"curto"},
+  {"title":"H.D.A.","hint":"História da doença atual: início, evolução e tratamentos.","type":"longo"},
+  {"title":"Queixa principal","hint":"Nas palavras do paciente.","type":"longo"},
+  {"title":"História clínica pregressa","hint":"Outras doenças e fatores de risco relatados.","type":"longo"},
+  {"title":"Outros atendimentos","hint":"Fisioterapia, fonoaudiologia, psicologia, clínica da dor ou outros citados.","type":"curto"},
+  {"title":"Alergias","hint":"Dermatológica, respiratória ou alimentar. Registrar \"Nega\" se negou.","type":"curto"},
+  {"title":"Medicação","hint":"Somente as citadas. Não inventar medicamentos ou doses.","type":"longo"},
+  {"title":"Reside em","hint":"","type":"escolha","options":["Casa","Apartamento","Outro"]},
+  {"title":"Dificuldades com o ambiente doméstico","hint":"Quais dificuldades, se houver.","type":"longo"},
+  {"title":"Rotina de atividades cotidianas alterada pelo problema?","hint":"","type":"marcar"},
+  {"title":"Dificuldades no autocuidado?","hint":"","type":"marcar"},
+  {"title":"Dificuldades nas atividades instrumentais?","hint":"","type":"marcar"},
+  {"title":"Dificuldades para exercer a profissão?","hint":"","type":"marcar"},
+  {"title":"Dificuldades para estudar?","hint":"","type":"marcar"},
+  {"title":"Dificuldades nas atividades de lazer?","hint":"","type":"marcar"},
+  {"title":"Mão dominante","hint":"","type":"escolha","options":["Direita","Esquerda"]},
+  {"title":"Controle de cabeça","hint":"","type":"marcar"},
+  {"title":"Controle de tronco","hint":"","type":"marcar"},
+  {"title":"Amplitude de movimento do membro superior esquerdo","hint":"Somente o observado. Não inventar graus.","type":"longo"},
+  {"title":"Amplitude de movimento do membro superior direito","hint":"Somente o observado. Não inventar graus.","type":"longo"},
+  {"title":"Amplitude de movimento de tronco","hint":"Somente o observado.","type":"longo"},
+  {"title":"Rotações de tronco","hint":"","type":"escolha","options":["Realiza sem dificuldade","Realiza com dificuldade","Não realiza"]},
+  {"title":"Mobilidade","hint":"","type":"escolha","options":["Deambula sem auxílio","Deambula com auxílio de locomoção"]},
+  {"title":"Cadeira de rodas","hint":"","type":"escolha","options":["Não utiliza","Utiliza e manuseia","Utiliza e não manuseia"]},
+  {"title":"Dor","hint":"Presença, local, características (constante, esporádica, irradiada, intermitente). Escala de 0 a 10 só se informada. Não inventar valores.","type":"longo"},
+  {"title":"Coordenação motora fina","hint":"Não alterada, bradicinesia, tremor, hipermetria ou disdiadococinesia, conforme observado.","type":"curto"},
+  {"title":"Heminegligência","hint":"","type":"marcar"},
+  {"title":"Agnosia","hint":"","type":"marcar"},
+  {"title":"Hemianopsia","hint":"","type":"marcar"},
+  {"title":"Apraxia","hint":"","type":"marcar"},
+  {"title":"Comunicação","hint":"","type":"longo"},
+  {"title":"Órtese","hint":"Uso, tipo, há quanto tempo e esquema de uso.","type":"longo"},
+  {"title":"Outros equipamentos ou adaptações","hint":"Quais utiliza.","type":"longo"},
+  {"title":"Força muscular","hint":"Somente o avaliado. Não inventar graus.","type":"longo"},
+  {"title":"Deformidade","hint":"Quais, se houver.","type":"longo"},
+  {"title":"Edema","hint":"Localização, se houver.","type":"longo"},
+  {"title":"Tônus muscular","hint":"Área examinada pode ser descrita em Sensibilidade.","type":"escolha","options":["Normal","Aumentado","Diminuído"]},
+  {"title":"Sensibilidade","hint":"Área examinada e, por lado (esquerdo/direito): tátil, térmica, dolorosa, vibratória, cinético-postural, pressão, grafestesia e discriminação tátil (aumentada, diminuída, normal ou não aplicável). Somente o avaliado.","type":"longo"},
+  {"title":"Estereognosia","hint":"","type":"curto"},
+  {"title":"Uso de outros protocolos de avaliação","hint":"Lista de papéis ocupacionais, MIF, COPM, mapa de força muscular, estesiômetro, SF-36, Mini-mental ou outros. Escores só se informados.","type":"longo"},
+  {"title":"Impressão diagnóstica","hint":"Somente a impressão registrada pelo profissional.","type":"longo"},
+  {"title":"Conduta","hint":"Plano e condutas definidos.","type":"longo"}
+]'::jsonb);
+end if;
+
+-- 3) Avaliação sensorial por observação clínica (base: AVALIAÇÃO N estrutu. TO.pdf)
+if not exists (select 1 from public.templates where professional_id is null and name = 'Avaliação de terapia ocupacional (observação clínica)') then
+insert into public.templates (professional_id, name, specialty, kind, sections) values
+(null, 'Avaliação de terapia ocupacional (observação clínica)', 'Terapia Ocupacional', 'anamnese', '[
+  {"title":"Data da avaliação","hint":"","type":"data"},
+  {"title":"Hipótese/Diagnóstico","hint":"Somente o citado. Não inventar.","type":"curto"},
+  {"title":"Responsáveis","hint":"Vínculo, sem nomes próprios.","type":"curto"},
+  {"title":"Frequenta a escola?","hint":"","type":"marcar"},
+  {"title":"Desempenho ocupacional escolar","hint":"Pinça utilizada, se pinta desenhos com lápis ou pincel, leitura.","type":"longo"},
+  {"title":"Desempenho ocupacional no brincar","hint":"Interesse pelos brinquedos, tipo de brincar (funcional, simbólico, faz de conta, compartilhado, exploratório), troca de turno, brinquedos de preferência e tempo de permanência.","type":"longo"},
+  {"title":"Disfunções proprioceptivas","hint":"Itens observados: incoordenação, imitação de posições, descarga de peso, graduação de força, permanência sentado, planejamento motor, esbarrar, sentar em W, alinhamento articular, hiperatividade ou passividade, hipotonia, uso do corpo nas AVDs, andar na ponta dos pés, compensações e sobreuso proprioceptivo.","type":"longo"},
+  {"title":"Tipos de falhas proprioceptivas","hint":"Graduação de forças, estabilidade articular, tônus muscular, sobreuso proprioceptivo, controle postural, planejamento motor. Somente as observadas.","type":"curto"},
+  {"title":"Disfunções vestibulares","hint":"Itens observados: medo de movimento, evitar equipamentos suspensos, escada, sentar em W, cabeça na vertical, preferência pelo chão, Romberg, marcha em linha reta, integração bilateral, controle visomotor, ajustes posturais. Nistagmo pós-rotatório só se aplicado e com o tempo informado.","type":"longo"},
+  {"title":"Tipos de falhas vestibulares","hint":"Insegurança gravitacional, intolerância ao movimento, hiporresponsividade vestibular, controle vestíbulo-ocular inadequado, pobre integração bilateral e sequencial. Somente as observadas.","type":"curto"},
+  {"title":"Disfunções táteis","hint":"Itens observados: localização de estímulos, resistência a texturas, seletividade alimentar, incômodo com toques leves, irritação ao se sujar, percepção tátil, estereognosia, resistência em AVDs (escovação, unhas, cabelo, banho), busca por toque intenso, baixa percepção de dor, preferir brincar sozinho, sono.","type":"longo"},
+  {"title":"Tipos de falhas táteis","hint":"Defensividade tátil, hiper-reatividade tátil, falha no registro tátil (hiporreatividade). Somente as observadas.","type":"curto"},
+  {"title":"Outras observações","hint":"","type":"longo"}
+]'::jsonb);
+end if;
+
+-- 4) Questionário de AVDs para os responsáveis (base: AVDs.pdf)
+if not exists (select 1 from public.templates where professional_id is null and name = 'Questionário de atividades de vida diária (AVDs)') then
+insert into public.templates (professional_id, name, specialty, kind, sections) values
+(null, 'Questionário de atividades de vida diária (AVDs)', 'Terapia Ocupacional', 'anamnese', '[
+  {"title":"Data de quando o questionário foi respondido","hint":"","type":"data"},
+  {"title":"Questionário preenchido por","hint":"Vínculo com o(a) paciente, sem nome próprio.","type":"curto"},
+  {"title":"Descanso e sono: qualidade","hint":"","type":"escolha","options":["Péssimo","Ruim","Bom","Excelente"]},
+  {"title":"Descanso e sono: pontuação (0 a 10)","hint":"Somente se informada.","type":"curto"},
+  {"title":"Descanso e sono","hint":"Rotina de sono, uso de telas à noite, tempo para adormecer, horário e observações.","type":"longo"},
+  {"title":"Desfralde","hint":"Se é desfraldado, noção e sinais de xixi e cocô, horários, medo do vaso, redutor ou escadinha, incômodo com fralda suja, tempo seco, pede troca, tira a fralda sozinho.","type":"longo"},
+  {"title":"Alimentação: qualidade","hint":"","type":"escolha","options":["Péssima","Ruim","Boa","Excelente"]},
+  {"title":"Alimentação: pontuação (0 a 10)","hint":"Somente se informada.","type":"curto"},
+  {"title":"Alimentação","hint":"O que come em cada refeição, se se serve, toca nos alimentos, come sozinho, usa talheres e destreza.","type":"longo"},
+  {"title":"Higiene oral: qualidade","hint":"","type":"escolha","options":["Péssimo","Ruim","Bom","Excelente"]},
+  {"title":"Higiene oral: pontuação (0 a 10)","hint":"Somente se informada.","type":"curto"},
+  {"title":"Higiene oral","hint":"Incômodo com a escova, preferência de creme dental, morder a escova, iniciativa, áreas escovadas, suporte físico, abrir o creme, graduar força, enxaguar e cuspir, seguir etapas.","type":"longo"},
+  {"title":"Vestuário: qualidade","hint":"","type":"escolha","options":["Péssimo","Ruim","Bom","Excelente"]},
+  {"title":"Vestuário: pontuação (0 a 10)","hint":"Somente se informada.","type":"curto"},
+  {"title":"Vestuário","hint":"Iniciativa, dicas verbais, ajuda física, peças que veste e retira sozinho, frustração.","type":"longo"},
+  {"title":"Banho: qualidade","hint":"","type":"escolha","options":["Péssimo","Ruim","Bom","Excelente"]},
+  {"title":"Banho: pontuação (0 a 10)","hint":"Somente se informada.","type":"curto"},
+  {"title":"Banho","hint":"Iniciativa, planejamento motor, comandos ou ajuda, etapas, partes não visíveis, incômodo com esponja ou espuma, secar-se.","type":"longo"},
+  {"title":"Pentear cabelos","hint":"Penteia sozinho, aceita que outros penteiem, planejamento motor, preferências.","type":"longo"},
+  {"title":"Corte de cabelo","hint":"Aceitação, tesoura ou máquina, o que incomoda, quem corta, local, experiências difíceis e como é o momento do corte.","type":"longo"},
+  {"title":"Corte de unhas","hint":"Aceitação, momentos preferidos, acidentes anteriores.","type":"longo"}
+]'::jsonb);
+end if;
+
+-- 5) Evolução revisada (nova; a original permanece)
+if not exists (select 1 from public.templates where professional_id is null and name = 'Evolução em terapia ocupacional (Integração Sensorial)') then
+insert into public.templates (professional_id, name, specialty, kind, sections) values
+(null, 'Evolução em terapia ocupacional (Integração Sensorial)', 'Terapia Ocupacional', 'sessao', '[
+  {"title":"Intercorrências","hint":"Fatos relatados desde o último atendimento (saúde, rotina, comportamento). Somente o relatado.","type":"longo"},
+  {"title":"Objetivos da sessão","hint":"Metas do plano terapêutico trabalhadas na sessão.","type":"longo"},
+  {"title":"Atividades realizadas","hint":"Atividades, equipamentos, recursos e adaptações utilizados.","type":"longo"},
+  {"title":"Respostas sensoriais e adaptativas","hint":"Respostas observadas nos sistemas tátil, vestibular e proprioceptivo, regulação e nível de alerta.","type":"longo"},
+  {"title":"Desempenho ocupacional","hint":"Participação, autonomia e dificuldades no brincar, nas AVDs e na escola, conforme descrito.","type":"longo"},
+  {"title":"Orientações à família","hint":"Orientações dadas ao paciente e aos responsáveis.","type":"longo"},
+  {"title":"Plano para a próxima sessão","hint":"Próximos passos combinados.","type":"longo"}
+]'::jsonb);
+end if;
+
+-- 6) Relatório evolutivo para convênio, 180 dias (base: RELATORIO CLINICO.pdf)
+if not exists (select 1 from public.templates where professional_id is null and name = 'Relatório evolutivo em terapia ocupacional (convênio)') then
+insert into public.templates (professional_id, name, specialty, kind, sections) values
+(null, 'Relatório evolutivo em terapia ocupacional (convênio)', 'Terapia Ocupacional', 'periodo', '[
+  {"title":"Metodologia ou intervenção utilizada","hint":"Abordagem utilizada, conforme os registros."},
+  {"title":"Periodicidade","hint":"Quantidade de sessões e duração semanal, conforme os registros. Não inventar."},
+  {"title":"Descrição","hint":"Marcos atuais do desenvolvimento, principais sintomas e características, incluindo diagnóstico ou hipótese diagnóstica. Somente o que consta."},
+  {"title":"Objetivos do tratamento","hint":"Principais motivos que indicam a continuidade do tratamento para os próximos 180 dias."},
+  {"title":"Evolução","hint":"Ganhos obtidos no último semestre e resultados de avaliações registrados. Não inventar escores."},
+  {"title":"Prognóstico","hint":"Provável evolução a partir da proposta atual, conforme registrado pelo profissional."},
+  {"title":"Previsão de alta","hint":"Data provável de alta ou alteração do plano. Se não houver, registrar que não há previsão."},
+  {"title":"Intercorrências","hint":"Intercorrências do período e condutas adotadas."}
+]'::jsonb);
+end if;
+
+-- 7) Relatório avaliativo (base: Relatorio Avaliativo.pdf)
+if not exists (select 1 from public.templates where professional_id is null and name = 'Relatório avaliativo terapêutico ocupacional') then
+insert into public.templates (professional_id, name, specialty, kind, sections) values
+(null, 'Relatório avaliativo terapêutico ocupacional', 'Terapia Ocupacional', 'periodo', '[
+  {"title":"Encaminhamento e queixas","hint":"Idade, motivo do encaminhamento, número e duração das sessões avaliativas e principais queixas dos responsáveis."},
+  {"title":"Observação em setting terapêutico","hint":"Entrada na sala, exploração do ambiente, vínculo terapêutico, interação, contato visual e compreensão de comandos."},
+  {"title":"Protocolos e avaliação","hint":"Protocolos aplicados e resultados registrados (ex.: SPM, Perfil Sensorial). Escores e faixas só se constarem. Não inventar."},
+  {"title":"Observações clínicas não estruturadas","hint":"Sistemas vestibular, proprioceptivo e tátil e impactos no desempenho ocupacional (AVDs, escola, brincar)."},
+  {"title":"Conclusão e demandas","hint":"Demandas para a terapia ocupacional e frequência semanal indicada, conforme registrado."},
+  {"title":"Encaminhamentos","hint":"Avaliações solicitadas a outros profissionais, se houver."}
+]'::jsonb);
+end if;
+
+-- 8) Breve relatório avaliativo (base: breve relatorio.pdf)
+if not exists (select 1 from public.templates where professional_id is null and name = 'Breve relatório avaliativo terapêutico ocupacional') then
+insert into public.templates (professional_id, name, specialty, kind, sections) values
+(null, 'Breve relatório avaliativo terapêutico ocupacional', 'Terapia Ocupacional', 'periodo', '[
+  {"title":"Encaminhamento e queixas","hint":"Idade, motivo do encaminhamento e queixas relatadas pelos responsáveis."},
+  {"title":"Observação da sessão avaliativa","hint":"Comportamento, contato visual, comunicação, resposta ao nome e uso dos objetos, conforme registrado."},
+  {"title":"Sistemas sensoriais","hint":"Respostas observadas aos equipamentos e estímulos táteis, vestibulares e proprioceptivos, e relatos sobre autocuidado."},
+  {"title":"Objetivos terapêuticos","hint":"Objetivos preliminares definidos, com breve justificativa de cada um."},
+  {"title":"Conclusão e frequência indicada","hint":"Demandas identificadas e número de sessões semanais indicado, conforme registrado."}
+]'::jsonb);
+end if;
+
+-- 9) Relatório de acompanhamento (base: relatorio de acompanhamento.pdf)
+if not exists (select 1 from public.templates where professional_id is null and name = 'Relatório de acompanhamento terapêutico ocupacional') then
+insert into public.templates (professional_id, name, specialty, kind, sections) values
+(null, 'Relatório de acompanhamento terapêutico ocupacional', 'Terapia Ocupacional', 'periodo', '[
+  {"title":"Diagnóstico terapêutico ocupacional","hint":"Somente o registrado pelo profissional. Não inventar."},
+  {"title":"Breve relato da trajetória","hint":"Início do acompanhamento, abordagem, frequência, queixas iniciais e como foi a avaliação."},
+  {"title":"Protocolos aplicados e interpretação","hint":"Protocolos usados e interpretação registrada. Escores só se constarem."},
+  {"title":"Evolução e considerações finais","hint":"Avanços do período por área (vínculo, autonomia, controle postural, AVDs etc.)."},
+  {"title":"Objetivos a serem trabalhados","hint":"Próximos objetivos, com breve descrição de cada um."},
+  {"title":"Continuidade do tratamento","hint":"Frequência, dia e horário a manter, conforme registrado."}
+]'::jsonb);
+end if;
+
+end
+$seed3$;
