@@ -92,6 +92,13 @@ export const hasActiveConsent = (consents) => (consents || []).some((c) => !c.re
 /* ---------- modelos ---------- */
 export const listTemplates = () =>
   sb.from('templates').select('*').order('professional_id', { nullsFirst: true }).order('name').then(unwrap);
+/** Modelos que o profissional vê: os da área principal, os Gerais e os próprios. Administrador vê tudo. */
+export const templatesForMe = (list, profile) => {
+  if (!profile || profile.is_admin) return list;
+  const area = profile.specialty;
+  return list.filter((t) => (t.professional_id ? t.professional_id === profile.id
+    : t.specialty === 'Geral' || (Boolean(area) && t.specialty === area)));
+};
 export const saveTemplate = (t) => {
   const { id, ...rest } = t;
   return id

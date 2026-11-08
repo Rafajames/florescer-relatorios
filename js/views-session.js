@@ -22,7 +22,7 @@ export async function renderNewSession(params) {
   const main = shell('nova'); loading(main);
   const [patients, templates] = await Promise.all([api.listPatients(), api.listTemplates()]);
   const prefs = getPrefs();
-  const tpls = templates.filter((t) => t.kind === K.tplKind);
+  const tpls = api.templatesForMe(templates, state.profile).filter((t) => t.kind === K.tplKind);
   const tplById = Object.fromEntries(tpls.map((t) => [t.id, t]));
   const defTpl = (kind === 'sessao' && tplById[prefs.defaultTemplateId])
     || tpls.find((t) => t.specialty === state.profile.specialty) || tpls.find((t) => t.specialty === 'Geral') || tpls[0];

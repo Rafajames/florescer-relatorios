@@ -1,5 +1,6 @@
 import * as api from './api.js';
 import * as ai from './ai.js';
+import { state } from './state.js';
 import { getPrefs } from './prefs.js';
 import {
   $, $$, esc, fmtDate, todayISO, daysAgoISO, toast, confirmBox, busy, statusChip, chip, shell, loading, pageHeader, icon,
@@ -117,7 +118,7 @@ export async function renderReports(params) {
 export async function renderPeriod(params) {
   const main = shell('periodo'); loading(main);
   const [patients, templates] = await Promise.all([api.listPatients(), api.listTemplates()]);
-  const tpls = templates.filter((t) => t.kind === 'periodo');
+  const tpls = api.templatesForMe(templates, state.profile).filter((t) => t.kind === 'periodo');
   const prefs = getPrefs();
   const pre = params.get('paciente');
   let found = [];

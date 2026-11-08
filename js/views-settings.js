@@ -194,7 +194,7 @@ export async function renderSettings(params) {
 
   if (tab === 'preferencias') {
     const pr = getPrefs();
-    const tpls = (await api.listTemplates()).filter((t) => t.kind === 'sessao');
+    const tpls = api.templatesForMe(await api.listTemplates(), state.profile).filter((t) => t.kind === 'sessao');
     pane.innerHTML = `
       <form id="pf">
       <section class="panel"><h2>Como a IA escreve</h2>
@@ -414,7 +414,7 @@ export async function templateModal(t = {}) {
 
 export async function renderTemplates() {
   const main = shell('modelos'); loading(main);
-  const list = await api.listTemplates();
+  const list = api.templatesForMe(await api.listTemplates(), state.profile);
   const sys = list.filter((t) => !t.professional_id), mine = list.filter((t) => t.professional_id);
   const row = (t, own) => `<div class="li">
     <div class="grow"><div class="t">${esc(t.name)} ${chip(KINDS[t.kind] || 'Evolução', 'petrol')} ${t.specialty ? chip(t.specialty) : ''} ${t.meta?.source ? chip('Importado', 'bloom') : ''}</div>
