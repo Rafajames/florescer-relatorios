@@ -5,8 +5,9 @@ import { DEFAULT_PREFS, getPrefs } from './prefs.js';
 import { brandOf, applyBrand, rememberBrand, imageToDataUrl, PALETTES, slugify } from './brand.js';
 import { connectorHtml, bindConnector } from './ai-connect.js';
 import { importTemplate } from './import-template.js';
+import { getLook, setLook } from './theme.js';
 import {
-  $, $$, esc, fmtDateTime, todayISO, toast, openModal, confirmBox, busy, chip, callout, shell, loading, pageHeader, icon,
+  $, $$, esc, fmtDateTime, todayISO, toast, openModal, confirmBox, busy, chip, callout, shell, loading, pageHeader, icon, dropzone, bindDrops, emptyState,
 } from './ui.js';
 
 /* =====================================================================
@@ -72,7 +73,17 @@ export async function renderSettings(params) {
     const b = brandOf(p);
     const draft = { ...b };
     const base = location.origin + location.pathname;
+    const look = getLook();
+    const segHtml = (name, opts) => `<div class="seg" role="radiogroup">${opts.map(([v, l]) => `<label><input type="radio" name="${name}" value="${v}" ${look[name] === v ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div>`;
     pane.innerHTML = `
+      <section class="panel"><h2>Conforto de leitura neste aparelho</h2>
+        <p class="muted">Vale só para este navegador. Não muda a marca nem os documentos.</p>
+        <div class="grid2">
+          <div class="field">Tema${segHtml('theme', [['auto', 'Automático'], ['light', 'Claro'], ['dark', 'Escuro']])}</div>
+          <div class="field">Tamanho da letra${segHtml('size', [['normal', 'Normal'], ['lg', 'Grande'], ['xl', 'Extra']])}</div>
+        </div>
+        <label class="check"><input type="checkbox" id="hc" ${look.contrast === 'high' ? 'checked' : ''}><span>Alto contraste e foco bem visível<small>Bordas e textos mais fortes, ajuda quem usa o teclado.</small></span></label>
+      </section>
       <form id="bf">
       <section class="panel"><h2>Aparência e marca</h2>
         <p class="muted">A plataforma passa a ter a sua cara: logo, cores e nome aparecem no menu, na tela de login e nos documentos.</p>
@@ -83,12 +94,12 @@ export async function renderSettings(params) {
         <div class="grid2">
           <div class="field">Logo
             <div class="logo-pick"><span class="logo-box" id="logo-box"></span>
-              <input type="file" id="logo-file" accept="image/*" aria-label="Enviar logo">
+              <div class="grow">${dropzone({ id: 'logo-file', accept: 'image/*', title: 'Enviar logo', hint: 'Arraste a imagem para cá ou clique.' })}</div>
               <button type="button" class="link" id="logo-rm">Remover logo</button></div>
             <small>PNG com fundo transparente fica melhor. A imagem é reduzida automaticamente.</small></div>
           <div class="field">Assinatura ou carimbo (opcional)
             <div class="logo-pick"><span class="logo-box" id="sig-box"></span>
-              <input type="file" id="sig-file" accept="image/*" aria-label="Enviar assinatura">
+              <div class="grow">${dropzone({ id: 'sig-file', accept: 'image/*', title: 'Enviar assinatura', hint: 'Arraste a imagem para cá ou clique.' })}</div>
               <button type="button" class="link" id="sig-rm">Remover</button></div>
             <small>Aparece acima do seu nome no fim dos documentos.</small></div>
         </div>
@@ -98,6 +109,14 @@ export async function renderSettings(params) {
             <label class="small">Cor principal <input type="color" name="color" value="${esc(draft.color)}" style="width:52px;min-height:34px;padding:2px;margin:0 0 0 4px"></label>
             <label class="small">Cor de destaque <input type="color" name="accent" value="${esc(draft.accent)}" style="width:52px;min-height:34px;padding:2px;margin:0 0 0 4px"></label></div></div>
         <label class="field">Rodapé dos documentos (opcional)<textarea name="footer" rows="2" placeholder="Ex.: Rua das Flores, 100, Boa Vista, telefone, site">${esc(draft.footer)}</textarea></label>
+      </section>
+      <section class="panel"><h2>Estilo dos documentos</h2>
+        <p class="muted">Vale para o PDF e o Word. Veja o resultado em “Exportar PDF” (há uma prévia antes de imprimir).</p>
+        <div class="grid2">
+          <label class="field">Tipo de letra<select name="doc_font">${[['moderna', 'Moderna (sem serifa)'], ['classica', 'Clássica (com serifa)']].map(([v, l]) => `<option value="${v}" ${(b.doc_font || 'moderna') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+          <label class="field">Margem da página<select name="doc_margin">${[['estreita', 'Estreita'], ['normal', 'Normal'], ['ampla', 'Ampla']].map(([v, l]) => `<option value="${v}" ${(b.doc_margin || 'normal') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        </div>
+        <label class="field">Cabeçalho<select name="doc_header">${[['side', 'Logo ao lado do nome, alinhado à esquerda'], ['center', 'Centralizado']].map(([v, l]) => `<option value="${v}" ${(b.doc_header || 'side') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
       </section>
       <section class="panel"><h2>Seu link próprio</h2>
         <p class="muted">Quem abrir este link vê a tela de login com a sua marca. Mande aos seus pacientes.</p>
@@ -109,6 +128,8 @@ export async function renderSettings(params) {
         <div class="brand-preview" id="prev"></div>
         <div class="row" style="margin-top:14px"><button class="btn" type="submit">Salvar aparência</button><button type="button" class="link" id="brand-reset">Voltar ao padrão do Florescer</button></div>
       </section></form>`;
+    $$('input[name=theme],input[name=size]', pane).forEach((i) => (i.onchange = () => setLook({ [i.name]: i.value })));
+    $('#hc').onchange = (e) => setLook({ contrast: e.target.checked ? 'high' : 'normal' });
     const f = $('#bf');
     const el = (n) => f.elements[n];
     const img = (id, src) => { $(id).innerHTML = src ? `<img src="${src}" alt="">` : '<span class="muted small">Sem imagem</span>'; };
@@ -127,7 +148,7 @@ export async function renderSettings(params) {
     f.oninput = paint;
     $$('input[name=pal]', f).forEach((r) => (r.onchange = () => { const pl = PALETTES[+r.value]; el('color').value = pl.color; el('accent').value = pl.accent; paint(); }));
     const pick = (inputId, key, max) => { $(inputId).onchange = async (e) => { try { draft[key] = await imageToDataUrl(e.target.files[0], { max }); paint(); } catch (err) { toast(err.message, 'err'); } e.target.value = ''; }; };
-    pick('#logo-file', 'logo', 400); pick('#sig-file', 'signature', 300);
+    pick('#logo-file', 'logo', 400); pick('#sig-file', 'signature', 300); bindDrops(f, null, { preview: false });
     $('#logo-rm').onclick = () => { draft.logo = ''; paint(); };
     $('#sig-rm').onclick = () => { draft.signature = ''; paint(); };
     $('#brand-reset').onclick = async () => {
@@ -141,7 +162,7 @@ export async function renderSettings(params) {
       return busy($('[type=submit]', f), 'Salvando…', async () => {
         await saveProfile({
           clinic_name: draft.org_name || p.clinic_name, slug: slug || null,
-          branding: { org_name: draft.org_name, tagline: draft.tagline, logo: draft.logo, signature: draft.signature, color: draft.color, accent: draft.accent, footer: draft.footer },
+          branding: { org_name: draft.org_name, tagline: draft.tagline, logo: draft.logo, signature: draft.signature, color: draft.color, accent: draft.accent, footer: draft.footer, doc_font: el('doc_font').value, doc_margin: el('doc_margin').value, doc_header: el('doc_header').value },
         });
         const nb = brandOf(state.profile); applyBrand(nb); rememberBrand(nb);
         toast('Aparência salva.'); renderSettings(params);
@@ -350,13 +371,17 @@ export async function renderTemplates() {
       : `<button class="btn quiet sm" data-dup="${t.id}">Duplicar e editar</button>`}</div>`;
 
   main.innerHTML = pageHeader('Modelos de documento', 'Defina os campos de cada tipo de registro, ou envie um documento seu para virar modelo.',
-    `<label class="btn quiet" id="imp-label">${icon('download')}Enviar meu documento<input type="file" id="imp" accept=".docx,.pdf,image/*" hidden></label><button class="btn" id="new">${icon('plus')}Novo modelo</button>`) + `
-    <div id="imp-msg"></div>
+    `<button class="btn" id="new">${icon('plus')}Novo modelo</button>`) + `
+    <section class="panel"><h2>Enviar um documento seu</h2>
+      <p class="muted">Word, PDF ou foto. O sistema lê o documento e monta os campos; você ajusta antes de salvar.</p>
+      ${dropzone({ id: 'imp', accept: '.docx,.pdf,image/*', title: 'Arraste seu documento para cá', hint: 'ou clique para escolher (.docx, PDF, JPG ou PNG).' })}
+      <div id="imp-msg" style="margin-top:12px"></div></section>
     <section class="panel"><h2>Meus modelos</h2>
-      ${mine.length ? `<div class="list">${mine.map((t) => row(t, true)).join('')}</div>` : '<div class="empty"><b>Você ainda não criou modelos</b>Envie um documento seu (Word, PDF ou foto) ou duplique um modelo do sistema.</div>'}</section>
+      ${mine.length ? `<div class="list">${mine.map((t) => row(t, true)).join('')}</div>` : emptyState('Você ainda não criou modelos', 'Envie um documento seu na área acima ou duplique um modelo do sistema.')}</section>
     <section class="panel"><h2>Modelos do sistema</h2><div class="list">${sys.map((t) => row(t, false)).join('')}</div></section>`;
 
   const byId = Object.fromEntries(list.map((t) => [t.id, t]));
+  bindDrops($('#imp').closest('section'), null, { preview: false });
   $('#new').onclick = async () => { if (await templateModal()) renderTemplates(); };
   $('#imp').onchange = async (e) => {
     const file = e.target.files[0]; e.target.value = ''; if (!file) return;

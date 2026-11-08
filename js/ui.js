@@ -32,6 +32,7 @@ export function toast(msg, kind = 'ok') {
   let t = $('#toast');
   if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
   t.textContent = msg;
+  t.setAttribute('role', kind === 'err' ? 'alert' : 'status');
   t.className = 'show ' + kind;
   clearTimeout(toast._t);
   toast._t = setTimeout(() => (t.className = ''), kind === 'err' ? 5500 : 2600);
@@ -129,6 +130,7 @@ export function shell(active) {
       <div class="stage">
         ${isPatient ? '' : `<div class="topbar">
           <button class="search-trigger" id="open-search" aria-label="Buscar">${icon('search')}<span>Buscar paciente ou relatório</span><kbd>Ctrl K</kbd></button>
+          <button class="icon-btn help-btn" id="open-help" title="Atalhos do teclado (?)" aria-label="Atalhos do teclado">${icon('info')}</button>
           <a class="btn bloom" href="#/nova">${icon('plus')}<span>Nova sessão</span></a>
         </div>`}
         <main id="main" class="page"></main>
@@ -142,7 +144,44 @@ export function shell(active) {
   return $('#main');
 }
 
-export const loading = (main, text = 'Carregando…') => { main.innerHTML = `<p class="muted pad">${esc(text)}</p>`; };
+export const loading = (main, text = 'Carregando') => {
+  main.innerHTML = `<div role="status" aria-label="${esc(text)}"><div class="skel skel-h"></div><div class="skel skel-p"></div>
+    <div class="skel-cards"><div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div></div>
+    <div class="skel skel-row"></div><div class="skel skel-row"></div><div class="skel skel-row"></div></div>`;
+};
+
+/** Estado vazio: ilustração simples, o que aconteceu e o próximo passo. */
+export const emptyState = (title, text = '', action = '') => `<div class="empty">
+  <svg class="art" viewBox="0 0 120 90" aria-hidden="true"><rect class="a" x="14" y="14" width="76" height="62" rx="10"/><path class="b" d="M30 36h44M30 48h30M30 60h38"/><circle class="c" cx="92" cy="60" r="14"/><path class="b" style="stroke:#fff" d="M86 60h12M92 54v12"/></svg>
+  <b>${esc(title)}</b>${text ? `<p>${text}</p>` : ''}${action}</div>`;
+
+/** Área de arrastar arquivo com prévia. onFile(file, setPreview) é chamado ao escolher. */
+export function dropzone({ id, accept, title, hint, name = '' }) {
+  return `<label class="drop" data-drop><input type="file" ${id ? `id="${id}"` : ''} ${name ? `name="${name}"` : ''} accept="${esc(accept)}">
+    <span class="d-ico">${icon('download')}</span><span class="grow"><b>${esc(title)}</b><small>${esc(hint || 'Arraste o arquivo para cá ou clique para escolher.')}</small></span></label>`;
+}
+export function bindDrops(root = document, onPick, { preview = true } = {}) {
+  $$('[data-drop]', root).forEach((z) => {
+    const input = $('input[type=file]', z);
+    const show = (file) => {
+      if (!file || !preview) return;
+      z.classList.add('has');
+      const ico = $('.d-ico', z), b = $('b', z), sm = $('small', z);
+      if (/^image\//.test(file.type)) { const u = URL.createObjectURL(file); ico.innerHTML = `<img src="${u}" alt="">`; }
+      else ico.innerHTML = icon('check');
+      b.textContent = file.name; sm.textContent = `${Math.max(1, Math.round(file.size / 1024))} KB · clique para trocar`;
+    };
+    input.addEventListener('change', () => { show(input.files[0]); if (onPick) onPick(input, input.files[0]); });
+    ['dragenter', 'dragover'].forEach((ev) => z.addEventListener(ev, (e) => { e.preventDefault(); z.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach((ev) => z.addEventListener(ev, (e) => { e.preventDefault(); z.classList.remove('over'); }));
+    z.addEventListener('drop', (e) => {
+      const f = e.dataTransfer && e.dataTransfer.files[0]; if (!f) return;
+      try { const dt = new DataTransfer(); dt.items.add(f); input.files = dt.files; } catch { /* navegador sem DataTransfer */ }
+      input.dispatchEvent(new Event('change'));
+    });
+  });
+}
+
 export const pageHeader = (title, sub = '', actions = '') =>
   `<header class="head"><div class="grow"><h1>${esc(title)}</h1>${sub ? `<p class="sub">${sub}</p>` : ''}</div><div class="row">${actions}</div></header>`;
 export const backLink = (href, text) => `<a class="back" href="${href}">${icon('left')}${esc(text)}</a>`;

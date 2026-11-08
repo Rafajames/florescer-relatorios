@@ -1,6 +1,6 @@
 import * as api from './api.js';
 import * as ai from './ai.js';
-import { exportWord, exportPdf } from './export.js';
+import { exportWord, exportPdf, previewHtml } from './export.js';
 import { state } from './state.js';
 import { getPrefs } from './prefs.js';
 import { brandOf } from './brand.js';
@@ -34,6 +34,7 @@ export async function renderReport(id) {
           r.kind === 'periodo' ? `Período ${fmtDate(r.period_start)} a ${fmtDate(r.period_end)}` : `<input type="date" id="date" class="inline-date" value="${esc(r.session_date)}" aria-label="Data">`,
           chip(KIND_LABEL[r.kind] || 'Registro', 'petrol'), statusChip(r), r.ai_generated ? chip('Esboço com IA', 'bloom') : '',
           `<span id="wc"></span>`,
+          r.transcript || r.notes ? `<button type="button" class="link" id="side-toggle" aria-pressed="false">Ver transcrição ao lado</button>` : '',
         ])}
         ${r.released_to_patient ? '<div style="height:14px"></div>' + callout('<p>Este relatório está <b>liberado ao paciente</b>. Você pode editar a qualquer momento: ao salvar, o paciente passa a ver a versão nova. As versões anteriores ficam no Histórico.</p>') : reviewed ? '<div style="height:14px"></div>' + callout('<p>Este relatório já foi revisado. Você pode continuar editando; use <b>Salvar agora</b> para gravar as mudanças.</p>') : ''}
         ${r.ai_generated && !reviewed ? '<div style="height:14px"></div>' + callout('<p>Este texto foi gerado com apoio de IA e pode conter erros. Confira com a transcrição e edite antes de marcar como revisado.</p>', 'warn') : ''}
@@ -42,7 +43,7 @@ export async function renderReport(id) {
           ${r.transcript || r.notes ? '<button class="tab" data-tab="transcricao" role="tab">Transcrição e anotações</button>' : ''}
           <button class="tab" data-tab="historico" role="tab">Histórico e versões</button>
         </div>
-        <div id="pane"></div>
+        <div id="split"><div id="pane"></div><aside class="side-ts hide" id="side" aria-label="Transcrição ao lado"></aside></div>
       </div>
 
       <aside class="status-rail">
@@ -103,6 +104,8 @@ export async function renderReport(id) {
   };
 
   /* ---------- painéis ---------- */
+  const collapse = window.matchMedia && window.matchMedia('(max-width:760px)').matches;
+  let openSec = 0;
   const sheet = () => `
     <article class="sheet">
       <div class="sheet-head">${brand.logo ? `<img class="sheet-logo" src="${esc(brand.logo)}" alt="">` : ''}<div><b>${esc(brand.org_name || pro.clinic_name || pro.full_name || '')}</b><span>${esc(pro.full_name || '')}${reg ? ', ' + esc(reg) : ''}</span></div></div>
@@ -114,8 +117,9 @@ export async function renderReport(id) {
       <button class="btn quiet sm" id="save">Salvar agora</button></div>`;
 
   const secHtml = (s, i) => `
-    <div class="sec" data-i="${i}">
+    <div class="sec ${collapse && i !== openSec ? 'collapsed' : ''}" data-i="${i}">
       <div class="sec-side">
+        <button type="button" class="icon-btn sec-toggle" data-act="open" aria-label="Abrir ou fechar esta seção">${icon('down')}</button>
         <input class="sec-title" data-f="title" value="${esc(s.title)}" aria-label="Título da seção">
         <div class="sec-tools">
           <button class="icon-btn" data-act="up" title="Subir seção" ${i === 0 ? 'disabled' : ''}>${icon('up')}</button>
@@ -164,6 +168,12 @@ export async function renderReport(id) {
     secs.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-act]'); if (!btn) return;
       const i = +btn.closest('.sec').dataset.i, act = btn.dataset.act;
+      if (act === 'open') {
+        const card = btn.closest('.sec'); const wasClosed = card.classList.contains('collapsed');
+        $$('.sec', secs).forEach((c) => c.classList.toggle('collapsed', collapse));
+        card.classList.toggle('collapsed', !wasClosed && collapse); openSec = i;
+        $$('textarea', card).forEach(autosize); return;
+      }
       if (act === 'up' && i > 0) [sections[i - 1], sections[i]] = [sections[i], sections[i - 1]];
       else if (act === 'down' && i < sections.length - 1) [sections[i + 1], sections[i]] = [sections[i], sections[i + 1]];
       else if (act === 'vis') sections[i].patient_visible = !visible(sections[i]);
@@ -244,6 +254,13 @@ export async function renderReport(id) {
     if (t === 'relatorio') drawSheet(); else if (t === 'transcricao') drawTranscript(); else drawHistory();
   };
   $$('.tab').forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
+  const st = $('#side-toggle');
+  if (st) st.onclick = () => {
+    const side = $('#side'); const on = side.classList.contains('hide');
+    side.classList.toggle('hide', !on); $('#split').classList.toggle('on', on);
+    st.setAttribute('aria-pressed', String(on)); st.textContent = on ? 'Esconder transcrição' : 'Ver transcrição ao lado';
+    if (on) { side.innerHTML = `<div class="panel"><h3 style="margin-bottom:8px">Transcrição e anotações</h3>${r.notes ? `<p class="muted small">Anotações</p><div class="transcript" style="margin-bottom:12px">${esc(r.notes)}</div>` : ''}<div class="transcript">${esc(r.transcript || '')}</div></div>`; }
+  };
   showTab('relatorio');
   void tab;
 
@@ -277,7 +294,12 @@ export async function renderReport(id) {
     };
   };
   $('#word').onclick = () => exportWord(exportArgs());
-  $('#pdf').onclick = () => exportPdf(exportArgs());
+  $('#pdf').onclick = () => {
+    const args = exportArgs();
+    openModal('Prévia do PDF', `<iframe class="pdf-prev" title="Prévia do documento" srcdoc="${esc(previewHtml(args))}"></iframe>
+      <p class="muted small">É assim que o documento sai. Em “Imprimir ou salvar”, escolha “Salvar como PDF” no destino.</p>`,
+    { okText: 'Imprimir ou salvar PDF', wide: true, onOk: () => { exportPdf(args); return true; } });
+  };
   $('#del').onclick = async () => {
     if (!(await confirmBox('Excluir este relatório definitivamente?', 'Excluir'))) return;
     await api.deleteReport(id); window.__dirty = false; toast('Relatório excluído.'); goto(`#/pacientes/${r.patients.id}`);

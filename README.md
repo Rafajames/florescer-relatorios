@@ -77,3 +77,12 @@ Dados de saúde são **dados pessoais sensíveis** (LGPD, art. 11). Este projeto
 - A exportação "Word" gera um `.doc` em HTML (abre e edita normalmente no Word); não é `.docx` nativo.
 - O paciente é identificado pelo e-mail cadastrado pelo profissional: se o e-mail estiver errado, o paciente não vê nada (ou outra pessoa com aquele e-mail verá). Confira o e-mail antes de liberar.
 - Não há recuperação de relatórios excluídos nem edição simultânea por vários dispositivos.
+
+## Novidades da versão 4 (design)
+- Tema claro, escuro ou automático; tamanho da letra (normal, grande, extra) e alto contraste, em Configurações → Aparência e marca (vale por aparelho).
+- Carregamento com esqueletos, telas vazias com orientação, áreas de arrastar arquivo (logo, assinatura, áudio, documento-modelo).
+- Início com números e últimos 7 dias; ficha do paciente com linha do tempo única.
+- Editor: transcrição ao lado do texto; no celular, uma seção aberta por vez; botão de gravar fixo na sessão.
+- Atalhos: Ctrl K, Ctrl S, Alt N, Alt H e `?` para ajuda.
+- Estilo dos documentos (letra, margem, cabeçalho) e prévia do PDF antes de imprimir.
+Não exige mudança no banco.

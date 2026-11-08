@@ -4,7 +4,7 @@ import { state, DEFAULT_CONSENT } from './state.js';
 import { exportDossierWord, exportDossierPdf, KIND_LABEL } from './export.js';
 import {
   $, $$, esc, fmtDate, fmtDateTime, toast, openModal, confirmBox, statusChip, chip, meta, callout,
-  shell, loading, pageHeader, backLink, icon, greeting, longDate,
+  shell, loading, pageHeader, backLink, icon, greeting, longDate, emptyState, todayISO,
 } from './ui.js';
 
 const goto = (h) => { location.hash = h; };
@@ -36,6 +36,10 @@ export async function renderDashboard() {
     ['Conectar uma IA (opcional, há opções gratuitas)', ai.hasTextAI(), '#/config?aba=chaves'],
   ];
   const doneN = todo.filter((t) => t[1]).length;
+  const released = reports.filter((r) => r.released_to_patient).length;
+  const week = [...Array(7)].map((_, i) => { const d = new Date(); d.setDate(d.getDate() - (6 - i)); return d; });
+  const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const perDay = (d) => reports.filter((r) => r.session_date === iso(d)).length;
 
   main.innerHTML = pageHeader(`${greeting()}, ${esc(first)}`, esc(longDate())) + `
     <section class="now">
@@ -50,11 +54,20 @@ export async function renderDashboard() {
         <div class="pick"><a class="btn bloom lg" href="#/pacientes">${icon('plus')}Cadastrar paciente</a></div>`}
     </section>
 
+    <section class="stats" aria-label="Resumo">
+      <a class="stat" href="#/pacientes"><b>${patients.length}</b><span>${patients.length === 1 ? 'paciente' : 'pacientes'}</span></a>
+      <a class="stat ${drafts.length ? 'warn' : ''}" href="#/relatorios?status=rascunho"><b>${drafts.length}</b><span>${drafts.length === 1 ? 'rascunho para revisar' : 'rascunhos para revisar'}</span></a>
+      <a class="stat ok" href="#/relatorios"><b>${released}</b><span>${released === 1 ? 'liberado ao paciente' : 'liberados aos pacientes'}</span></a>
+      <a class="stat ${noConsent.length ? 'warn' : ''}" href="#/pacientes"><b>${noConsent.length}</b><span>sem consentimento</span></a>
+    </section>
+    <section class="panel"><div class="panel-head"><h2>Últimos 7 dias</h2><span class="muted small">registros por dia</span></div>
+      <div class="week">${week.map((d) => { const n = perDay(d); return `<div class="wd ${iso(d) === todayISO() ? 'today' : ''} ${n ? '' : 'zero'}"><small>${d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</small><b>${d.getDate()}</b><i>${n}</i></div>`; }).join('')}</div></section>
+
     <div class="cols">
       <div class="queue">
         <h2>O que precisa da sua atenção</h2>
         ${!drafts.length && !noConsent.length && !ready.length
-          ? '<div class="empty"><b>Tudo em dia</b>Nenhum rascunho para revisar e nenhum paciente sem consentimento.</div>' : ''}
+          ? emptyState('Tudo em dia', 'Nenhum rascunho para revisar e nenhum paciente sem consentimento.') : ''}
         ${drafts.length ? `<h3>${drafts.length} ${drafts.length === 1 ? 'relatório' : 'relatórios'} para revisar</h3>
           <div class="list">${drafts.slice(0, 5).map(reportLine).join('')}</div>
           ${drafts.length > 5 ? '<p style="margin-top:8px"><a href="#/relatorios?status=rascunho">Ver todos os rascunhos</a></p>' : ''}` : ''}
@@ -135,12 +148,14 @@ export async function renderPatients() {
           <span>${reps.length}${dr ? ' ' + chip(`${dr} rascunho${dr > 1 ? 's' : ''}`, 'warn') : ''}</span>
           <span>${api.hasActiveConsent(p.consents) ? chip('Registrado', 'ok') : chip('Pendente', 'warn')}</span>
           <span class="go">${icon('right')}</span></a>`;
-      }).join('') : `<div class="empty"><b>${all.length ? 'Nenhum paciente encontrado' : 'Você ainda não cadastrou pacientes'}</b>${all.length ? 'Tente outro termo ou filtro.' : 'Use o botão “Novo paciente” para começar.'}</div>`);
+      }).join('') : emptyState(all.length ? 'Nenhum paciente encontrado' : 'Você ainda não cadastrou pacientes', all.length ? 'Tente outro termo ou limpe o filtro.' : 'Cadastre o primeiro para registrar consentimento e iniciar uma sessão.', all.length ? '' : `<button class="btn" id="add2">${icon('plus')}Cadastrar paciente</button>`));
   };
   draw();
   ['#q', '#filter', '#sort'].forEach((id) => ($(id).oninput = draw));
   $('#arch').onchange = async (e) => { showArchived = e.target.checked; all = await api.listPatients(showArchived); draw(); };
-  $('#add').onclick = async () => { const p = await patientModal(); if (p && p.id) goto(`#/pacientes/${p.id}`); };
+  const addP = async () => { const p = await patientModal(); if (p && p.id) goto(`#/pacientes/${p.id}`); };
+  $('#add').onclick = addP;
+  document.addEventListener('click', function h(e) { if (!document.contains($('#ptable'))) return document.removeEventListener('click', h); if (e.target.closest('#add2')) addP(); });
 }
 
 /* =====================================================================
@@ -153,6 +168,9 @@ export async function renderPatientDetail(id) {
   const anamneses = reports.filter((r) => r.kind === 'anamnese');
   const evolucoes = reports.filter((r) => r.kind === 'sessao');
   const periodos = reports.filter((r) => r.kind === 'periodo');
+  const tl = [...reports].sort((a, b) => String(b.session_date).localeCompare(String(a.session_date)) || String(b.created_at || '').localeCompare(String(a.created_at || '')));
+  const timeline = tl.length ? `<ol class="tline">${tl.map((r) => `<li class="k-${r.kind}"><span class="pt"></span><a class="card" href="#/relatorio/${r.id}">
+      <div class="when">${esc(KIND_LABEL[r.kind] || 'Registro')} · ${fmtDate(r.session_date)}</div><div class="row between"><span class="t ellip">${esc(r.title)}</span>${statusChip(r)}</div></a></li>`).join('')}</ol>` : '';
   const group = (title, list, emptyText, cta = '') => `<div class="panel-head" style="margin-top:22px"><h2>${title}</h2>${cta}</div>
     ${list.length ? `<div class="list">${list.map(reportLine).join('')}</div>` : `<p class="muted small">${emptyText}</p>`}`;
 
@@ -169,9 +187,8 @@ export async function renderPatientDetail(id) {
     (!p.email ? callout('<p>Sem e-mail cadastrado, não é possível liberar relatórios no portal do paciente.</p>', '', '<button class="btn sm quiet" id="edit-mail">Adicionar e-mail</button>') : '') + `
     <div class="cols">
       <section>
-        ${group('Anamnese', anamneses, 'A anamnese é a entrevista inicial. Use “Fazer anamnese” no topo.')}
-        ${group('Evoluções', evolucoes, 'Nenhuma evolução ainda. Use “Nova evolução” para registrar a primeira sessão.')}
-        ${periodos.length ? group('Relatórios por período', periodos, '') : ''}
+        <div class="panel-head" style="margin-top:22px"><h2>Linha do tempo</h2><span class="muted small">${anamneses.length} anamnese · ${evolucoes.length} evoluções · ${periodos.length} por período</span></div>
+        ${timeline || emptyState('Nenhum registro ainda', 'Comece pela anamnese (entrevista inicial) ou registre a primeira evolução.', `<div class="row"><a class="btn quiet" href="#/nova?paciente=${p.id}&tipo=anamnese">${icon('file')}Fazer anamnese</a><a class="btn bloom" href="#/nova?paciente=${p.id}">${icon('mic')}Nova evolução</a></div>`)}
         ${p.notes ? `<h3 style="margin-top:26px">Observações</h3><p class="pre">${esc(p.notes)}</p>` : ''}
       </section>
       <aside>

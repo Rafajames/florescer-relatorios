@@ -7,7 +7,7 @@ import {
 import { state } from './state.js';
 import { getPrefs, titleFromPattern } from './prefs.js';
 import {
-  $, $$, esc, todayISO, toast, busy, autosize, wordCount, callout, shell, loading, pageHeader, icon,
+  $, $$, esc, todayISO, toast, busy, autosize, wordCount, callout, shell, loading, pageHeader, icon, dropzone, bindDrops, emptyState,
 } from './ui.js';
 
 const goto = (h) => { location.hash = h; };
@@ -73,11 +73,11 @@ export async function renderNewSession(params) {
           <p class="muted small" style="margin-top:8px">Dica: fale a cerca de 30 cm do microfone. No Mac, em Ajustes do Sistema → Som → Entrada, deixe o volume de entrada no máximo. Em sala grande, um microfone externo ajuda muito.</p>
         </details>
 
-        <div class="rec-row">
+        <div class="rec-row rec-fixed">
           <button class="rec-btn" id="rec" ${canRecord() ? '' : 'disabled'}><span class="dot"></span><span id="rec-label">Gravar</span></button>
           <span class="rec-clock" id="clock"></span>
           <div class="meter" id="meter-wrap" aria-hidden="true"><i id="meter"></i></div>
-          <label class="btn quiet" id="file-label">${icon('download')}Enviar áudio gravado<input type="file" id="file" accept="audio/*" hidden></label>
+          ${dropzone({ id: 'file', accept: 'audio/*', title: 'Enviar áudio já gravado', hint: 'Arraste o arquivo para cá ou clique.' }).replace('class="drop"', 'class="drop" id="file-label"')}
         </div>
         ${canCaptureTab() ? '<label class="check small" style="margin-top:8px"><input type="checkbox" id="tabaudio">Teleconsulta: captar também o áudio da aba da chamada (escolha a aba e marque “compartilhar áudio”)</label>' : ''}
         <p class="warn-low hide" id="low">${icon('info')}<span>Volume baixo. Aproxime o microfone ou aumente o volume da gravação acima.</span></p>
@@ -231,6 +231,7 @@ export async function renderNewSession(params) {
       refresh();
     } catch { toast('Não foi possível acessar o microfone. Verifique a permissão do navegador.', 'err'); }
   };
+  bindDrops(main, null, { preview: false });
   $('#file').onchange = async (e) => {
     const f = e.target.files[0]; if (!f) return;
     $('#file-label').classList.add('disabled');

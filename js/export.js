@@ -8,9 +8,13 @@ const para = (t) => esc(t).replace(/\n/g, '<br>');
 
 export const KIND_LABEL = { sessao: 'Evolução', anamnese: 'Anamnese', periodo: 'Relatório por período' };
 
-const css = (c) => `
-  @page { margin: 22mm 20mm; }
-  body { font-family: Calibri, Arial, sans-serif; font-size: 11.5pt; color: #1b2420; line-height: 1.5; }
+const FONTS = { classica: "Georgia, 'Times New Roman', serif", moderna: "Calibri, Arial, sans-serif" };
+const MARGINS = { estreita: '14mm 14mm', normal: '22mm 20mm', ampla: '28mm 26mm' };
+
+const css = (c, st = {}) => `
+  @page { margin: ${MARGINS[st.doc_margin] || MARGINS.normal}; }
+  body { font-family: ${FONTS[st.doc_font] || FONTS.moderna}; font-size: 11.5pt; color: #1b2420; line-height: 1.5; }
+  ${st.doc_header === 'center' ? '.hdr { text-align: center; } .hdr table { margin: 0 auto; width: auto; } .logo { margin: 0 14px 0 0; }' : ''}
   .hdr { border-bottom: 2px solid ${c}; padding-bottom: 8px; margin-bottom: 16px; }
   .hdr table { width: 100%; border-collapse: collapse; } .hdr td { vertical-align: middle; padding: 0; }
   .logo { max-height: 64px; max-width: 160px; margin-right: 14px; }
@@ -52,7 +56,7 @@ const whenOf = (r) => (r.kind === 'periodo' && r.period_start ? `${fmtDate(r.per
 /** report: { title, kind, session_date, period_start, period_end, ai_generated } */
 function buildHtml({ report, patientName, professional, sections }) {
   const h = header(professional);
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(report.title)}</title><style>${css(h.b.color)}</style></head><body>
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(report.title)}</title><style>${css(h.b.color, h.b)}</style></head><body>
   ${h.html}
   <h1>${esc(report.title)}</h1>
   <table class="meta">
@@ -70,7 +74,7 @@ function buildDossier({ patient, professional, reports, only }) {
   const h = header(professional);
   const order = { anamnese: 0, sessao: 1, periodo: 2 };
   const list = [...reports].sort((a, b) => (order[a.kind] - order[b.kind]) || String(a.session_date).localeCompare(String(b.session_date)));
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Prontuário — ${esc(patient.name)}</title><style>${css(h.b.color)}</style></head><body>
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Prontuário — ${esc(patient.name)}</title><style>${css(h.b.color, h.b)}</style></head><body>
   ${h.html}
   <h1>Prontuário</h1>
   <table class="meta"><tr><td class="lab">Paciente:</td><td><b>${esc(patient.name)}</b></td></tr>
@@ -104,6 +108,7 @@ const toPdf = (html) => {
   f.srcdoc = html;
 };
 
+export const previewHtml = (args) => buildHtml(args);
 export const exportWord = (args) => toWord(buildHtml(args), args.report.title);
 export const exportPdf = (args) => toPdf(buildHtml(args));
 export const exportDossierWord = (args) => toWord(buildDossier(args), `Prontuario ${args.patient.name}`);

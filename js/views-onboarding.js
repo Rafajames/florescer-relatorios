@@ -4,7 +4,7 @@ import * as ai from './ai.js';
 import { state, SPECIALTIES } from './state.js';
 import { brandOf, applyBrand, rememberBrand, imageToDataUrl, PALETTES, slugify } from './brand.js';
 import { connectorHtml, bindConnector } from './ai-connect.js';
-import { $, $$, esc, toast, busy, icon } from './ui.js';
+import { $, $$, esc, toast, busy, icon, dropzone, bindDrops } from './ui.js';
 
 export function renderOnboarding(done) {
   let step = 1;
@@ -36,12 +36,13 @@ export function renderOnboarding(done) {
           <label class="field">Nome do consultório ou clínica<input name="org" value="${esc(draft.org_name || draft.clinic_name)}" placeholder="Ex.: Espaço Florescer"></label>
           <label class="field">Área de atuação<select name="specialty">${SPECIALTIES.map((s) => `<option ${s === draft.specialty ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
           <label class="field">Registro no conselho<input name="reg" value="${esc(draft.council_registry)}" placeholder="Ex.: CRP 20/12345"></label>
-          <label class="field">Sua logo (opcional)<input type="file" name="logo" accept="image/*"></label>
+          <div class="field">Sua logo (opcional)${dropzone({ name: 'logo', accept: 'image/*', title: 'Arraste sua logo para cá', hint: 'ou clique para escolher. PNG com fundo transparente fica melhor.' })}</div>
         </div>
         <div class="field">Cores
           <div class="swatches">${PALETTES.map((pl, i) => `<label class="swatch" title="${esc(pl.name)}"><input type="radio" name="pal" value="${i}" ${pl.color === draft.color ? 'checked' : ''}><span style="background:linear-gradient(135deg,${pl.color} 55%,${pl.accent} 55%)"></span></label>`).join('')}</div></div>
         <div class="row end"><button class="btn lg" type="submit">Continuar</button></div>
       </form>`;
+    bindDrops($('#f1'));
     $$('input[name=pal]').forEach((r) => (r.onchange = () => { const pl = PALETTES[+r.value]; draft.color = pl.color; draft.accent = pl.accent; applyBrand(draft); }));
     $('#f1').onsubmit = (e) => {
       e.preventDefault();

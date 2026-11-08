@@ -1,6 +1,6 @@
 import * as api from './api.js';
 import { state } from './state.js';
-import { $, esc, toast, confirmBox } from './ui.js';
+import { $, esc, toast, confirmBox, openModal } from './ui.js';
 import { renderSetup, renderAuth, promptNewPassword } from './views-auth.js';
 import * as home from './views-home.js';
 import * as session from './views-session.js';
@@ -9,6 +9,7 @@ import * as lists from './views-lists.js';
 import * as settings from './views-settings.js';
 import * as portal from './views-portal.js';
 import { renderOnboarding } from './views-onboarding.js';
+import { applyLook } from './theme.js';
 import { brandOf, applyBrand, rememberBrand, cachedBrand, DEFAULT_BRAND } from './brand.js';
 
 const PRO_ROUTES = [
@@ -27,6 +28,7 @@ const PATIENT_ROUTES = [
   [/^#\/portal\/([\w-]+)$/, (m) => portal.renderPortalReport(m[1])],
 ];
 
+applyLook();
 let routing = Promise.resolve();
 const route = () => (routing = routing.then(doRoute));
 
@@ -92,6 +94,25 @@ if (api.configured) {
   });
 }
 
+const SHORTCUTS = [
+  ['Ctrl K', 'Buscar paciente ou relatório'],
+  ['Ctrl S', 'Salvar o relatório que está aberto'],
+  ['Alt N', 'Começar uma nova sessão'],
+  ['Alt H', 'Ir para o Início'],
+  ['?', 'Abrir esta ajuda'],
+];
+export function showShortcuts() {
+  openModal('Atalhos do teclado', `<dl class="keys">${SHORTCUTS.map(([k, d]) => `<dt>${k.split(' ').map((x) => `<kbd>${x}</kbd>`).join('+')}</dt><dd>${d}</dd>`).join('')}</dl>
+    <p class="muted small" style="margin-top:14px">No Mac, use Cmd no lugar de Ctrl. Tamanho da letra, tema e contraste ficam em Configurações, aba Aparência.</p>`, { cancelText: 'Fechar' });
+}
+document.addEventListener('keydown', (e) => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
+  const pro = state.profile?.role === 'professional';
+  if (pro && e.altKey && e.key.toLowerCase() === 'n') { e.preventDefault(); location.hash = '#/nova'; }
+  else if (pro && e.altKey && e.key.toLowerCase() === 'h') { e.preventDefault(); location.hash = '#/painel'; }
+  else if (!typing && !e.ctrlKey && !e.metaKey && e.key === '?') { e.preventDefault(); showShortcuts(); }
+});
+document.addEventListener('click', (e) => { if (e.target.closest('#open-help')) showShortcuts(); });
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && state.profile?.role === 'professional') {
     e.preventDefault(); import('./search.js').then((m) => m.openSearch());

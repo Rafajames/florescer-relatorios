@@ -38,8 +38,8 @@ export function applyBrand(b) {
   const c = HEX.test(b?.color) ? b.color : DEFAULT_BRAND.color;
   const a = HEX.test(b?.accent) ? b.accent : DEFAULT_BRAND.accent;
   const s = document.documentElement.style;
-  s.setProperty('--petrol', c); s.setProperty('--petrol-2', darken(c)); s.setProperty('--petrol-tint', tint(c, 0.9));
-  s.setProperty('--bloom', a); s.setProperty('--bloom-2', darken(a, 0.18)); s.setProperty('--bloom-tint', tint(a, 0.9));
+  s.setProperty('--petrol', c); s.setProperty('--petrol-2', darken(c));
+  s.setProperty('--bloom', a); s.setProperty('--bloom-2', darken(a, 0.18));
   document.title = b?.org_name ? `${b.org_name}` : 'Florescer Relatórios';
 }
 
