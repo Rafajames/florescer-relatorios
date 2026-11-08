@@ -2,7 +2,8 @@ import * as api from './api.js';
 import * as ai from './ai.js';
 import { state, SPECIALTIES, DEFAULT_CONSENT } from './state.js';
 import { DEFAULT_PREFS, getPrefs } from './prefs.js';
-import { brandOf, applyBrand, rememberBrand, imageToDataUrl, PALETTES, slugify } from './brand.js';
+import { brandOf, applyBrand, rememberBrand, imageToDataUrl, PALETTES, slugify, CONTACT_FIELDS, contactOf } from './brand.js';
+import { setTemplateDraft } from './views-template-editor.js';
 import { connectorHtml, bindConnector } from './ai-connect.js';
 import { importTemplate } from './import-template.js';
 import { getLook, setLook } from './theme.js';
@@ -129,7 +130,10 @@ export async function renderSettings(params) {
           <div class="row" style="margin-top:8px">
             <label class="small">Cor principal <input type="color" name="color" value="${esc(draft.color)}" style="width:52px;min-height:34px;padding:2px;margin:0 0 0 4px"></label>
             <label class="small">Cor de destaque <input type="color" name="accent" value="${esc(draft.accent)}" style="width:52px;min-height:34px;padding:2px;margin:0 0 0 4px"></label></div></div>
-        <label class="field">Rodapé dos documentos (opcional)<textarea name="footer" rows="2" placeholder="Ex.: Rua das Flores, 100, Boa Vista, telefone, site">${esc(draft.footer)}</textarea></label>
+        <fieldset class="field" style="border:0;padding:0;margin:0"><legend style="font-weight:600;margin-bottom:6px">Contato no rodapé dos documentos</legend>
+          <div class="grid2">${CONTACT_FIELDS.map(([k, l]) => `<label class="field">${l}<input name="c_${k}" value="${esc(contactOf(draft)[k] || '')}"></label>`).join('')}</div>
+          <small class="muted">Cada campo aparece separado no rodapé do PDF e do Word. Deixe vazio o que não quiser mostrar.</small></fieldset>
+        <label class="field">Outras informações no rodapé (opcional)<textarea name="footer" rows="2" placeholder="Ex.: CNPJ, horário de atendimento">${esc(draft.footer)}</textarea></label>
       </section>
       <section class="panel"><h2>Estilo dos documentos</h2>
         <p class="muted">Vale para o PDF e o Word. Veja o resultado em “Exportar PDF” (há uma prévia antes de imprimir).</p>
@@ -157,6 +161,7 @@ export async function renderSettings(params) {
     const paint = () => {
       draft.org_name = el('org_name').value.trim(); draft.tagline = el('tagline').value.trim(); draft.footer = el('footer').value.trim();
       draft.color = el('color').value; draft.accent = el('accent').value;
+      draft.contact = Object.fromEntries(CONTACT_FIELDS.map(([k]) => [k, el('c_' + k).value.trim()]));
       img('#logo-box', draft.logo); img('#sig-box', draft.signature);
       applyBrand(draft);
       const slug = el('slug').value.trim();
@@ -183,7 +188,7 @@ export async function renderSettings(params) {
       return busy($('[type=submit]', f), 'Salvando…', async () => {
         await saveProfile({
           clinic_name: draft.org_name || p.clinic_name, slug: slug || null,
-          branding: { org_name: draft.org_name, tagline: draft.tagline, logo: draft.logo, signature: draft.signature, color: draft.color, accent: draft.accent, footer: draft.footer, doc_font: el('doc_font').value, doc_margin: el('doc_margin').value, doc_header: el('doc_header').value },
+          branding: { org_name: draft.org_name, tagline: draft.tagline, logo: draft.logo, signature: draft.signature, color: draft.color, accent: draft.accent, footer: draft.footer, contact: draft.contact, doc_font: el('doc_font').value, doc_margin: el('doc_margin').value, doc_header: el('doc_header').value },
         });
         const nb = brandOf(state.profile); applyBrand(nb); rememberBrand(nb);
         toast('Aparência salva.'); renderSettings(params);
@@ -435,7 +440,7 @@ export async function renderTemplates() {
 
   const byId = Object.fromEntries(list.map((t) => [t.id, t]));
   bindDrops($('#imp').closest('section'), null, { preview: false });
-  $('#new').onclick = async () => { if (await templateModal()) renderTemplates(); };
+  $('#new').onclick = () => { setTemplateDraft(null); location.hash = '#/modelos/novo'; };
   $('#imp').onchange = async (e) => {
     const file = e.target.files[0]; e.target.value = ''; if (!file) return;
     const msg = $('#imp-msg');
@@ -443,13 +448,15 @@ export async function renderTemplates() {
     try {
       const r = await importTemplate(file, { onStatus: (t) => { const el = $('#imp-status'); if (el) el.textContent = t; } });
       msg.innerHTML = '';
-      if (await templateModal({ name: r.name, sections: r.sections, kind: 'sessao', imported: { source: r.source, usedAI: r.usedAI } })) { toast('Modelo salvo.'); renderTemplates(); }
+      setTemplateDraft({ name: r.name, sections: r.sections, kind: 'sessao', meta: { source: r.source, ai: r.usedAI } });
+      location.hash = '#/modelos/novo';
     } catch (err) { msg.innerHTML = callout(`<p>${esc(err.message)}</p>`, 'warn'); }
   };
-  $$('[data-edit]').forEach((b) => (b.onclick = async () => { if (await templateModal(byId[b.dataset.edit])) renderTemplates(); }));
+  $$('[data-edit]').forEach((b) => (b.onclick = () => { location.hash = `#/modelos/editar/${b.dataset.edit}`; }));
   $$('[data-dup]').forEach((b) => (b.onclick = async () => {
     const t = byId[b.dataset.dup];
-    if (await templateModal({ ...t, id: undefined, professional_id: undefined, name: t.name + ' (meu)' })) renderTemplates();
+    setTemplateDraft({ name: t.name + ' (meu)', specialty: t.specialty, kind: t.kind, sections: t.sections, meta: {} });
+    location.hash = '#/modelos/novo';
   }));
   $$('[data-del]').forEach((b) => (b.onclick = async () => {
     if (!(await confirmBox('Excluir este modelo? Relatórios já criados continuam intactos.', 'Excluir'))) return;

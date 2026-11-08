@@ -2,7 +2,7 @@
 // Dados administrativos ficam separados dos clínicos (tabelas appointments e patient_admin).
 import * as api from './api.js';
 import { state } from './state.js';
-import { exportAttendancePdf, exportAttendanceWord, ATT_STATUS } from './export.js';
+import { exportAttendancePdf, exportAttendanceWord, exportDeclaracaoPdf, exportDeclaracaoWord, ATT_STATUS } from './export.js';
 import {
   $, $$, esc, fmtDate, todayISO, toast, confirmBox, busy, chip, shell, loading, pageHeader, icon, openModal, emptyState, callout, NAV_MORE,
 } from './ui.js';
@@ -22,16 +22,17 @@ const statusOpts = (cur) => Object.entries(ATT_STATUS).map(([k, l]) => `<option 
 export async function renderAdministrativo(params) {
   const main = shell('administrativo'); loading(main);
   const patients = await api.listPatients();
-  const aba = params.get('aba') === 'frequencia' ? 'frequencia' : 'agenda';
-  main.innerHTML = pageHeader('Administrativo', 'Agenda e folha de frequência, separadas dos registros clínicos.',
-    `<button class="btn bloom" id="new-ap">${icon('plus')}Novo atendimento</button>`) + `
+  const ABAS = [['agenda', 'Agenda'], ['frequencia', 'Folha de frequência'], ['declaracoes', 'Declarações'], ['convenios', 'Convênios']];
+  const aba = ABAS.some(([k]) => k === params.get('aba')) ? params.get('aba') : 'agenda';
+  main.innerHTML = pageHeader('Administrativo', 'Agenda, folha de frequência, declarações e convênios. Separados dos registros clínicos.',
+    aba === 'agenda' ? `<button class="btn bloom" id="new-ap">${icon('plus')}Novo atendimento</button>` : '') + `
     <div class="tabs" role="tablist">
-      <a class="tab ${aba === 'agenda' ? 'on' : ''}" href="#/administrativo" role="tab">Agenda</a>
-      <a class="tab ${aba === 'frequencia' ? 'on' : ''}" href="#/administrativo?aba=frequencia" role="tab">Folha de frequência</a>
+      ${ABAS.map(([k, l]) => `<a class="tab ${aba === k ? 'on' : ''}" href="#/administrativo${k === 'agenda' ? '' : '?aba=' + k}" role="tab" style="text-decoration:none">${l}</a>`).join('')}
     </div><div id="pane"></div>`;
-  $$('.tabs .tab').forEach((t) => { t.style.textDecoration = 'none'; });
-  const reload = () => (aba === 'agenda' ? agenda(params, patients) : frequencia(params, patients));
-  $('#new-ap').onclick = () => {
+  const PANES = { agenda: () => agenda(params, patients), frequencia: () => frequencia(params, patients),
+    declaracoes: () => declaracoes(patients), convenios: () => convenios() };
+  const reload = () => PANES[aba]();
+  if ($('#new-ap')) $('#new-ap').onclick = () => {
     if (!patients.length) return toast('Cadastre um paciente primeiro.', 'err');
     appointmentModal({ patients, date: todayISO() }).then((ok) => ok && reload());
   };
@@ -157,7 +158,7 @@ async function frequencia(params, patients) {
         <label class="field">Paciente<select id="fq-p">${patients.map((p) => `<option value="${p.id}" ${p.id === params.get('paciente') ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
         <label class="field">Mês<input type="month" id="fq-m" value="${month}"></label>
         <label class="field">Especialidade de atendimento<input id="fq-ap" placeholder="Ex.: Integração Sensorial de Ayres"></label>
-        <label class="field">Convênio<input id="fq-in" placeholder="Vazio = Particular"></label>
+        <label class="field">Convênio<input id="fq-in" list="fq-convs" placeholder="Vazio = Particular"><datalist id="fq-convs">${insurers().map((c) => `<option value="${esc(c)}">`).join('')}</datalist></label>
         <label class="field">Responsável pelo paciente (opcional)<input id="fq-gu" placeholder="Nome do responsável"></label>
         <label class="field">Linhas mínimas na folha<input type="number" id="fq-min" min="0" max="40" value="10"><small>Completa com linhas em branco para preencher à mão.</small></label>
       </div>
@@ -207,14 +208,109 @@ async function frequencia(params, patients) {
   await loadPatient();
 }
 
-/* =====================================================================
-   FINANCEIRO (próxima fase)
-   ===================================================================== */
-export function renderFinanceiro() {
-  const main = shell('financeiro');
-  main.innerHTML = pageHeader('Financeiro', 'Valores, cobranças e resumo do mês.') +
-    callout('<p><b>Em construção.</b> A próxima fase traz o valor da sessão por paciente ou convênio, as cobranças geradas pelos atendimentos realizados (pendente ou pago), o resumo do mês, o orçamento e o recibo.</p>') +
-    emptyState('Comece pela agenda', 'As cobranças vão sair dos atendimentos marcados como realizados no Administrativo.', '<a class="btn" href="#/administrativo">Abrir a agenda</a>');
+/* ---------- Convênios (lista guardada no perfil; usada no campo Convênio) ---------- */
+function insurers() {
+  const list = state.profile?.branding?.insurers;
+  return Array.isArray(list) ? list : [];
+}
+
+async function saveInsurers(list) {
+  const branding = { ...(state.profile.branding || {}), insurers: list };
+  const row = await api.updateProfile(state.profile.id, { branding });
+  state.profile = { ...state.profile, branding: row.branding };
+}
+
+function convenios() {
+  const pane = $('#pane');
+  const list = insurers();
+  pane.innerHTML = `
+    <section class="panel">
+      <h2>Convênios atendidos</h2>
+      <p class="muted">Cadastre os convênios uma vez. Eles aparecem na lista ao preencher o convênio de cada paciente. Quem não tem convênio fica como Particular.</p>
+      <form id="cv-form" class="row" style="align-items:flex-end">
+        <label class="field grow" style="margin:0">Nome do convênio<input id="cv-name" placeholder="Ex.: Unimed" required></label>
+        <button class="btn" type="submit">${icon('plus')}Adicionar</button>
+      </form>
+    </section>
+    ${list.length ? `<div class="table" id="cv-list">${list.map((c, i) => `<div class="tr" style="display:flex;align-items:center">
+      <span class="grow t">${esc(c)}</span>
+      <button class="icon-btn" data-rm="${i}" aria-label="Remover ${esc(c)}" title="Remover">${icon('trash')}</button></div>`).join('')}</div>`
+      : '<p class="muted">Nenhum convênio cadastrado ainda.</p>'}`;
+
+  $('#cv-form').onsubmit = (e) => {
+    e.preventDefault();
+    const name = $('#cv-name').value.trim();
+    if (!name) return;
+    if (list.some((c) => c.toLowerCase() === name.toLowerCase())) return toast('Este convênio já está na lista.', 'err');
+    return busy($('[type=submit]', e.target), 'Salvando…', async () => {
+      await saveInsurers([...list, name]);
+      toast('Convênio adicionado.'); renderAdministrativo(new URLSearchParams('aba=convenios'));
+    });
+  };
+  $$('[data-rm]').forEach((b) => (b.onclick = async () => {
+    const name = list[+b.dataset.rm];
+    if (!(await confirmBox(`Remover o convênio “${name}” da lista? Pacientes que já usam este nome não são alterados.`, 'Remover'))) return;
+    try { await saveInsurers(list.filter((_, i) => i !== +b.dataset.rm)); toast('Convênio removido.'); renderAdministrativo(new URLSearchParams('aba=convenios')); }
+    catch (err) { toast(err.message, 'err'); }
+  }));
+}
+
+/* ---------- Declarações: disponibilidade de horário e comparecimento ---------- */
+async function declaracoes(patients) {
+  const pane = $('#pane');
+  if (!patients.length) { pane.innerHTML = emptyState('Nenhum paciente', 'Cadastre um paciente para emitir declarações.', '<a class="btn" href="#/pacientes">Ir para pacientes</a>'); return; }
+  const month = todayISO().slice(0, 7);
+  const pay = state.profile?.branding?.payment || {};
+  pane.innerHTML = `
+    <section class="panel">
+      <div class="grid2">
+        <label class="field">Paciente<select id="dc-p">${patients.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></label>
+        <label class="field">Tipo de declaração<select id="dc-t">
+          <option value="disponibilidade">Disponibilidade de horário (vaga reservada)</option>
+          <option value="comparecimento">Comparecimento às sessões</option></select></label>
+        <label class="field" id="dc-w">Sessões por semana<input type="number" min="1" max="7" id="dc-sw" value="1"></label>
+        <label class="field" id="dc-d">Duração da sessão (minutos)<input type="number" min="15" max="180" id="dc-sd" value="50"></label>
+        <label class="field" id="dc-m" style="display:none">Mês de referência<input type="month" id="dc-mes" value="${month}"></label>
+      </div>
+      <p class="muted small" id="dc-info"></p>
+      <div class="row">
+        <button class="btn" id="dc-pdf">${icon('download')}Gerar PDF</button>
+        <button class="btn quiet" id="dc-doc">Word</button>
+      </div>
+    </section>`;
+
+  const isComp = () => $('#dc-t').value === 'comparecimento';
+  const showFields = () => {
+    $('#dc-w').style.display = isComp() ? 'none' : '';
+    $('#dc-d').style.display = isComp() ? 'none' : '';
+    $('#dc-m').style.display = isComp() ? '' : 'none';
+    $('#dc-info').textContent = isComp()
+      ? 'Conta os atendimentos realizados do paciente no mês escolhido.'
+      : 'Declara a reserva de horário semanal para o paciente, com validade de 15 dias.';
+  };
+  const countFor = async () => {
+    const m = $('#dc-mes').value || month;
+    const [y, mo] = m.split('-').map(Number);
+    const to = iso(new Date(y, mo, 0, 12));
+    const aps = await api.listAppointments({ patientId: $('#dc-p').value, from: `${m}-01`, to });
+    return aps.filter((a) => a.status === 'realizado').length;
+  };
+  const args = async () => {
+    const p = patients.find((x) => x.id === $('#dc-p').value);
+    const base = { professional: state.profile, patientName: p?.name || '', specialty: state.profile?.specialty || '', payment: pay };
+    if (!isComp()) return { ...base, type: 'disponibilidade', sessionsPerWeek: Number($('#dc-sw').value) || 1, sessionDuration: Number($('#dc-sd').value) || 50 };
+    const m = $('#dc-mes').value || month;
+    const [y, mo] = m.split('-').map(Number);
+    const label = new Date(y, mo - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    return { ...base, type: 'comparecimento', periodLabel: label, count: await countFor() };
+  };
+  $('#dc-t').onchange = showFields; $('#dc-mes').onchange = showFields;
+  showFields();
+  const run = (fn) => async (e) => {
+    try { fn(await args(), e); } catch (err) { toast(err.message, 'err'); }
+  };
+  $('#dc-pdf').onclick = run((a) => exportDeclaracaoPdf(a));
+  $('#dc-doc').onclick = run((a) => exportDeclaracaoWord(a));
 }
 
 /* =====================================================================

@@ -14,7 +14,7 @@ function friendly(error) {
   if (/confirme pelo link/i.test(m)) return 'Confirme pelo link enviado ao seu e-mail e tente de novo.';
   if (/row-level security/i.test(m)) return 'Você não tem permissão para esta ação.';
   if (/profiles_slug_key|duplicate key.*slug/i.test(m)) return 'Este endereço já está em uso por outro profissional. Escolha outro.';
-  if (/(preferences|branding|slug|onboarded|meta|notes|report_versions|brand_by_slug|appointments|patient_admin)/i.test(m) && /column|schema cache|does not exist|function/i.test(m)) return 'O banco precisa ser atualizado: rode de novo o arquivo supabase/schema.sql no SQL Editor do Supabase.';
+  if (/(preferences|branding|slug|onboarded|meta|notes|report_versions|brand_by_slug|appointments|patient_admin|expenses)/i.test(m) && /column|schema cache|does not exist|function/i.test(m)) return 'O banco precisa ser atualizado: rode de novo o arquivo supabase/schema.sql no SQL Editor do Supabase.';
   if (/released_only_if_reviewed/i.test(m)) return 'Só é possível liberar ao paciente um relatório já revisado.';
   return m;
 }
@@ -173,6 +173,22 @@ export const getPatientAdmin = (patientId) =>
   sb.from('patient_admin').select('*').eq('patient_id', patientId).maybeSingle().then(unwrap);
 export const savePatientAdmin = (row) =>
   sb.from('patient_admin').upsert({ ...row, updated_at: new Date().toISOString() }).select().single().then(unwrap);
+
+/* ---------- financeiro: despesas e dados administrativos de todos os pacientes ---------- */
+export const listPatientAdmins = () => sb.from('patient_admin').select('*').then(unwrap);
+export const listExpenses = ({ from, to } = {}) => {
+  let q = sb.from('expenses').select('*').order('date', { ascending: false });
+  if (from) q = q.gte('date', from);
+  if (to) q = q.lte('date', to);
+  return q.then(unwrap);
+};
+export const saveExpense = (row) => {
+  const { id, ...rest } = row;
+  return id
+    ? sb.from('expenses').update(rest).eq('id', id).select().single().then(unwrap)
+    : sb.from('expenses').insert(rest).select().single().then(unwrap);
+};
+export const deleteExpense = (id) => sb.from('expenses').delete().eq('id', id).then(unwrap);
 
 /* ---------- portal do paciente ---------- */
 export const portalReports = () => sb.rpc('portal_list_reports').then(unwrap);

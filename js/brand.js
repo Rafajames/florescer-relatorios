@@ -27,6 +27,10 @@ export const brandOf = (profile) => {
   };
 };
 
+/** Contato do rodapé: campos separados, editáveis em Configurações → Aparência. */
+export const CONTACT_FIELDS = [['phone', 'Telefone / WhatsApp'], ['instagram', 'Instagram'], ['email', 'E-mail'], ['address', 'Endereço']];
+export const contactOf = (b) => (b && b.contact) || {};
+
 /* ---------- cores ---------- */
 const hexToRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const rgbToHex = (r) => '#' + r.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
