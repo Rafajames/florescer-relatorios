@@ -6,7 +6,7 @@ const FIRST = [
   ['Deixe com a sua cara', 'Configurações → Aparência e marca: logo, cores, rodapé e link próprio.', '#/config?aba=aparencia'],
   ['Cadastre um paciente', 'Pacientes → Novo paciente. Ou use "Criar paciente de teste" para experimentar.', '#/pacientes'],
   ['Registre o consentimento', 'Na ficha do paciente → Registrar consentimento. Sem ele a gravação fica bloqueada.', '#/pacientes'],
-  ['Faça a primeira sessão', 'Nova sessão → escolha paciente e modelo → grave ou digite → abra o relatório.', '#/nova'],
+  ['Faça a primeira sessão', 'Novo → Evolução → escolha paciente e modelo → grave ou digite → abra o relatório.', '#/nova'],
   ['Revise e libere', 'No relatório: Marcar como revisado → Liberar ao paciente.', '#/relatorios'],
 ];
 

@@ -266,14 +266,17 @@ export async function renderPatientDetail(id) {
     if (ok) { toast('Consentimento registrado.'); renderPatientDetail(id); }
   };
   $('#consent').onclick = addConsent;
-  $('#newdoc').onclick = async () => {
-    const rep = await openModal('Novo documento', `<p class="muted">Documento livre, escrito como no Word. O paciente só vê depois que você revisar e liberar.</p>
-      <label class="field">Título<input name="t" required placeholder="Ex.: Declaração, Plano terapêutico, Parecer"></label>`,
-    { okText: 'Criar e abrir', onOk: (d) => {
-      const t = d.querySelector('[name=t]').value.trim(); if (!t) throw new Error('Digite um título para o documento.');
-      return api.createReport({ patient_id: id, template_id: null, kind: 'documento', title: t, session_date: todayISO(), status: 'rascunho', sections: [{ title: 'Documento', text: '', patient_visible: true }] });
-    } });
-    if (rep && rep.id) goto(`#/relatorio/${rep.id}`);
-  };
+  $('#newdoc').onclick = () => newDocument(id);
   if ($('#consent-top')) $('#consent-top').onclick = addConsent;
+}
+
+/** Cria um documento livre para o paciente e abre o editor. */
+export async function newDocument(patientId) {
+  const rep = await openModal('Novo documento', `<p class="muted">Documento livre, escrito como no Word. O paciente só vê depois que você revisar e liberar.</p>
+    <label class="field">Título<input name="t" required placeholder="Ex.: Declaração, Plano terapêutico, Parecer"></label>`,
+  { okText: 'Criar e abrir', onOk: (d) => {
+    const t = d.querySelector('[name=t]').value.trim(); if (!t) throw new Error('Digite um título para o documento.');
+    return api.createReport({ patient_id: patientId, template_id: null, kind: 'documento', title: t, session_date: todayISO(), status: 'rascunho', sections: [{ title: 'Documento', text: '', patient_visible: true }] });
+  } });
+  if (rep && rep.id) goto(`#/relatorio/${rep.id}`);
 }

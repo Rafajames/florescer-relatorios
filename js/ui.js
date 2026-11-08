@@ -104,7 +104,7 @@ const NAV_PATIENT = [['portal', '#/portal', 'file', 'Meus relatórios']];
 const TAB = [
   ['painel', '#/painel', 'home', 'Início'],
   ['pacientes', '#/pacientes', 'users', 'Pacientes'],
-  ['nova', '#/nova', 'plus', 'Nova', true],
+  ['nova', '#/nova', 'plus', 'Novo', true],
   ['relatorios', '#/relatorios', 'file', 'Relatórios'],
   ['config', '#/config', 'sliders', 'Ajustes'],
 ];
@@ -132,12 +132,12 @@ export function shell(active) {
         ${isPatient ? '' : `<div class="topbar">
           <button class="search-trigger" id="open-search" aria-label="Buscar">${icon('search')}<span>Buscar paciente ou relatório</span><kbd>Ctrl K</kbd></button>
           <button class="icon-btn help-btn" id="open-help" title="Atalhos do teclado (?)" aria-label="Atalhos do teclado">${icon('info')}</button>
-          <a class="btn bloom" href="#/nova">${icon('plus')}<span>Nova sessão</span></a>
+          <a class="btn bloom" href="#/nova" data-new>${icon('plus')}<span>Novo</span></a>
         </div>`}
         <main id="main" class="page"></main>
       </div>
       ${isPatient ? '' : `<nav class="tabbar" aria-label="Atalhos">
-        ${TAB.map(([k, h, ic, l, cta]) => `<a href="${h}" class="${k === active ? 'on' : ''} ${cta ? 'cta' : ''}">${cta ? `<span class="circle">${icon(ic)}</span>` : icon(ic)}${l}</a>`).join('')}
+        ${TAB.map(([k, h, ic, l, cta]) => `<a href="${h}" ${cta ? 'data-new' : ''} class="${k === active ? 'on' : ''} ${cta ? 'cta' : ''}">${cta ? `<span class="circle">${icon(ic)}</span>` : icon(ic)}${l}</a>`).join('')}
       </nav>`}
     </div>`;
   const s = $('#open-search');

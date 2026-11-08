@@ -99,7 +99,7 @@ if (api.configured) {
 const SHORTCUTS = [
   ['Ctrl K', 'Buscar paciente ou relatório'],
   ['Ctrl S', 'Salvar o relatório que está aberto'],
-  ['Alt N', 'Começar uma nova sessão'],
+  ['Alt N', 'Criar algo novo'],
   ['Alt H', 'Ir para o Início'],
   ['?', 'Abrir esta ajuda'],
 ];
@@ -110,11 +110,14 @@ export function showShortcuts() {
 document.addEventListener('keydown', (e) => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
   const pro = state.profile?.role === 'professional';
-  if (pro && e.altKey && e.key.toLowerCase() === 'n') { e.preventDefault(); location.hash = '#/nova'; }
+  if (pro && e.altKey && e.key.toLowerCase() === 'n') { e.preventDefault(); import('./new-menu.js').then((m) => m.openNewMenu()); }
   else if (pro && e.altKey && e.key.toLowerCase() === 'h') { e.preventDefault(); location.hash = '#/painel'; }
   else if (!typing && !e.ctrlKey && !e.metaKey && e.key === '?') { e.preventDefault(); showShortcuts(); }
 });
-document.addEventListener('click', (e) => { if (e.target.closest('#open-help')) showShortcuts(); });
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#open-help')) showShortcuts();
+  if (e.target.closest('[data-new]')) { e.preventDefault(); import('./new-menu.js').then((m) => m.openNewMenu()); }
+});
 document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && state.profile?.role === 'professional') {
     e.preventDefault(); import('./search.js').then((m) => m.openSearch());
