@@ -76,14 +76,26 @@ const TOPICS = [
   ] },
 ];
 
+// textos da Ajuda: padrão do sistema + os ajustes feitos pelo administrador (settings.help_edits)
+export function helpDefaults() {
+  return { FIRST: FIRST.map((x) => [...x]), TOPICS: TOPICS.map((t) => ({ ...t, items: t.items.map((i) => [...i]) })) };
+}
+export function resolvedHelp() {
+  const ed = settings.help_edits || {}, d = helpDefaults();
+  d.FIRST.forEach((f) => { if (typeof ed['first|' + f[0]] === 'string') f[1] = ed['first|' + f[0]]; });
+  d.TOPICS.forEach((t) => t.items.forEach((i) => { const k = t.t + '|' + i[0]; if (typeof ed[k] === 'string') i[1] = ed[k]; }));
+  return d;
+}
+
 export async function renderHelp() {
   const main = shell('ajuda');
+  const H = resolvedHelp();
   const extra = Array.isArray(settings.help_extra) ? settings.help_extra.filter((x) => x && x.t && x.text) : [];
   main.innerHTML = pageHeader('Ajuda', 'Onde fazer cada coisa, passo a passo.') + `
     <section class="panel"><h2>Primeiros passos</h2>
-      <ol class="help-steps">${FIRST.map(([t, d, h]) => `<li><a href="${h}"><b>${esc(t)}</b></a><span class="muted">${esc(d)}</span></li>`).join('')}</ol></section>
+      <ol class="help-steps">${H.FIRST.map(([t, d, h]) => `<li><a href="${h}"><b>${esc(t)}</b></a><span class="muted">${esc(d)}</span></li>`).join('')}</ol></section>
     <label class="field">Procurar na ajuda<input id="hq" type="search" placeholder="Ex.: liberar, logo, microfone, tabela"></label>
-    <div id="topics">${TOPICS.map((tp) => `<details class="panel help-topic" open><summary><h2>${esc(tp.t)}</h2><a class="btn quiet sm" href="${tp.link}">${icon('right')}${esc(tp.where)}</a></summary>
+    <div id="topics">${H.TOPICS.map((tp) => `<details class="panel help-topic" open><summary><h2>${esc(tp.t)}</h2><a class="btn quiet sm" href="${tp.link}">${icon('right')}${esc(tp.where)}</a></summary>
       <dl class="help-list">${tp.items.map(([k, v]) => `<div class="help-item"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></details>`).join('')}</div>
     ${extra.map((x) => `<details class="panel help-topic" open><summary><h2>${esc(x.t)}</h2></summary><dl class="help-list"><div class="help-item"><dd style="white-space:pre-wrap">${esc(x.text)}</dd></div></dl></details>`).join('')}
     <p id="hnone" class="muted hide">Nada encontrado. Tente outra palavra.</p>`;

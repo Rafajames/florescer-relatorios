@@ -630,3 +630,24 @@ h1{font-size:34px;line-height:1.12} h2{font-size:22px;line-height:1.2} h3{font-w
   .adm-tabs{-webkit-mask-image:linear-gradient(to right,#000 88%,transparent);mask-image:linear-gradient(to right,#000 88%,transparent);padding-right:24px}
   #adm > section{padding:16px 14px}
 }
+
+/* ===== Administração: seleção de seção no celular e textos da Ajuda ===== */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.adm-sel{display:none;width:100%;min-height:48px;font-size:16px;padding:0 12px;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink)}
+.ht-group{border:1px solid var(--edge);border-radius:12px;margin-top:12px;background:var(--field)}
+.ht-group>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;font-weight:600;color:var(--ink)}
+.ht-group>summary::-webkit-details-marker{display:none}
+.ht-group>summary::after{content:'';width:8px;height:8px;border-right:2px solid var(--ink-2);border-bottom:2px solid var(--ink-2);transform:rotate(45deg);margin-left:8px;transition:transform .15s}
+.ht-group[open]>summary::after{transform:rotate(-135deg)}
+.ht-group .ht-item{margin:0 12px 12px;padding:12px;border-top:1px solid var(--edge);border-radius:0}
+.ht-item{display:grid;gap:8px}
+.ht-item:first-of-type{margin-top:0}
+.ht-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ht-item textarea,.ht-item input{width:100%}
+.ht-item .link{justify-self:start}
+@media (max-width:760px){
+  .adm-tabs{display:none}
+  .adm-sel{display:block}
+  .adm-sel-wrap{display:block;margin-bottom:14px}
+  .ht-group>summary{padding:14px}
+}

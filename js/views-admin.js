@@ -4,7 +4,7 @@ import { PROVIDERS } from './ai.js';
 import { state, settings, applySettings, SPECIALTIES, DEFAULT_CONSENT } from './state.js';
 import { $, $$, esc, toast, shell, pageHeader, icon, chip, loading, confirmBox, fmtDate, fmtDateTime } from './ui.js';
 
-const TABS = [['uso', 'Uso'], ['modelos', 'Modelos do sistema'], ['textos', 'Textos padrão'], ['ia', 'Modelos de IA'], ['aviso', 'Aviso geral'], ['pessoas', 'Profissionais'], ['convites', 'Convites'], ['ajuda', 'Ajuda'], ['registro', 'Registro']];
+const TABS = [['uso', 'Uso'], ['modelos', 'Modelos do sistema'], ['textos', 'Textos padrão'], ['ia', 'Modelos de IA'], ['aviso', 'Aviso geral'], ['pessoas', 'Profissionais'], ['convites', 'Convites'], ['ajuda', 'Textos da Ajuda'], ['registro', 'Registro']];
 const KINDS = { sessao: 'Evolução', anamnese: 'Anamnese', periodo: 'Período' };
 
 async function save(key, value) {
@@ -20,7 +20,8 @@ export async function renderAdmin() {
   const main = shell('admin');
   const tab = new URLSearchParams((location.hash.split('?')[1]) || '').get('aba') || 'uso';
   main.innerHTML = pageHeader('Administração', 'Altere o sistema sem código. Você não vê pacientes nem relatórios.') +
-    `<div class="adm-tabs">${TABS.map(([k, l]) => `<a class="btn ${k === tab ? '' : 'quiet'} sm" href="#/admin?aba=${k}">${l}</a>`).join('')}</div><div id="adm"></div>`;
+    `<label class="adm-sel-wrap"><span class="sr">Seção</span><select class="adm-sel" id="adm-sel">${TABS.map(([k, l]) => `<option value="${k}" ${k === tab ? 'selected' : ''}>${l}</option>`).join('')}</select></label><div class="adm-tabs">${TABS.map(([k, l]) => `<a class="btn ${k === tab ? '' : 'quiet'} sm" href="#/admin?aba=${k}">${l}</a>`).join('')}</div><div id="adm"></div>`;
+  $('#adm-sel').onchange = (e) => { location.hash = '#/admin?aba=' + e.target.value; };
   const box = $('#adm'); loading(box);
   try { await VIEWS[tab](box); } catch (e) { box.innerHTML = `<div class="callout warn">${icon('info')}<div class="grow"><p>${esc(e.message)}</p><p class="muted small">Se a tabela ainda não existe, rode o arquivo supabase/admin.sql no Supabase.</p></div></div>`; }
 }
@@ -125,17 +126,41 @@ const VIEWS = {
   },
 
   async ajuda(box) {
+    const { helpDefaults, resolvedHelp } = await import('./views-help.js');
+    const D = helpDefaults(), R = resolvedHelp();
+    const attr = (v) => esc(v);
+    const field = (key, label, val, def) => `<div class="ht-item"><div class="ht-head"><b>${esc(label)}</b>${val !== def ? chip('Alterado', 'bloom') : ''}</div>
+      <textarea rows="3" data-k="${attr(key)}" data-def="${attr(def)}" aria-label="${attr(label)}">${esc(val)}</textarea>
+      <button type="button" class="link small" data-reset="${attr(key)}">Voltar ao original</button></div>`;
+    const firstHtml = R.FIRST.map(([t, d], n) => field('first|' + t, t, d, D.FIRST[n][1])).join('');
+    const topicsHtml = R.TOPICS.map((tp, ti) => `<details class="ht-group"><summary><span>${esc(tp.t)}</span><span class="muted small">${tp.items.length} itens</span></summary>
+      ${tp.items.map(([k, v], n) => field(tp.t + '|' + k, k, v, D.TOPICS[ti].items[n][1])).join('')}</details>`).join('');
+    box.innerHTML = `<section class="panel"><h2>Textos da Ajuda</h2>
+      <p class="muted small">É o que o profissional lê em Ajuda. Abra um grupo, altere o texto e salve. "Voltar ao original" restaura o texto do sistema.</p>
+      <details class="ht-group" open><summary><span>Primeiros passos</span><span class="muted small">${R.FIRST.length} passos</span></summary>${firstHtml}</details>
+      ${topicsHtml}
+      <div class="row" style="margin-top:14px"><button class="btn" id="ok-help">Salvar textos da Ajuda</button></div></section>
+      <section class="panel"><h2>Tópicos extras</h2><p class="muted small">Aparecem no fim da página Ajuda, depois dos textos acima.</p><div id="ext"></div></section>`;
+    box.onclick = (e) => {
+      const b = e.target.closest('[data-reset]'); if (!b) return;
+      const ta = box.querySelector(`[data-k="${CSS.escape(b.dataset.reset)}"]`);
+      if (ta) { ta.value = ta.dataset.def; ta.dispatchEvent(new Event('input')); }
+    };
+    $('#ok-help').onclick = async () => {
+      const edits = {};
+      box.querySelectorAll('textarea[data-k]').forEach((ta) => { const v = ta.value.trim(); if (v && v !== ta.dataset.def) edits[ta.dataset.k] = v; });
+      await save('help_edits', edits);
+      renderAdmin();
+    };
     const rows = Array.isArray(settings.help_extra) ? settings.help_extra.map((x) => ({ ...x })) : [];
     const draw = () => {
-      box.innerHTML = `<section class="panel"><div class="row"><h2 class="grow">Tópicos extras da Ajuda</h2><button class="btn quiet sm" id="add">${icon('plus')}Novo tópico</button></div>
-        <p class="muted small">Aparecem no fim da página Ajuda de todos os profissionais.</p>
-        ${rows.map((r, i) => `<div class="sec-edit" data-i="${i}"><input data-f="t" placeholder="Título" value="${esc(r.t || '')}"><textarea data-f="text" rows="3" placeholder="Texto">${esc(r.text || '')}</textarea>
-          <button class="icon-btn" data-rm="${i}" aria-label="Remover">${icon('trash')}</button></div>`).join('') || '<p class="muted">Nenhum tópico extra ainda.</p>'}
-        <button class="btn" id="ok" style="margin-top:12px">Salvar</button></section>`;
+      $('#ext').innerHTML = `${rows.map((r, i) => `<div class="ht-item" data-i="${i}"><input data-f="t" placeholder="Título" value="${esc(r.t || '')}"><textarea data-f="text" rows="3" placeholder="Texto">${esc(r.text || '')}</textarea>
+          <button class="link small danger" data-rm="${i}">Remover tópico</button></div>`).join('') || '<p class="muted">Nenhum tópico extra ainda.</p>'}
+        <div class="row" style="margin-top:12px"><button class="btn quiet" id="add">${icon('plus')}Novo tópico</button><button class="btn" id="ok">Salvar tópicos extras</button></div>`;
       $('#add').onclick = () => { rows.push({ t: '', text: '' }); draw(); };
       $$('[data-rm]', box).forEach((b) => (b.onclick = () => { rows.splice(+b.dataset.rm, 1); draw(); }));
-      box.oninput = (e) => { const r = e.target.closest('.sec-edit'); if (r && e.target.dataset.f) rows[+r.dataset.i][e.target.dataset.f] = e.target.value; };
-      $('#ok').onclick = () => save('help_extra', rows.filter((r) => r.t.trim() && r.text.trim()));
+      $('#ok').onclick = () => save('help_extra', rows.filter((r) => r.t && r.t.trim() && r.text && r.text.trim()));
+      $('#ext').oninput = (e) => { const r = e.target.closest('.ht-item'); if (r && e.target.dataset.f) rows[+r.dataset.i][e.target.dataset.f] = e.target.value; };
     };
     draw();
   },
