@@ -2,6 +2,7 @@
 // Dados administrativos ficam separados dos clínicos (tabelas appointments e patient_admin).
 import * as api from './api.js';
 import { state } from './state.js';
+import { waLink, lembreteTexto } from './cobranca.js';
 import { exportAttendancePdf, exportAttendanceWord, exportDeclaracaoPdf, exportDeclaracaoWord, ATT_STATUS } from './export.js';
 import {
   $, $$, esc, fmtDate, todayISO, toast, confirmBox, busy, chip, shell, loading, pageHeader, icon, openModal, emptyState, callout, NAV_MORE,
@@ -25,7 +26,7 @@ export async function renderAdministrativo(params) {
   const ABAS = [['agenda', 'Agenda'], ['frequencia', 'Folha de frequência'], ['declaracoes', 'Declarações'], ['convenios', 'Convênios']];
   const aba = ABAS.some(([k]) => k === params.get('aba')) ? params.get('aba') : 'agenda';
   main.innerHTML = pageHeader('Administrativo', 'Agenda, folha de frequência, declarações e convênios. Separados dos registros clínicos.',
-    aba === 'agenda' ? `<button class="btn bloom" id="new-ap">${icon('plus')}Novo atendimento</button>` : '') + `
+    aba === 'agenda' ? `<button class="btn bloom" id="new-ap">${icon('plus')}Nova sessão</button>` : '') + `
     <div class="tabs" role="tablist">
       ${ABAS.map(([k, l]) => `<a class="tab ${aba === k ? 'on' : ''}" href="#/administrativo${k === 'agenda' ? '' : '?aba=' + k}" role="tab" style="text-decoration:none">${l}</a>`).join('')}
     </div><div id="pane"></div>`;
@@ -61,7 +62,7 @@ async function agenda(params, patients) {
       <a class="btn quiet sm" href="${week(1)}" aria-label="Próxima semana">${icon('right')}</a>
       <a class="btn quiet sm" href="#/administrativo">Hoje</a>
       <span class="grow"></span>
-      <span class="small muted">${aps.length} atendimento${aps.length === 1 ? '' : 's'}</span>
+      <span class="small muted">${aps.length} sessão${aps.length === 1 ? '' : 's'}</span>
       ${['realizado', 'falta', 'falta_justificada', 'cancelado'].filter(count).map((s) => chip(`${ATT_STATUS[s]}: ${count(s)}`, STATUS_KIND[s])).join(' ')}
     </div>
     <div id="days"></div>`;
@@ -80,12 +81,12 @@ async function agenda(params, patients) {
           <span class="t">${esc(hhmm(a.time) || '—')}</span>
           <span class="ellip"><a href="#/pacientes/${a.patient_id}" style="color:inherit">${esc(a.patients?.name || '')}</a><small class="muted"> · ${a.duration_min} min${a.notes ? ' · ' + esc(a.notes) : ''}</small></span>
           <span class="ag-meta"><select class="ag-st st-${a.status}" data-st="${a.id}" aria-label="Situação">${statusOpts(a.status)}</select>${evoLink}</span>
-          <span class="row" style="gap:2px;flex-wrap:nowrap"><button class="icon-btn" data-ed="${a.id}" title="Editar" aria-label="Editar">${icon('edit')}</button><button class="icon-btn" data-del="${a.id}" title="Excluir" aria-label="Excluir">${icon('trash')}</button></span>
+          <span class="row" style="gap:2px;flex-wrap:nowrap">${a.status === 'agendado' ? `<button class="icon-btn" data-lem="${a.id}" title="Enviar lembrete pelo WhatsApp" aria-label="Enviar lembrete">${icon('calendar')}</button>` : ''}<button class="icon-btn" data-ed="${a.id}" title="Editar" aria-label="Editar">${icon('edit')}</button><button class="icon-btn" data-del="${a.id}" title="Excluir" aria-label="Excluir">${icon('trash')}</button></span>
         </div>`;
-      }).join('')}</div>` : '<p class="muted small" style="margin:0 0 4px">Nenhum atendimento.</p>'}
+      }).join('')}</div>` : '<p class="muted small" style="margin:0 0 4px">Nenhuma sessão.</p>'}
     </section>`;
   }).join('') || '';
-  if (!aps.length) $('#days').insertAdjacentHTML('afterbegin', emptyState('Semana sem atendimentos', 'Use “Novo atendimento” para agendar. Dá para repetir toda semana nos dias escolhidos.'));
+  if (!aps.length) $('#days').insertAdjacentHTML('afterbegin', emptyState('Semana sem sessões', 'Use “Nova sessão” para agendar. Dá para repetir toda semana nos dias escolhidos.'));
 
   const again = () => agenda(params, patients);
   $$('[data-st]').forEach((s) => (s.onchange = async () => {
@@ -96,36 +97,43 @@ async function agenda(params, patients) {
     const a = aps.find((x) => x.id === b.dataset.ed);
     appointmentModal({ patients, appointment: a }).then((ok) => ok && again());
   }));
+  $$('[data-lem]').forEach((b) => (b.onclick = () => {
+    const a = aps.find((x) => x.id === b.dataset.lem);
+    const pat = patients.find((x) => x.id === a?.patient_id);
+    const url = waLink(pat?.phone, lembreteTexto({ patient: pat?.name || '', professional: state.profile.full_name, date: a.date, time: a.time, specialty: state.profile.specialty }));
+    if (!url) return toast('Cadastre o telefone do paciente para enviar o lembrete.', 'err');
+    window.open(url, '_blank', 'noopener');
+  }));
   $$('[data-del]').forEach((b) => (b.onclick = async () => {
-    if (!(await confirmBox('Excluir este atendimento da agenda?', 'Excluir'))) return;
-    await busy(b, '…', async () => { await api.deleteAppointment(b.dataset.del); toast('Atendimento excluído.'); again(); });
+    if (!(await confirmBox('Excluir esta sessão da agenda?', 'Excluir'))) return;
+    await busy(b, '…', async () => { await api.deleteAppointment(b.dataset.del); toast('Sessão excluída.'); again(); });
   }));
 }
 
-/** Novo atendimento (com repetição semanal) ou edição. Resolve true se salvou. */
+/** Nova sessão (com repetição semanal) ou edição. Resolve true se salvou. */
 function appointmentModal({ patients, appointment: a, date }) {
   const edit = Boolean(a);
   const d0 = a?.date || date || todayISO();
   const body = `
     <label class="field">Paciente<select name="patient_id" required>${patients.map((p) => `<option value="${p.id}" ${p.id === a?.patient_id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
     <div class="grid2">
-      <label class="field">Data${edit ? '' : ' do primeiro atendimento'}<input type="date" name="date" value="${d0}" required></label>
+      <label class="field">Data${edit ? '' : ' do primeira sessão'}<input type="date" name="date" value="${d0}" required></label>
       <label class="field">Horário<input type="time" name="time" value="${hhmm(a?.time)}"></label>
       <label class="field">Duração (minutos)<input type="number" name="duration_min" min="5" max="600" value="${a?.duration_min || 50}" required></label>
       <label class="field">Situação<select name="status">${statusOpts(a?.status || 'agendado')}</select></label>
     </div>
     ${edit ? '' : `<div class="field">Repetir nos dias
       <div class="row" style="gap:10px;margin-top:4px">${[1, 2, 3, 4, 5, 6].map((i) => `<label class="check small"><input type="checkbox" name="wd" value="${i}" ${dt(d0).getDay() === i ? 'checked' : ''}>${WD[i]}</label>`).join('')}</div>
-      <small>Deixe só o dia da data para um atendimento avulso.</small></div>
+      <small>Deixe só o dia da data para um sessão avulso.</small></div>
     <label class="field">Por quantas semanas<input type="number" name="weeks" min="1" max="52" value="1"><small>Ex.: 3 vezes por semana durante 4 semanas = marque 3 dias e coloque 4.</small></label>`}
     <label class="field">Observação (opcional)<input name="notes" value="${esc(a?.notes || '')}" placeholder="Ex.: reposição, horário especial"></label>
     <p class="muted small">Não coloque aqui informações clínicas. Elas ficam na evolução.</p>`;
-  return openModal(edit ? 'Editar atendimento' : 'Novo atendimento', body, {
+  return openModal(edit ? 'Editar sessão' : 'Nova sessão', body, {
     okText: 'Salvar',
     onOk: async (d) => {
       const f = (n) => $(`[name=${n}]`, d).value;
       const base = { patient_id: f('patient_id'), time: f('time') || null, duration_min: Number(f('duration_min')) || 50, status: f('status'), notes: f('notes').trim() || null };
-      if (edit) { await api.updateAppointment(a.id, { ...base, date: f('date') }); toast('Atendimento atualizado.'); return true; }
+      if (edit) { await api.updateAppointment(a.id, { ...base, date: f('date') }); toast('Sessão atualizada.'); return true; }
       const first = f('date');
       const wds = $$('[name=wd]:checked', d).map((c) => Number(c.value));
       const weeks = Math.min(52, Math.max(1, Number(f('weeks')) || 1));
@@ -141,7 +149,7 @@ function appointmentModal({ patients, appointment: a, date }) {
       }
       dates.sort();
       await api.saveAppointments(dates.map((date) => ({ ...base, date })));
-      toast(dates.length > 1 ? `${dates.length} atendimentos agendados.` : 'Atendimento agendado.');
+      toast(dates.length > 1 ? `${dates.length} sessões agendadas.` : 'Sessão agendada.');
       return true;
     },
   });
@@ -157,7 +165,7 @@ async function frequencia(params, patients) {
       <div class="grid2">
         <label class="field">Paciente<select id="fq-p">${patients.map((p) => `<option value="${p.id}" ${p.id === params.get('paciente') ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
         <label class="field">Mês<input type="month" id="fq-m" value="${month}"></label>
-        <label class="field">Especialidade de atendimento<input id="fq-ap" placeholder="Ex.: Integração Sensorial de Ayres"></label>
+        <label class="field">Especialidade<input id="fq-ap" placeholder="Ex.: Integração Sensorial de Ayres"></label>
         <label class="field">Convênio<input id="fq-in" list="fq-convs" placeholder="Vazio = Particular"><datalist id="fq-convs">${insurers().map((c) => `<option value="${esc(c)}">`).join('')}</datalist></label>
         <label class="field">Responsável pelo paciente (opcional)<input id="fq-gu" placeholder="Nome do responsável"></label>
         <label class="field">Linhas mínimas na folha<input type="number" id="fq-min" min="0" max="40" value="10"><small>Completa com linhas em branco para preencher à mão.</small></label>
@@ -170,7 +178,7 @@ async function frequencia(params, patients) {
         <button class="btn quiet" id="fq-save">${icon('check')}Salvar dados do paciente</button>
       </div>
     </section>
-    <h3 style="margin:6px 0 10px">Atendimentos do mês</h3>
+    <h3 style="margin:6px 0 10px">Sessões do mês</h3>
     <div id="fq-list"></div>`;
 
   let rows = [];
@@ -179,7 +187,7 @@ async function frequencia(params, patients) {
   const drawList = () => {
     const list = picked();
     $('#fq-list').innerHTML = list.length ? `<div class="table">${list.map((r, i) => `<div class="tr cols-freq"><span class="muted">${i + 1}</span><span>${WD[dt(r.date).getDay()]}, ${fmtDate(r.date)} ${esc(hhmm(r.time))}</span><span>${chip(ATT_STATUS[r.status], STATUS_KIND[r.status])}</span></div>`).join('')}</div>`
-      : '<p class="muted small">Nenhum atendimento com essas situações neste mês. A folha sai só com linhas em branco.</p>';
+      : '<p class="muted small">Nenhuma sessão com essas situações neste mês. A folha sai só com linhas em branco.</p>';
   };
   const loadPatient = async () => {
     const pid = $('#fq-p').value; const [from, to] = range();
@@ -285,15 +293,16 @@ async function declaracoes(patients) {
     $('#dc-d').style.display = isComp() ? 'none' : '';
     $('#dc-m').style.display = isComp() ? '' : 'none';
     $('#dc-info').textContent = isComp()
-      ? 'Conta os atendimentos realizados do paciente no mês escolhido.'
+      ? 'Conta as sessões realizadas do paciente no mês escolhido.'
       : 'Declara a reserva de horário semanal para o paciente, com validade de 15 dias.';
   };
-  const countFor = async () => {
+  // Sessões realizadas do paciente no mês escolhido, em ordem de data e horário.
+  const sessionsFor = async () => {
     const m = $('#dc-mes').value || month;
     const [y, mo] = m.split('-').map(Number);
     const to = iso(new Date(y, mo, 0, 12));
     const aps = await api.listAppointments({ patientId: $('#dc-p').value, from: `${m}-01`, to });
-    return aps.filter((a) => a.status === 'realizado').length;
+    return aps.filter((a) => a.status === 'realizado').map((a) => ({ date: a.date, time: a.time }));
   };
   const args = async () => {
     const p = patients.find((x) => x.id === $('#dc-p').value);
@@ -302,15 +311,15 @@ async function declaracoes(patients) {
     const m = $('#dc-mes').value || month;
     const [y, mo] = m.split('-').map(Number);
     const label = new Date(y, mo - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-    return { ...base, type: 'comparecimento', periodLabel: label, count: await countFor() };
+    return { ...base, type: 'comparecimento', periodLabel: label, sessions: await sessionsFor() };
   };
   $('#dc-t').onchange = showFields; $('#dc-mes').onchange = showFields;
   showFields();
   const run = (fn) => async (e) => {
     try { fn(await args(), e); } catch (err) { toast(err.message, 'err'); }
   };
-  $('#dc-pdf').onclick = run((a) => exportDeclaracaoPdf(a));
-  $('#dc-doc').onclick = run((a) => exportDeclaracaoWord(a));
+  $('#dc-pdf').onclick = run((a) => { exportDeclaracaoPdf(a); api.logExport('declaracao', null, { tipo: a.type }); });
+  $('#dc-doc').onclick = run((a) => { exportDeclaracaoWord(a); api.logExport('declaracao', null, { tipo: a.type }); });
 }
 
 /* =====================================================================

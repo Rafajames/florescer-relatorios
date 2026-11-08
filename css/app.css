@@ -740,3 +740,14 @@ h1{font-size:34px;line-height:1.12} h2{font-size:22px;line-height:1.2} h3{font-w
   .tpl-f{padding-right:0;padding-bottom:44px}
   .tpl-f-tools{top:auto;bottom:6px;right:auto;left:4px;opacity:1}
 }
+
+/* Páginas públicas por link (sem login) */
+.pub{min-height:100vh;background:var(--bg,#F3F5F4)}
+.pub-h{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line,#E2E8EA);background:var(--card,#fff)}
+.pub-main{max-width:720px;margin:0 auto;padding:16px}
+.pub-main h1{font-size:22px;margin:0 0 8px}
+.pub-f{display:block;margin-bottom:14px}
+.pub-q{display:block;font-weight:600;margin-bottom:4px}
+.pub-f small{display:block;margin-bottom:6px}
+.pub-cons{display:flex;gap:10px;align-items:flex-start;margin:16px 0}
+@media (max-width:560px){.pub-main{padding:12px 16px}}

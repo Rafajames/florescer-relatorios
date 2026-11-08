@@ -3,6 +3,7 @@ import * as ai from './ai.js';
 import { state, DEFAULT_CONSENT } from './state.js';
 import { createDemo, removeDemo, isDemo } from './demo.js';
 import { exportDossierWord, exportDossierPdf, exportAuditoriaPdf, KIND_LABEL, brl } from './export.js';
+import { newToken, sha256, waLink } from './cobranca.js';
 import {
   $, $$, esc, fmtDate, fmtDateTime, toast, openModal, confirmBox, busy, statusChip, chip, meta, callout,
   shell, loading, pageHeader, backLink, icon, greeting, longDate, emptyState, todayISO,
@@ -173,6 +174,72 @@ export async function renderPatients() {
 /* =====================================================================
    FICHA DO PACIENTE
    ===================================================================== */
+/* ---------- links públicos ---------- */
+const linkUrl = (token) => `${location.origin}${location.pathname}#/l/${token}`;
+const LINK_DAYS = [[1, '1 dia'], [3, '3 dias'], [7, '7 dias'], [14, '14 dias'], [30, '30 dias']];
+const daysSel = (def) => `<label class="field">Válido por<select name="days">${LINK_DAYS.map(([v, l]) => `<option value="${v}" ${v === def ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
+const expiresIn = (days) => new Date(Date.now() + days * 864e5).toISOString();
+
+const linksPanel = (links) => `<div class="panel">
+  <div class="panel-head"><h3>Links enviados</h3></div>
+  ${links.length ? links.map((l) => {
+    const expired = new Date(l.expires_at) < new Date();
+    const st = l.kind === 'anamnese'
+      ? (l.responded_at ? chip(`Respondida em ${fmtDate(l.responded_at)}`, 'ok') : expired ? chip('Expirado') : chip('Aguardando', 'warn'))
+      : (expired ? chip('Expirado') : chip('Ativo', 'ok'));
+    return `<div class="small" style="margin-bottom:10px">${l.kind === 'anamnese' ? 'Anamnese' : 'Relatório'} · enviado em ${fmtDate(l.created_at)}<br>${st} <button class="link" data-rlink="${l.id}">Revogar</button></div>`;
+  }).join('') : '<p class="muted small">Nenhum link enviado.</p>'}
+</div>`;
+
+function showLinkModal(url, expires, msg, phone, note = '') {
+  const wa = waLink(phone, `${msg}\n\n${url}`);
+  return openModal('Link pronto', `
+    <p>Este link vale até <b>${esc(fmtDate(expires))}</b>. Você pode revogá-lo na ficha do paciente.</p>
+    <label class="field">Endereço do link<input readonly id="lk-url" value="${esc(url)}"></label>
+    ${note ? `<p class="small muted">${esc(note)}</p>` : ''}
+    <div class="row"><button type="button" class="btn quiet" id="lk-copy">${icon('file')}Copiar link</button>${wa
+      ? `<a class="btn" target="_blank" rel="noopener" href="${esc(wa)}">Enviar pelo WhatsApp</a>`
+      : '<span class="small muted">Cadastre o telefone do paciente para enviar pelo WhatsApp.</span>'}</div>`,
+  { cancelText: 'Fechar', onOpen: (d) => {
+    $('#lk-copy', d).onclick = async () => {
+      try { await navigator.clipboard.writeText(url); toast('Link copiado.'); }
+      catch { $('#lk-url', d).select(); toast('Selecione o endereço e copie.', 'err'); }
+    };
+  } });
+}
+
+async function anamneseLinkModal(p, id) {
+  const tpls = api.templatesForMe(await api.listTemplates(), state.profile).filter((t) => t.kind === 'anamnese');
+  if (!tpls.length) return toast('Nenhum modelo de anamnese disponível. Crie um em Modelos.', 'err');
+  const r = await openModal('Anamnese por link', `
+    <p>O(a) paciente responde no próprio celular, sem login. A resposta entra na ficha como rascunho para você revisar.</p>
+    <label class="field">Modelo<select name="tpl">${tpls.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select></label>
+    ${daysSel(7)}`, { okText: 'Gerar link', onOk: (d) => ({ tpl: d.querySelector('[name=tpl]').value, days: Number(d.querySelector('[name=days]').value) }) });
+  if (!r || r === true) return;
+  const token = newToken(), expires = expiresIn(r.days);
+  await api.createShareLink({ token, kind: 'anamnese', patient_id: id, template_id: r.tpl, expires_at: expires });
+  await showLinkModal(linkUrl(token), expires, `Olá, ${p.name}! Segue o link para você preencher sua anamnese antes da nossa primeira conversa. Leva uns minutos e pode ser feito pelo celular.`, p.phone);
+  renderPatientDetail(id);
+}
+
+async function relatorioLinkModal(p, id, reports) {
+  const revs = reports.filter((x) => x.status === 'revisado' && (x.kind === 'sessao' || x.kind === 'periodo'));
+  if (!revs.length) return toast('Revise um relatório antes de enviar por link.', 'err');
+  const r = await openModal('Relatório por link', `
+    <p>Quem tiver o link lê o relatório e baixa em PDF ou Word. Só aparecem as partes marcadas como visíveis ao paciente.</p>
+    <label class="field">Relatório<select name="rep">${revs.map((x) => `<option value="${x.id}">${esc(x.title)} (${esc(fmtDate(x.session_date))})</option>`).join('')}</select></label>
+    ${daysSel(14)}
+    <label class="field">Senha (opcional)<input name="pw" type="password" autocomplete="new-password" placeholder="Deixe em branco para não exigir"></label>`,
+  { okText: 'Gerar link', onOk: (d) => ({ rep: d.querySelector('[name=rep]').value, days: Number(d.querySelector('[name=days]').value), pw: d.querySelector('[name=pw]').value }) });
+  if (!r || r === true) return;
+  const token = newToken(), expires = expiresIn(r.days);
+  const password_hash = r.pw ? await sha256(`${token}:${r.pw}`) : null;
+  await api.createShareLink({ token, kind: 'relatorio', patient_id: id, report_id: r.rep, expires_at: expires, password_hash });
+  await showLinkModal(linkUrl(token), expires, `Olá, ${p.name}! Segue o link para acessar o seu relatório.`, p.phone,
+    r.pw ? 'Envie a senha em outra mensagem, não junto com o link.' : '');
+  renderPatientDetail(id);
+}
+
 // Soma recebido e a receber das sessões realizadas (valor do atendimento ou valor padrão do paciente).
 const paymentsOf = (apts, admin) => {
   const price = Number(admin?.session_price) || 0;
@@ -187,8 +254,8 @@ const paymentsOf = (apts, admin) => {
 
 export async function renderPatientDetail(id) {
   const main = shell('pacientes'); loading(main);
-  const [p, consents, reports, apts, admin] = await Promise.all([api.getPatient(id), api.listConsents(id), api.listReports({ patientId: id }),
-    api.listAppointments({ patientId: id }), api.getPatientAdmin(id)]);
+  const [p, consents, reports, apts, admin, links] = await Promise.all([api.getPatient(id), api.listConsents(id), api.listReports({ patientId: id }),
+    api.listAppointments({ patientId: id }), api.getPatientAdmin(id), api.listShareLinks(id)]);
   const active = api.hasActiveConsent(consents);
   const payments = paymentsOf(apts, admin);
   const financeiroPanel = `<div class="panel">
@@ -213,6 +280,8 @@ export async function renderPatientDetail(id) {
       <a class="btn quiet" href="#/periodo?paciente=${p.id}">${icon('calendar')}Por período</a>
       <button class="btn quiet" id="dossier">${icon('download')}Prontuário</button>
       <button class="btn quiet" id="audit">${icon('shield')}Auditoria (PDF)</button>
+      <button class="btn quiet" id="link-anamnese">${icon('file')}Anamnese por link</button>
+      <button class="btn quiet" id="link-rel">${icon('file')}Relatório por link</button>
       <button class="btn quiet" id="edit">${icon('edit')}Editar</button>`) +
     (isDemo(p) ? callout('<p><b>Paciente de teste.</b> Dados fictícios para você experimentar. Remova em Pacientes quando não precisar mais.</p>', 'warn') : '') +
     meta([p.email ? esc(p.email) : 'sem e-mail', p.phone ? esc(p.phone) : '', p.birth_date ? 'nascimento ' + fmtDate(p.birth_date) : '']) +
@@ -227,6 +296,7 @@ export async function renderPatientDetail(id) {
       </section>
       <aside>
         ${financeiroPanel}
+        ${linksPanel(links)}
         <div class="panel">
           <div class="panel-head"><h3>Consentimento (LGPD)</h3>${active ? chip('Ativo', 'ok') : chip('Pendente', 'warn')}</div>
           ${consents.length ? consents.map((c) => `
@@ -263,6 +333,7 @@ export async function renderPatientDetail(id) {
     if (!r || r === true) return;
     const full = await api.listReports({ patientId: id, withSections: true });
     const args = { patient: p, professional: state.profile, reports: full, only: r.only };
+    api.logExport('prontuario', id, { registros: full.length, somente_visiveis: r.only });
     (r.fmt === 'word' ? exportDossierWord : exportDossierPdf)(args);
   };
   $('#audit').onclick = async () => {
@@ -272,12 +343,19 @@ export async function renderPatientDetail(id) {
       Promise.all(full.map((r) => api.listVersions(r.id).catch(() => []))),
       Promise.all(full.map((r) => api.listAudit(r.id).catch(() => []))),
     ]);
+    api.logExport('auditoria', id, { registros: full.length });
     exportAuditoriaPdf({
       patient: p, professional: state.profile, reports: full, consents, appointments: apts, admin, payments,
       versions: Object.fromEntries(full.map((r, i) => [r.id, versions[i]])),
       audits: Object.fromEntries(full.map((r, i) => [r.id, audits[i]])),
     });
   };
+  $('#link-anamnese').onclick = () => anamneseLinkModal(p, id);
+  $('#link-rel').onclick = () => relatorioLinkModal(p, id, reports);
+  $$('[data-rlink]').forEach((b) => (b.onclick = async () => {
+    if (!(await confirmBox('Revogar este link? Quem já tiver o endereço deixa de ter acesso.', 'Revogar'))) return;
+    await api.revokeShareLink(b.dataset.rlink); toast('Link revogado.'); renderPatientDetail(id);
+  }));
   if ($('#edit-mail')) $('#edit-mail').onclick = editIt;
   $('#archive').onclick = async () => { await api.savePatient({ id, archived: !p.archived }); toast(p.archived ? 'Paciente reativado.' : 'Paciente arquivado.'); renderPatientDetail(id); };
   $('#del').onclick = async () => {

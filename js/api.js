@@ -192,3 +192,17 @@ export const deleteExpense = (id) => sb.from('expenses').delete().eq('id', id).t
 
 /* ---------- portal do paciente ---------- */
 export const portalReports = () => sb.rpc('portal_list_reports').then(unwrap);
+
+/* ---------- links públicos (anamnese para o paciente responder; relatório para ler/baixar) ---------- */
+export const createShareLink = (row) => sb.from('share_links').insert(row).select('id,token,kind,expires_at').single().then(unwrap);
+export const listShareLinks = (patientId) =>
+  sb.from('share_links').select('id,token,kind,expires_at,responded_at,created_at,report_id,template_id').eq('patient_id', patientId).order('created_at', { ascending: false }).then(unwrap);
+export const revokeShareLink = (id) => sb.from('share_links').delete().eq('id', id).then(unwrap);
+export const getPublicLink = (token, passwordHash = null) =>
+  sb.rpc('public_get_link', { p_token: token, p_password_hash: passwordHash }).then(unwrap);
+export const submitPublicAnamnese = (token, answers, consentText) =>
+  sb.rpc('public_submit_anamnese', { p_token: token, p_answers: answers, p_consent_text: consentText }).then(unwrap);
+
+/** Registra uma exportação (auditoria). Falha em silêncio: não deve travar o download. */
+export const logExport = (entity, entityId, detail) =>
+  sb.rpc('log_export', { p_entity: entity, p_entity_id: entityId || null, p_detail: detail || null }).then(() => {}, () => {});

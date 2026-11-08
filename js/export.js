@@ -2,6 +2,7 @@ import { esc, fmtDate } from './ui.js';
 import { settings } from './state.js';
 import { brandOf, darken } from './brand.js';
 import { bodyHtml } from './richtext.js';
+import { extenso } from './cobranca.js';
 
 const slug = (s) => String(s || 'relatorio').normalize('NFD').replace(/[̀-ͯ]/g, '')
   .replace(/[^a-zA-Z0-9\- ]/g, '').trim().replace(/\s+/g, '_').slice(0, 60) || 'relatorio';
@@ -135,11 +136,11 @@ function buildAttendance({ professional, patientName, approach, insurer, period,
   const td = 'border:1px solid #777;padding:7px 6px;font-size:10.5pt';
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Frequência — ${esc(patientName)}</title><style>${css(h.b.color, h.b)}</style></head><body>
   ${h.html}
-  <h1 style="text-align:center">FREQUÊNCIA DE ATENDIMENTO${professional.specialty ? ' – ' + esc(professional.specialty.toUpperCase()) : ''}</h1>
+  <h1 style="text-align:center">FREQUÊNCIA DE SESSÕES${professional.specialty ? ' – ' + esc(professional.specialty.toUpperCase()) : ''}</h1>
   <table class="meta">
     <tr><td class="lab">Paciente:</td><td><b>${esc(patientName || '')}</b></td></tr>
     <tr><td class="lab">Profissional responsável:</td><td>${esc(professional.full_name || '')}${esc(reg)}</td></tr>
-    ${approach ? `<tr><td class="lab">Esp. de atendimento:</td><td>${esc(approach)}</td></tr>` : ''}
+    ${approach ? `<tr><td class="lab">Especialidade:</td><td>${esc(approach)}</td></tr>` : ''}
     <tr><td class="lab">Convênio:</td><td>${esc(insurer || 'Particular')}</td></tr>
     ${period ? `<tr><td class="lab">Período:</td><td>${esc(period)}</td></tr>` : ''}
   </table>
@@ -176,7 +177,7 @@ const payBlock = (pay = {}) => {
 /** args: { professional, patientName, specialty, sessionsPerMonth, unitPrice, monthLabel, payment, validityDays } */
 export function buildOrcamento({ professional, patientName, specialty, sessionsPerMonth, unitPrice, monthLabel, payment, validityDays = 15 }) {
   const total = (Number(sessionsPerMonth) || 0) * (Number(unitPrice) || 0);
-  const body = `<p>Segue o orçamento para atendimento com ${esc(specialty || 'o(a) profissional')} para <b>${esc(patientName)}</b>, referente ao mês de ${esc(monthLabel)}.</p>
+  const body = `<p>Segue o orçamento de sessões de ${esc(specialty || 'terapia')} para <b>${esc(patientName)}</b>, referente ao mês de ${esc(monthLabel)}.</p>
   <table style="width:100%;border-collapse:collapse;margin-top:12px">
     <tr style="background:#f1f4f5">${['Nº de sessões', 'Valor unitário', 'Total do mês'].map((c) => `<th style="border:1px solid #777;padding:7px;text-align:left">${c}</th>`).join('')}</tr>
     <tr><td style="border:1px solid #777;padding:7px">${Number(sessionsPerMonth) || 0} sessões</td><td style="border:1px solid #777;padding:7px">${brl(unitPrice)}</td><td style="border:1px solid #777;padding:7px"><b>${brl(total)}</b></td></tr>
@@ -187,27 +188,37 @@ export function buildOrcamento({ professional, patientName, specialty, sessionsP
 }
 
 /** args: { professional, patientName, specialty, monthLabel, items:[{date,time,amount}], total } */
-export function buildRecibo({ professional, patientName, specialty, monthLabel, items, total, payment }) {
-  const body = `<p style="margin-top:14px;text-align:justify">Recebi de <b>${esc(patientName)}</b> a quantia de <b>${brl(total)}</b>, referente a ${items.length} ${items.length === 1 ? 'sessão' : 'sessões'} de ${esc(specialty || 'atendimento')} realizada${items.length === 1 ? '' : 's'} em ${esc(monthLabel)}.</p>
+export function buildRecibo({ professional, patientName, specialty, monthLabel, items, total, payment, numero }) {
+  const body = `<p style="margin-top:14px;text-align:justify">Recebi de <b>${esc(patientName)}</b> a quantia de <b>${brl(total)}</b> (${esc(extenso(total))}), referente a ${items.length} ${items.length === 1 ? 'sessão' : 'sessões'} de ${esc(specialty || 'sessão')} realizada${items.length === 1 ? '' : 's'} em ${esc(monthLabel)}.</p>
   <table style="width:100%;border-collapse:collapse;margin-top:12px">
     <tr style="background:#f1f4f5">${['Data', 'Horário', 'Valor'].map((c) => `<th style="border:1px solid #777;padding:6px;text-align:left">${c}</th>`).join('')}</tr>
     ${items.map((r) => `<tr><td style="border:1px solid #777;padding:6px">${esc(fmtDate(r.date))}</td><td style="border:1px solid #777;padding:6px">${esc(String(r.time || '').slice(0, 5))}</td><td style="border:1px solid #777;padding:6px">${brl(r.amount)}</td></tr>`).join('')}
   </table>
   <p style="margin-top:12px">Para clareza, firmo o presente recibo.</p>`;
-  return docPage('RECIBO', professional, body).replace(/<body>/, `<body><div style="text-align:right;font-size:10pt">Emitido em ${esc(fmtDate(new Date().toISOString()))}</div>`);
+  return docPage(numero ? `RECIBO Nº ${String(numero).padStart(4, '0')}` : 'RECIBO', professional, body).replace(/<body>/, `<body><div style="text-align:right;font-size:10pt">Emitido em ${esc(fmtDate(new Date().toISOString()))}</div>`);
 }
 
-/** args: { professional, patientName, specialty, type: 'disponibilidade'|'comparecimento', sessionsPerWeek, sessionDuration, validityDays, periodLabel, count, payment } */
-export function buildDeclaracao({ professional, patientName, specialty, type, sessionsPerWeek, sessionDuration, validityDays = 15, periodLabel, count, payment }) {
-  const esp = specialty || 'terapia';
-  const text = type === 'comparecimento'
-    ? `Declaro, para os devidos fins, que <b>${esc(patientName)}</b> compareceu a ${count} atendimento${count === 1 ? '' : 's'} de ${esc(esp)} neste consultório no período de ${esc(periodLabel)}.`
-    : `Informo que há <b>disponibilidade de horário</b> para atendimento de ${esc(esp)} para <b>${esc(patientName)}</b>, com ${sessionsPerWeek} ${Number(sessionsPerWeek) === 1 ? 'encontro' : 'encontros'} semanais de ${sessionDuration} minutos cada, totalizando aproximadamente ${Math.round(Number(sessionsPerWeek) * 4)} atendimentos por mês.`;
-  const body = `<p style="margin-top:18px;line-height:1.8;text-align:justify">${text}</p>
-  ${type === 'comparecimento' ? '' : `<p class="muted" style="margin-top:12px">Documento válido durante ${validityDays} dias a contar desta data.</p>`}`;
+/** args: { professional, patientName, specialty, type: 'disponibilidade'|'comparecimento', sessionsPerWeek, sessionDuration, validityDays, periodLabel, sessions:[{date,time}] } */
+const longDate = (d) => d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+const plural = (n, one, many) => `${n} ${Number(n) === 1 ? one : many}`;
+export function buildDeclaracao({ professional, patientName, specialty, type, sessionsPerWeek = 1, sessionDuration = 50, validityDays = 15, periodLabel = '', sessions = [] }) {
+  const hoje = new Date();
+  const ate = new Date(hoje.getTime() + validityDays * 864e5);
+  const esp = specialty ? ` de ${esc(specialty)}` : '';
+  const nome = `<b>${esc(patientName)}</b>`;
+  const tbl = (head, rows) => `<table style="width:100%;border-collapse:collapse;margin-top:12px"><tr style="background:#f1f4f5">${head.map((c) => `<th style="border:1px solid #777;padding:6px;text-align:left">${c}</th>`).join('')}</tr>${rows.map((r) => `<tr>${r.map((c) => `<td style="border:1px solid #777;padding:6px">${c}</td>`).join('')}</tr>`).join('')}</table>`;
+  let body;
+  if (type === 'comparecimento') {
+    const n = sessions.length;
+    body = `<p style="margin-top:18px;line-height:1.8;text-align:justify">Declaro, para os devidos fins, que ${nome} compareceu a <b>${plural(n, 'sessão', 'sessões')}</b>${esp} neste consultório no período de <b>${esc(periodLabel)}</b>${n ? ', nas datas abaixo' : ''}.</p>
+    ${n ? tbl(['Data', 'Horário'], sessions.map((s) => [esc(fmtDate(s.date)), esc(String(s.time || '').slice(0, 5))])) : ''}`;
+  } else {
+    const porMes = Math.round(Number(sessionsPerWeek) * 4.33);
+    body = `<p style="margin-top:18px;line-height:1.8;text-align:justify">Declaro que há <b>disponibilidade de horário</b> para sessões${esp} com ${nome}, em ${plural(sessionsPerWeek, 'sessão semanal', 'sessões semanais')} de ${sessionDuration} minutos cada, totalizando cerca de ${porMes} sessões por mês.</p>
+    <p style="margin-top:12px">Esta declaração é válida de <b>${longDate(hoje)}</b> até <b>${longDate(ate)}</b>.</p>`;
+  }
   return docPage(type === 'comparecimento' ? 'DECLARAÇÃO DE COMPARECIMENTO' : 'DECLARAÇÃO DE DISPONIBILIDADE DE HORÁRIO', professional, body)
-    .replace(/<body>/, `<body><div style="text-align:right;font-size:10pt">Emitido em ${esc(fmtDate(new Date().toISOString()))}</div>`)
-    ;
+    .replace(/<body>/, `<body><div style="text-align:right;font-size:10pt">Emitida em ${esc(longDate(hoje))}</div>`);
 }
 export const exportOrcamentoPdf = (a) => toPdf(buildOrcamento(a));
 export const exportOrcamentoWord = (a) => toWord(buildOrcamento(a), `Orcamento ${a.patientName}`);
@@ -238,7 +249,7 @@ export function buildAuditoria({ patient, professional, reports, versions, audit
     ${row('Profissional responsável:', esc(professional.full_name || '') + (h.reg ? ' — ' + esc(h.reg) : ''))}
     ${row('Gerado em:', esc(when(new Date().toISOString())))}
     ${row('Registros clínicos:', String(reports.length))}
-    ${row('Atendimentos (agenda):', `${total} agendados ou registrados · ${realizados} realizados`)}
+    ${row('Sessões (agenda):', `${total} agendados ou registrados · ${realizados} realizados`)}
   </table>
 
   ${sec('1. Registros clínicos e versões', reports.length ? reports.map((r) => `
@@ -259,7 +270,7 @@ export function buildAuditoria({ patient, professional, reports, versions, audit
 
   ${sec('4. Agenda e financeiro', `
     <table class="meta">
-      ${row('Especialidade de atendimento:', esc(admin?.approach || '—'))}
+      ${row('Especialidade:', esc(admin?.approach || '—'))}
       ${row('Convênio:', esc(admin?.insurer || 'Particular'))}
       ${row('Valor da sessão:', admin?.session_price != null ? brl(admin.session_price) : '—')}
       ${row('Recebido:', brl(recebido))}

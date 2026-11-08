@@ -47,6 +47,9 @@ async function doRoute() {
   window.__dirty = false;
 
   if (!api.configured) return renderSetup();
+  // links públicos (#/l/token): sem login, só a tela do link
+  const pub = (location.hash.match(/^#\/l\/([\w-]+)/) || [])[1];
+  if (pub) return import('./views-public.js').then((m) => m.renderPublicLink(pub));
   try {
     if (!state.settingsLoaded) { try { applySettings(await api.loadSettings(), PROVIDERS); } catch { /* tabela ainda não criada */ } state.settingsLoaded = true; }
     const session = await api.getSession();

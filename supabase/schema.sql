@@ -711,3 +711,95 @@ create policy expenses_all_own on public.expenses for all to authenticated
   using (professional_id = auth.uid() and public.is_professional())
   with check (professional_id = auth.uid() and public.is_professional());
 grant select, insert, update, delete on public.expenses to authenticated;
+
+-- ---------------------------------------------------------------------
+-- v10: links públicos com validade (anamnese para o paciente responder,
+-- relatório revisado para ler/baixar) e registro de exportações
+-- ---------------------------------------------------------------------
+create table if not exists public.share_links (
+  id              uuid primary key default gen_random_uuid(),
+  token           text not null unique default encode(extensions.gen_random_bytes(24), 'hex'),
+  kind            text not null check (kind in ('anamnese','relatorio')),
+  professional_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  patient_id      uuid not null references public.patients(id) on delete cascade,
+  template_id     uuid references public.templates(id) on delete set null,
+  report_id       uuid references public.reports(id) on delete cascade,
+  password_hash   text,
+  expires_at      timestamptz not null,
+  responded_at    timestamptz,
+  consent_at      timestamptz,
+  consent_text    text,
+  created_at      timestamptz not null default now(),
+  constraint share_relatorio_tem_relatorio check (kind <> 'relatorio' or report_id is not null),
+  constraint share_anamnese_tem_modelo check (kind <> 'anamnese' or template_id is not null)
+);
+create index if not exists share_links_patient_idx on public.share_links (patient_id, created_at desc);
+alter table public.share_links enable row level security;
+drop policy if exists share_links_own on public.share_links;
+create policy share_links_own on public.share_links for all to authenticated
+  using (professional_id = auth.uid() and public.is_professional())
+  with check (professional_id = auth.uid() and public.is_professional());
+
+-- Leitura pública pelo token: só o necessário para a tela do link.
+create or replace function public.public_get_link(p_token text, p_password_hash text default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare l public.share_links; p public.profiles; pat public.patients; t public.templates; r public.reports;
+begin
+  select * into l from public.share_links where token = p_token;
+  if not found or l.expires_at < now() then raise exception 'link_invalido'; end if;
+  select * into p from public.profiles where id = l.professional_id;
+  select * into pat from public.patients where id = l.patient_id;
+  if l.kind = 'anamnese' then
+    select * into t from public.templates where id = l.template_id;
+    if not found then raise exception 'link_invalido'; end if;
+    return jsonb_build_object('kind','anamnese','expires_at',l.expires_at,'responded', l.responded_at is not null,
+      'patient_name', pat.name, 'professional_name', p.full_name, 'specialty', p.specialty,
+      'title', t.name, 'sections', t.sections);
+  end if;
+  if l.password_hash is not null and (p_password_hash is null or p_password_hash <> l.password_hash) then
+    return jsonb_build_object('kind','relatorio','needs_password', true, 'expires_at', l.expires_at);
+  end if;
+  select * into r from public.reports where id = l.report_id;
+  if not found or r.status <> 'revisado' then raise exception 'relatorio_indisponivel'; end if;
+  return jsonb_build_object('kind','relatorio','needs_password', false, 'expires_at', l.expires_at,
+    'patient_name', pat.name, 'professional_name', p.full_name, 'specialty', p.specialty, 'council_registry', p.council_registry,
+    'branding', coalesce(p.branding, '{}'::jsonb) - 'payment' - 'insurers' - 'recibo_seq',
+    'report_kind', r.kind, 'title', r.title, 'session_date', r.session_date, 'period_start', r.period_start, 'period_end', r.period_end,
+    'sections', (select coalesce(jsonb_agg(s), '[]'::jsonb) from jsonb_array_elements(r.sections) s
+                 where coalesce((s->>'patient_visible')::boolean, true)));
+end $$;
+
+-- Envio da anamnese pelo paciente: vira um registro em rascunho para o profissional revisar.
+create or replace function public.public_submit_anamnese(p_token text, p_answers jsonb, p_consent_text text)
+returns void language plpgsql security definer set search_path = public as $$
+declare l public.share_links; t public.templates; secs jsonb := '[]'::jsonb; item jsonb; idx int := 0;
+begin
+  select * into l from public.share_links where token = p_token for update;
+  if not found or l.kind <> 'anamnese' or l.expires_at < now() then raise exception 'link_invalido'; end if;
+  if l.responded_at is not null then raise exception 'ja_respondido'; end if;
+  if coalesce(length(trim(p_consent_text)), 0) = 0 then raise exception 'consentimento_obrigatorio'; end if;
+  select * into t from public.templates where id = l.template_id;
+  for item in select * from jsonb_array_elements(t.sections) loop
+    secs := secs || jsonb_build_array(jsonb_build_object('title', item->>'title',
+      'text', left(coalesce(p_answers->>(idx::text), ''), 20000)));
+    idx := idx + 1;
+  end loop;
+  insert into public.reports (professional_id, patient_id, template_id, kind, title, session_date, sections, status)
+  values (l.professional_id, l.patient_id, l.template_id, 'anamnese', t.name,
+          (now() at time zone 'America/Sao_Paulo')::date, secs, 'rascunho');
+  update public.share_links set responded_at = now(), consent_at = now(), consent_text = p_consent_text where id = l.id;
+end $$;
+
+-- Registro de exportações (auditoria): só profissionais logados.
+create or replace function public.log_export(p_entity text, p_entity_id uuid, p_detail jsonb)
+returns void language sql security definer set search_path = public as $$
+  insert into public.audit_log (user_id, action, entity, entity_id, detail)
+  values (auth.uid(), 'export', p_entity, p_entity_id, p_detail);
+$$;
+
+revoke all on function public.public_get_link(text, text) from public;
+revoke all on function public.public_submit_anamnese(text, jsonb, text) from public;
+revoke all on function public.log_export(text, uuid, jsonb) from public, anon;
+grant execute on function public.public_get_link(text, text) to anon, authenticated;
+grant execute on function public.public_submit_anamnese(text, jsonb, text) to anon, authenticated;
+grant execute on function public.log_export(text, uuid, jsonb) to authenticated;

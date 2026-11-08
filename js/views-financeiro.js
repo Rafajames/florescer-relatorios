@@ -1,7 +1,8 @@
-// Financeiro: cobranças dos atendimentos realizados, valores por paciente, despesas,
+// Financeiro: cobranças dos sessões realizados, valores por paciente, despesas,
 // orçamento, recibo e dados de pagamento. Cada profissional vê só os próprios dados.
 import * as api from './api.js';
 import { state } from './state.js';
+import { pixCode, cobrancaTexto, waLink } from './cobranca.js';
 import {
   buildOrcamento, exportOrcamentoPdf, exportOrcamentoWord, exportReciboPdf, exportReciboWord, brl,
 } from './export.js';
@@ -59,7 +60,7 @@ async function loadBase(from, to) {
 
 /* ---------- Cobranças ---------- */
 async function chargesTab(pane, mes, from, to) {
-  const { aps, priceOf, amountOf } = await loadBase(from, to);
+  const { patients, aps, priceOf, amountOf } = await loadBase(from, to);
   const real = aps.filter((a) => a.status === 'realizado');
   const sum = (list) => list.reduce((s, a) => s + amountOf(a), 0);
   const recebido = sum(real.filter((a) => a.payment_status === 'pago'));
@@ -67,7 +68,29 @@ async function chargesTab(pane, mes, from, to) {
   const expenses = await api.listExpenses({ from, to });
   const despesas = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
 
-  pane.innerHTML = `
+  // Inadimplência: sessões realizadas e não pagas, agrupadas por paciente.
+  const byPatient = new Map();
+  real.filter((a) => a.payment_status !== 'pago').forEach((a) => {
+    if (!byPatient.has(a.patient_id)) byPatient.set(a.patient_id, { id: a.patient_id, name: a.patients?.name || 'Paciente', items: [] });
+    byPatient.get(a.patient_id).items.push({ date: a.date, time: a.time, amount: amountOf(a) });
+  });
+  const devedores = [...byPatient.values()].sort((x, y) => y.items.length - x.items.length);
+  const maisAntiga = (items) => items.map((i) => i.date).sort()[0];
+  const diasEmAberto = (d) => Math.max(0, Math.round((new Date(todayISO()) - new Date(d)) / 864e5));
+  const devedoresHtml = devedores.length ? `<section class="panel" style="margin-bottom:16px">
+      <h3>Inadimplência</h3>
+      <p class="muted small">Sessões realizadas e ainda não pagas, por paciente.</p>
+      <div class="table">${devedores.map((d) => {
+        const total = d.items.reduce((s, i) => s + i.amount, 0);
+        const dias = diasEmAberto(maisAntiga(d.items));
+        return `<div class="tr" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="grow t">${esc(d.name)}<small class="muted"> · ${d.items.length} sessão(ões) · mais antiga em ${fmtDate(maisAntiga(d.items))}</small></span>
+          ${chip(dias ? `${dias} dia(s) em aberto` : 'hoje', dias > 14 ? 'warn' : '')}<b>${brl(total)}</b>
+          <button class="btn quiet sm" data-cobrar="${d.id}">Cobrar pelo WhatsApp</button></div>`;
+      }).join('')}</div></section>` : '';
+  const devById = Object.fromEntries(devedores.map((d) => [d.id, d]));
+
+  pane.innerHTML = `${devedoresHtml}
     <div class="stats">
       <div class="stat ok"><b>${brl(recebido)}</b><span>Recebido no mês</span></div>
       <div class="stat warn"><b>${brl(aReceber)}</b><span>A receber</span></div>
@@ -75,7 +98,7 @@ async function chargesTab(pane, mes, from, to) {
       <div class="stat"><b>${brl(recebido - despesas)}</b><span>Saldo</span></div>
     </div>
     ${real.length ? `<div class="table cols-cob" id="cob">
-      <div class="tr th cols-cob"><span>Atendimento</span><span>Paciente</span><span>Valor</span><span>Situação</span><span>Forma</span></div>
+      <div class="tr th cols-cob"><span>Sessão</span><span>Paciente</span><span>Valor</span><span>Situação</span><span>Forma</span></div>
       ${real.map((a) => {
         const sem = a.amount == null && !priceOf(a.patient_id);
         return `<div class="tr cols-cob" data-id="${a.id}">
@@ -90,8 +113,8 @@ async function chargesTab(pane, mes, from, to) {
         </div>`;
       }).join('')}
     </div>
-    <p class="muted small" style="margin-top:10px">Cada atendimento marcado como <b>realizado</b> no Administrativo vira uma cobrança aqui. O valor vem do preço do paciente, mas você pode alterar caso a caso.</p>`
-      : emptyState('Nenhum atendimento realizado neste mês', 'Marque os atendimentos como realizados na agenda do Administrativo. Eles aparecem aqui como cobranças.', '<a class="btn quiet" href="#/administrativo">Ir para a agenda</a>')}`;
+    <p class="muted small" style="margin-top:10px">Cada sessão marcada como <b>realizado</b> no Administrativo vira uma cobrança aqui. O valor vem do preço do paciente, mas você pode alterar caso a caso.</p>`
+      : emptyState('Nenhuma sessão realizada neste mês', 'Marque as sessões como realizadas na agenda do Administrativo. Elas aparecem aqui como cobranças.', '<a class="btn quiet" href="#/administrativo">Ir para a agenda</a>')}`;
 
   const saveRow = async (row) => {
     const id = row.dataset.id;
@@ -225,8 +248,18 @@ async function documentsTab(pane, mes, from, to) {
       total: items.reduce((s, a) => s + amountOf(a), 0), payment: pay };
   };
   const needRc = (a) => { if (!a.items.length) { toast('Não há sessões pagas para este recibo.', 'err'); return false; } return true; };
-  $('#rc-pdf').onclick = () => { const a = rcArgs(); if (needRc(a)) exportReciboPdf(a); };
-  $('#rc-doc').onclick = () => { const a = rcArgs(); if (needRc(a)) exportReciboWord(a); };
+  // Recibo com número sequencial: o número só avança quando o recibo é emitido.
+  const emitRecibo = (fn) => async () => {
+    const a = rcArgs(); if (!needRc(a)) return;
+    const numero = (state.profile.branding?.recibo_seq || 0) + 1;
+    try { await saveBranding({ recibo_seq: numero }); }
+    catch (err) { return toast(err.message, 'err'); }
+    fn({ ...a, numero });
+    api.logExport('recibo', null, { numero, sessoes: a.items.length, total: a.total });
+  };
+  $('#rc-pdf').onclick = emitRecibo(exportReciboPdf);
+  $('#rc-doc').onclick = emitRecibo(exportReciboWord);
+  $$('[data-cobrar]').forEach((b) => (b.onclick = () => cobrar(devById[b.dataset.cobrar], patients.find((x) => x.id === b.dataset.cobrar))));
 }
 
 /* ---------- Dados de pagamento (aparecem no orçamento e no recibo) ---------- */
@@ -244,6 +277,7 @@ async function paymentTab(pane) {
         ${f('account', 'Conta')}
         ${f('holder', 'Titular da conta')}
         ${f('pix', 'Chave PIX', 'CNPJ, CPF, e-mail ou telefone')}
+        ${f('city', 'Cidade (para o PIX)', 'Ex.: Boa Vista')}
       </div>
       <label class="field">Observação<textarea name="note" rows="2" placeholder="Ex.: enviar o comprovante pelo WhatsApp (83) 98778-2014">${esc(pay.note || '')}</textarea></label>
       <button class="btn" type="submit">Salvar dados de pagamento</button>
@@ -251,7 +285,7 @@ async function paymentTab(pane) {
   $('#pay-f').onsubmit = (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
-    const payment = Object.fromEntries(['doc', 'bank', 'agency', 'account', 'holder', 'pix', 'note'].map((k) => [k, String(fd.get(k) || '').trim()]));
+    const payment = Object.fromEntries(['doc', 'bank', 'agency', 'account', 'holder', 'pix', 'city', 'note'].map((k) => [k, String(fd.get(k) || '').trim()]));
     return busy(e.submitter || $('[type=submit]', e.target), 'Salvando…', async () => {
       const branding = { ...(p.branding || {}), payment };
       const row = await api.updateProfile(p.id, { branding });
@@ -259,4 +293,32 @@ async function paymentTab(pane) {
       toast('Dados de pagamento salvos.');
     });
   };
+}
+
+async function saveBranding(patch) {
+  const branding = { ...(state.profile.branding || {}), ...patch };
+  const row = await api.updateProfile(state.profile.id, { branding });
+  state.profile = { ...state.profile, branding: row.branding };
+}
+
+/** Monta a cobrança: resumo das sessões em aberto e código PIX copia-e-cola. */
+function cobrar(d, pat) {
+  const pay = state.profile?.branding?.payment || {};
+  if (!pay.pix) return toast('Cadastre a chave PIX em Dados de pagamento antes de cobrar.', 'err');
+  const total = d.items.reduce((s, i) => s + i.amount, 0);
+  const pixTxt = pixCode({ key: pay.pix, name: state.profile.branding?.org_name || state.profile.full_name, city: pay.city, amount: total });
+  const msg = cobrancaTexto({ patient: d.name, professional: state.profile.full_name, items: d.items, pix: pixTxt });
+  const url = waLink(pat?.phone, msg);
+  openModal('Cobrança pronta', `
+    <p>Mensagem para <b>${esc(d.name)}</b> com o total de <b>${brl(total)}</b> e o código PIX.</p>
+    <label class="field">Código PIX copia-e-cola<textarea readonly rows="3" id="pix-txt">${esc(pixTxt)}</textarea></label>
+    <div class="row"><button type="button" class="btn quiet" id="pix-copy">Copiar código PIX</button>${url
+      ? `<a class="btn" target="_blank" rel="noopener" href="${esc(url)}">Enviar pelo WhatsApp</a>`
+      : '<span class="small muted">Cadastre o telefone do paciente para enviar pelo WhatsApp.</span>'}</div>`,
+  { cancelText: 'Fechar', onOpen: (dlg) => {
+    $('#pix-copy', dlg).onclick = async () => {
+      try { await navigator.clipboard.writeText(pixTxt); toast('Código PIX copiado.'); }
+      catch { $('#pix-txt', dlg).select(); toast('Selecione o código e copie.', 'err'); }
+    };
+  } });
 }
