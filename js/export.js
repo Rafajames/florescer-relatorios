@@ -215,3 +215,60 @@ export const exportReciboPdf = (a) => toPdf(buildRecibo(a));
 export const exportReciboWord = (a) => toWord(buildRecibo(a), `Recibo ${a.patientName}`);
 export const exportDeclaracaoPdf = (a) => toPdf(buildDeclaracao(a));
 export const exportDeclaracaoWord = (a) => toWord(buildDeclaracao(a), `Declaracao ${a.patientName}`);
+
+/* ---------- Auditoria: pasta completa do paciente para conferência ---------- */
+const AUD_ACTION = { insert: 'Criado', update: 'Alterado', delete: 'Excluído', create: 'Criado', edit: 'Alterado', export: 'Exportado' };
+export function buildAuditoria({ patient, professional, reports, versions, audits, consents, appointments, admin, payments }) {
+  const h = header(professional);
+  const total = appointments.length;
+  const realizados = appointments.filter((a) => a.status === 'realizado').length;
+  const recebido = payments.paid;
+  const aReceber = payments.open;
+  const row = (l, v) => `<tr><td class="lab">${esc(l)}</td><td>${v}</td></tr>`;
+  const sec = (title, body) => `<h2>${esc(title)}</h2>${body}`;
+  const tbl = (head, rows) => `<table class="meta" style="width:100%"><tr>${head.map((x) => `<td class="lab"><b>${esc(x)}</b></td>`).join('')}</tr>${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')}</table>`;
+  const when = (s) => (s ? new Date(s).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—');
+
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Auditoria — ${esc(patient.name)}</title><style>${css(h.b.color, h.b)}</style></head><body>
+  ${h.html}
+  <h1>Auditoria do prontuário</h1>
+  <table class="meta">
+    ${row('Paciente:', `<b>${esc(patient.name)}</b>`)}
+    ${patient.birth_date ? row('Nascimento:', esc(fmtDate(patient.birth_date))) : ''}
+    ${row('Profissional responsável:', esc(professional.full_name || '') + (h.reg ? ' — ' + esc(h.reg) : ''))}
+    ${row('Gerado em:', esc(when(new Date().toISOString())))}
+    ${row('Registros clínicos:', String(reports.length))}
+    ${row('Atendimentos (agenda):', `${total} agendados ou registrados · ${realizados} realizados`)}
+  </table>
+
+  ${sec('1. Registros clínicos e versões', reports.length ? reports.map((r) => `
+    <h3>${esc(KIND_LABEL[r.kind] || 'Registro')} — ${esc(r.title)} (${esc(whenOf(r))})</h3>
+    <p class="small">Situação: ${esc(r.status || '—')} · Criado em ${esc(when(r.created_at))} · Última alteração ${esc(when(r.updated_at))}</p>
+    ${tbl(['Versão salva em', 'Título'], (versions[r.id] || []).length ? versions[r.id].map((v) => [esc(when(v.saved_at)), esc(v.title || '')]) : [['—', 'Sem versões anteriores salvas']])}
+  `).join('') : '<p class="muted">Nenhum registro.</p>')}
+
+  ${sec('2. Histórico de alterações', (() => {
+    const entries = Object.entries(audits).flatMap(([id, list]) => list.map((e) => ({ ...e, id })));
+    const titleOf = (id) => reports.find((r) => r.id === id)?.title || 'Registro';
+    entries.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+    return entries.length ? tbl(['Data e hora', 'Ação', 'Registro'], entries.map((e) => [esc(when(e.created_at)), esc(AUD_ACTION[e.action] || e.action), esc(titleOf(e.id))]))
+      : '<p class="muted">Nenhuma alteração registrada.</p>';
+  })())}
+
+  ${sec('3. Consentimento (LGPD)', consents.length ? tbl(['Concedido em', 'Canal', 'Revogado em'], consents.map((c) => [esc(when(c.granted_at)), esc(c.channel || ''), esc(c.revoked_at ? when(c.revoked_at) : 'Ativo')])) : '<p class="muted">Nenhum consentimento registrado.</p>')}
+
+  ${sec('4. Agenda e financeiro', `
+    <table class="meta">
+      ${row('Especialidade de atendimento:', esc(admin?.approach || '—'))}
+      ${row('Convênio:', esc(admin?.insurer || 'Particular'))}
+      ${row('Valor da sessão:', admin?.session_price != null ? brl(admin.session_price) : '—')}
+      ${row('Recebido:', brl(recebido))}
+      ${row('A receber:', brl(aReceber))}
+    </table>
+    ${appointments.length ? tbl(['Data', 'Horário', 'Situação', 'Valor', 'Pagamento'], appointments.map((a) => [fmtDate(a.date), esc(String(a.time || '').slice(0, 5)), esc(ATT_STATUS[a.status] || a.status), a.amount != null ? brl(a.amount) : '—', esc(a.payment_status === 'pago' ? 'Pago' + (a.paid_on ? ' em ' + fmtDate(a.paid_on) : '') : 'Pendente')])) : ''}`)}
+
+  ${signature(professional, h.b, h.reg)}
+  ${footer(h.b, reports.some((r) => r.ai_generated))}
+</body></html>`;
+}
+export const exportAuditoriaPdf = (args) => toPdf(buildAuditoria(args));

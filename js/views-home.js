@@ -2,7 +2,7 @@ import * as api from './api.js';
 import * as ai from './ai.js';
 import { state, DEFAULT_CONSENT } from './state.js';
 import { createDemo, removeDemo, isDemo } from './demo.js';
-import { exportDossierWord, exportDossierPdf, KIND_LABEL } from './export.js';
+import { exportDossierWord, exportDossierPdf, exportAuditoriaPdf, KIND_LABEL, brl } from './export.js';
 import {
   $, $$, esc, fmtDate, fmtDateTime, toast, openModal, confirmBox, busy, statusChip, chip, meta, callout,
   shell, loading, pageHeader, backLink, icon, greeting, longDate, emptyState, todayISO,
@@ -173,10 +173,29 @@ export async function renderPatients() {
 /* =====================================================================
    FICHA DO PACIENTE
    ===================================================================== */
+// Soma recebido e a receber das sessões realizadas (valor do atendimento ou valor padrão do paciente).
+const paymentsOf = (apts, admin) => {
+  const price = Number(admin?.session_price) || 0;
+  const real = apts.filter((a) => a.status === 'realizado');
+  const amt = (a) => (a.amount != null ? Number(a.amount) : price);
+  return {
+    realizados: real.length,
+    paid: real.filter((a) => a.payment_status === 'pago').reduce((s, a) => s + amt(a), 0),
+    open: real.filter((a) => a.payment_status !== 'pago').reduce((s, a) => s + amt(a), 0),
+  };
+};
+
 export async function renderPatientDetail(id) {
   const main = shell('pacientes'); loading(main);
-  const [p, consents, reports] = await Promise.all([api.getPatient(id), api.listConsents(id), api.listReports({ patientId: id })]);
+  const [p, consents, reports, apts, admin] = await Promise.all([api.getPatient(id), api.listConsents(id), api.listReports({ patientId: id }),
+    api.listAppointments({ patientId: id }), api.getPatientAdmin(id)]);
   const active = api.hasActiveConsent(consents);
+  const payments = paymentsOf(apts, admin);
+  const financeiroPanel = `<div class="panel">
+          <div class="panel-head"><h3>Financeiro e agenda</h3></div>
+          <p class="small">Recebido: <b>${brl(payments.paid)}</b><br>A receber: <b>${brl(payments.open)}</b><br>Sessões realizadas: <b>${payments.realizados}</b> · Valor da sessão: <b>${admin?.session_price != null ? brl(admin.session_price) : 'não definido'}</b></p>
+          <a class="btn quiet sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a>
+        </div>`;
   const anamneses = reports.filter((r) => r.kind === 'anamnese');
   const evolucoes = reports.filter((r) => r.kind === 'sessao');
   const periodos = reports.filter((r) => r.kind === 'periodo');
@@ -193,6 +212,7 @@ export async function renderPatientDetail(id) {
       <button class="btn quiet" id="newdoc">${icon('edit')}Novo documento</button>
       <a class="btn quiet" href="#/periodo?paciente=${p.id}">${icon('calendar')}Por período</a>
       <button class="btn quiet" id="dossier">${icon('download')}Prontuário</button>
+      <button class="btn quiet" id="audit">${icon('shield')}Auditoria (PDF)</button>
       <button class="btn quiet" id="edit">${icon('edit')}Editar</button>`) +
     (isDemo(p) ? callout('<p><b>Paciente de teste.</b> Dados fictícios para você experimentar. Remova em Pacientes quando não precisar mais.</p>', 'warn') : '') +
     meta([p.email ? esc(p.email) : 'sem e-mail', p.phone ? esc(p.phone) : '', p.birth_date ? 'nascimento ' + fmtDate(p.birth_date) : '']) +
@@ -206,6 +226,7 @@ export async function renderPatientDetail(id) {
         ${p.notes ? `<h3 style="margin-top:26px">Observações</h3><p class="pre">${esc(p.notes)}</p>` : ''}
       </section>
       <aside>
+        ${financeiroPanel}
         <div class="panel">
           <div class="panel-head"><h3>Consentimento (LGPD)</h3>${active ? chip('Ativo', 'ok') : chip('Pendente', 'warn')}</div>
           ${consents.length ? consents.map((c) => `
@@ -243,6 +264,19 @@ export async function renderPatientDetail(id) {
     const full = await api.listReports({ patientId: id, withSections: true });
     const args = { patient: p, professional: state.profile, reports: full, only: r.only };
     (r.fmt === 'word' ? exportDossierWord : exportDossierPdf)(args);
+  };
+  $('#audit').onclick = async () => {
+    if (!reports.length) return toast('Este paciente ainda não tem registros.', 'err');
+    const full = await api.listReports({ patientId: id, withSections: true });
+    const [versions, audits] = await Promise.all([
+      Promise.all(full.map((r) => api.listVersions(r.id).catch(() => []))),
+      Promise.all(full.map((r) => api.listAudit(r.id).catch(() => []))),
+    ]);
+    exportAuditoriaPdf({
+      patient: p, professional: state.profile, reports: full, consents, appointments: apts, admin, payments,
+      versions: Object.fromEntries(full.map((r, i) => [r.id, versions[i]])),
+      audits: Object.fromEntries(full.map((r, i) => [r.id, audits[i]])),
+    });
   };
   if ($('#edit-mail')) $('#edit-mail').onclick = editIt;
   $('#archive').onclick = async () => { await api.savePatient({ id, archived: !p.archived }); toast(p.archived ? 'Paciente reativado.' : 'Paciente arquivado.'); renderPatientDetail(id); };
