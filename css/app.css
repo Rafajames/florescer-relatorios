@@ -1,11 +1,11 @@
 /* Florescer Relatórios — interface
    Estrutura em petróleo, ação principal em amora, relatório como folha de papel em serifa. */
 :root{
-  --mist:#EDF1F2; --paper:#FFFFFF; --ink:#1D2B34; --ink-2:#51636E; --line:#D9E1E4; --line-2:#E8EDEF;
+  --mist:#F3F5F4; --paper:#FFFFFF; --ink:#1B282D; --ink-2:#556469; --line:#DCE3E3; --line-2:#EAEEEE;
   --petrol:#134B5F; --petrol-2:#0D3A4A; --petrol-tint:color-mix(in srgb,var(--petrol) 11%,#fff);
   --bloom:#B83D6F; --bloom-2:#9C315B; --bloom-tint:color-mix(in srgb,var(--bloom) 11%,#fff);
   --ok:#2E7D5B; --ok-tint:#DDF0E7; --warn:#8A5C0E; --warn-tint:#F8EDD2; --danger:#B3382C; --danger-tint:#FBE9E6;
-  --field:#FFFFFF; --hover:#F6F9FA; --topbar:rgba(237,241,242,.92); --edge:#C5D1D6; --edge-2:#B9C7CD; --skel:#E3EAED; --skel-2:#F1F5F6;
+  --field:#FFFFFF; --hover:#F6F9FA; --topbar:rgba(243,245,244,.92); --edge:#C5D1D6; --edge-2:#B9C7CD; --skel:#E3EAED; --skel-2:#F1F5F6;
   --on-callout:#0E3946; --on-warn:#5E3F08; --on-err:#7A241B; --on-ok:#1F5E43;
   --r:10px; --rail:236px;
   --sans:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
@@ -482,3 +482,53 @@ a.stat:hover{border-color:var(--edge-2);background:var(--hover)}
 :root[data-theme=dark] .chip.petrol{color:var(--link)} :root[data-theme=dark] .chip.bloom,:root[data-theme=dark] .wd i,:root[data-theme=dark] .livebar{color:color-mix(in srgb,var(--bloom) 55%,#fff)}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]) .chip.petrol{color:var(--link)}:root:not([data-theme=light]) .chip.bloom,:root:not([data-theme=light]) .wd i{color:color-mix(in srgb,var(--bloom) 55%,#fff)}}
 .logo-pick .grow{flex:1 1 100%;order:3;min-width:0}.logo-pick .drop{margin-top:0}
+
+
+/* =====================================================================
+   Direção: consultório sereno. Serifa nos títulos, muito ar, cor só onde há ação.
+   ===================================================================== */
+body{line-height:1.6;font-feature-settings:"ss01","cv11"}
+h1,h2{font-family:var(--serif);font-weight:500;letter-spacing:-.012em}
+h1{font-size:34px;line-height:1.12} h2{font-size:22px;line-height:1.2} h3{font-weight:600;font-size:15px}
+.head{margin-bottom:28px} .head .sub{font-size:15.5px}
+.page{padding:36px 48px 96px}
+.panel{padding:26px 28px;border-radius:14px;box-shadow:none}
+.panel>h2,.panel-head h2{font-size:20px}
+.btn{font-weight:600;border-radius:10px;min-height:42px}
+.btn.quiet{border-color:var(--line)}
+.chip{font-weight:500;padding:3px 10px}
+.li{padding:14px 6px} .li .t{font-weight:600}
+.tr{padding:13px 18px}
+.nav a{font-weight:500;border-radius:10px;padding:11px 14px}
+.brand b{font-family:var(--serif);font-weight:500;font-size:19px}
+/* início: convite calmo em vez de bloco escuro */
+.now{background:var(--paper);color:var(--ink);border:1px solid var(--line);border-left:4px solid var(--petrol);border-radius:14px;padding:28px 32px}
+.now h2{color:var(--ink);font-size:25px} .now p{color:var(--ink-2)}
+.now select{border:1px solid var(--edge)}
+:root[data-theme=dark] .now{background:var(--paper)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .now{background:var(--paper)}}
+/* números: serifa, sem cor chamativa */
+.stat{padding:20px 22px;border-radius:14px}
+.stat b{font-family:var(--serif);font-weight:500;font-size:36px;letter-spacing:-.02em}
+.stat.warn b,.stat.ok b{color:var(--ink)}
+.stat.warn span::before,.stat.ok span::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:1px;background:var(--warn)}
+.stat.ok span::before{background:var(--ok)}
+.wd{border-radius:12px} .wd i{background:var(--line-2);color:var(--ink-2)} .wd.zero i{background:transparent}
+/* a gravação é a ação principal; demais botões primários ficam em petróleo */
+.btn.bloom{background:var(--petrol);border-color:var(--petrol)} .btn.bloom:hover{background:var(--petrol-2)}
+.topbar .btn.bloom,.rec-btn{background:var(--bloom);border-color:var(--bloom)}
+.rec-btn:hover,.topbar .btn.bloom:hover{background:var(--bloom-2)}
+/* relatório: papel com respiro e títulos de seção discretos */
+.sheet{padding:56px 64px 60px;border-radius:4px}
+.sheet-head b{font-size:22px}
+.sec{padding:18px 0}
+.sec-title{font-family:var(--sans);font-weight:600;font-size:13.5px;color:var(--ink-2)}
+.title-input{font-family:var(--serif);font-weight:500;font-size:32px}
+/* login e primeiro acesso */
+.auth-hero h1,.onb-card h1{font-family:var(--serif);font-weight:500}
+.auth-hero h1{font-size:42px}
+.onb-card{border-radius:18px}
+.callout{border-radius:12px;padding:14px 16px}
+@media (max-width:760px){h1{font-size:28px}.page{padding:22px 18px 110px}.sheet{padding:28px 22px}.stat b{font-size:30px}.now{padding:22px}}
+.now .btn.bloom{background:var(--bloom);border-color:var(--bloom)} .now .btn.bloom:hover{background:var(--bloom-2)}
+.auth-hero h1{max-width:18ch}
