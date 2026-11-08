@@ -112,25 +112,26 @@ const TAB = [
 export function shell(active) {
   const p = state.profile;
   const isPatient = p && p.role === 'patient';
-  const nav = isPatient ? NAV_PATIENT : (p && p.is_admin ? [...NAV, ['admin', '#/admin', 'sliders', 'Administração']] : NAV);
+  const isAdm = Boolean(p && p.is_admin);
+  const nav = isPatient ? NAV_PATIENT : (p && p.is_admin ? [['admin', '#/admin', 'sliders', 'Administração']] : NAV);
   const nt = settings.notice && settings.notice.on && settings.notice.text ? settings.notice : null;
   const br = isPatient ? { logo: '', org_name: '' } : brandOf(p);
   $('#app').innerHTML = `
     <div class="app">
       <aside class="rail">
-        <a class="brand" href="${isPatient ? '#/portal' : '#/painel'}"><span class="mark ${br.logo ? 'has-logo' : ''}">${br.logo ? `<img src="${esc(br.logo)}" alt="">` : icon('flower')}</span><b>${esc(br.org_name || 'Florescer')}</b></a>
+        <a class="brand" href="${isPatient ? '#/portal' : isAdm ? '#/admin' : '#/painel'}"><span class="mark ${br.logo ? 'has-logo' : ''}">${br.logo ? `<img src="${esc(br.logo)}" alt="">` : icon('flower')}</span><b>${esc(br.org_name || 'Florescer')}</b></a>
         <nav class="nav" aria-label="Principal">
           ${nav.map(([k, h, ic, l]) => `<a href="${h}" class="${k === active ? 'on' : ''}" ${k === active ? 'aria-current="page"' : ''}>${icon(ic)}${l}</a>`).join('')}
         </nav>
         <div class="rail-credit">Feito com Florescer</div>
         <div class="rail-foot">
           <span class="avatar">${esc(initials(p?.full_name || state.user?.email))}</span>
-          <div class="who"><b>${esc(p?.full_name || state.user?.email || '')}</b><span>${esc(isPatient ? 'Paciente' : (p?.specialty || 'Profissional'))}</span></div>
+          <div class="who"><b>${esc(p?.full_name || state.user?.email || '')}</b><span>${esc(isPatient ? 'Paciente' : isAdm ? 'Administrador' : (p?.specialty || 'Profissional'))}</span></div>
           <button class="icon-btn" id="logout" title="Sair" aria-label="Sair">${icon('logout')}</button>
         </div>
       </aside>
       <div class="stage">
-        ${isPatient ? '' : `<div class="topbar">
+        ${isPatient || isAdm ? '' : `<div class="topbar">
           <button class="search-trigger" id="open-search" aria-label="Buscar">${icon('search')}<span>Buscar paciente ou relatório</span><kbd>Ctrl K</kbd></button>
           <button class="icon-btn help-btn" id="open-help" title="Atalhos do teclado (?)" aria-label="Atalhos do teclado">${icon('info')}</button>
           <a class="btn bloom" href="#/nova" data-new>${icon('plus')}<span>Novo</span></a>
@@ -138,7 +139,7 @@ export function shell(active) {
         ${nt ? `<div class="notice ${nt.level === 'warn' ? 'warn' : ''}" role="status">${icon('info')}<span>${esc(nt.text)}</span></div>` : ''}
         <main id="main" class="page"></main>
       </div>
-      ${isPatient ? '' : `<nav class="tabbar" aria-label="Atalhos">
+      ${isPatient || isAdm ? '' : `<nav class="tabbar" aria-label="Atalhos">
         ${TAB.map(([k, h, ic, l, cta]) => `<a href="${h}" ${cta ? 'data-new' : ''} class="${k === active ? 'on' : ''} ${cta ? 'cta' : ''}">${cta ? `<span class="circle">${icon(ic)}</span>` : icon(ic)}${l}</a>`).join('')}
       </nav>`}
     </div>`;

@@ -68,9 +68,9 @@ async function doRoute() {
     if (isPatient) applyBrand(DEFAULT_BRAND);
     else {
       const b = brandOf(state.profile); applyBrand(b); rememberBrand(b);
-      if (!state.profile.onboarded) return renderOnboarding(() => { location.hash = '#/painel'; route(); });
+      if (!state.profile.onboarded && !state.profile.is_admin) return renderOnboarding(() => { location.hash = '#/painel'; route(); });
     }
-    const home = isPatient ? '#/portal' : '#/painel';
+    const home = isPatient ? '#/portal' : state.profile.is_admin ? '#/admin' : '#/painel';
     const [path, query = ''] = (location.hash || home).split('?');
     const routes = isPatient ? PATIENT_ROUTES : PRO_ROUTES;
     const hit = routes.map(([re, fn]) => [path.match(re), fn]).find(([m]) => m);
