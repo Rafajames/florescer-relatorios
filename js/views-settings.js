@@ -14,7 +14,7 @@ import {
 /* =====================================================================
    CONFIGURAÇÕES
    ===================================================================== */
-const TABS = [
+const ALL_TABS = [
   ['perfil', 'Perfil e timbre'], ['aparencia', 'Aparência e marca'], ['preferencias', 'Preferências'], ['chaves', 'Chaves de IA'],
   ['consentimento', 'Consentimento'], ['seguranca', 'Segurança'], ['dados', 'Dados e privacidade'],
 ];
@@ -29,7 +29,9 @@ const csvCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 
 export async function renderSettings(params) {
   const main = shell('config');
-  const tab = TABS.some(([k]) => k === params.get('aba')) ? params.get('aba') : 'perfil';
+  const adm = Boolean(state.profile.is_admin); // o administrador só usa a segurança da conta
+  const TABS = adm ? ALL_TABS.filter(([k]) => k === 'seguranca') : ALL_TABS;
+  const tab = TABS.some(([k]) => k === params.get('aba')) ? params.get('aba') : TABS[0][0];
   main.innerHTML = pageHeader('Configurações', 'Ajuste o sistema ao seu jeito de trabalhar.', `<a class="btn quiet" href="#/ajuda">${icon('info')}Ajuda</a><button class="btn quiet" data-logout>${icon('logout')}Sair da conta</button>`) + `
     <div class="settings">
       <nav class="subnav" aria-label="Seções">${TABS.map(([k, l]) => `<a href="#/config?aba=${k}" class="${k === tab ? 'on' : ''}">${l}</a>`).join('')}</nav>

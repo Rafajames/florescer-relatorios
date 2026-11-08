@@ -631,3 +631,10 @@ begin
 end $$;
 revoke all on function public.mfa_self_reset() from public, anon;
 grant execute on function public.mfa_self_reset() to authenticated;
+
+-- v5.2: o administrador não conta como profissional
+create or replace function public.admin_list_professionals() returns table (id uuid, full_name text, email text, specialty text, created_at timestamptz, disabled boolean, is_admin boolean) language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'row-level security: acesso negado'; end if;
+  return query select p.id, p.full_name, u.email::text, p.specialty, p.created_at, p.disabled, p.is_admin from public.profiles p join auth.users u on u.id = p.id where p.role = 'professional' and not p.is_admin order by p.created_at desc;
+end $$;
