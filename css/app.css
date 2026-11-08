@@ -604,3 +604,29 @@ h1{font-size:34px;line-height:1.12} h2{font-size:22px;line-height:1.2} h3{font-w
   #adm .row .btn{flex:1 1 140px}
   #adm textarea,#adm input{max-width:none!important;width:100%}
 }
+
+/* ===== Administração: visual v2 ===== */
+#adm .adm-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin-top:14px;border-top:1px solid var(--edge);border-bottom:1px solid var(--edge)}
+#adm .adm-num{padding:14px 12px;border-right:1px solid var(--edge)}
+#adm .adm-num:nth-child(4n){border-right:0}
+#adm .adm-num b{display:block;font-size:26px;line-height:1.1;font-weight:600;color:var(--ink)}
+#adm .adm-num span{display:block;margin-top:4px;font-size:13px;color:var(--ink-2)}
+#adm > section + section{margin-top:18px}
+.ai-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:8px}
+.ai-card{border:1px solid var(--edge);border-radius:12px;padding:14px 16px;background:var(--field)}
+.ai-card h3{margin:0 0 10px;font-size:15px;font-weight:600;color:var(--ink)}
+.ai-card .field{margin-bottom:10px}
+.ai-card .btn{margin-top:4px}
+.ai-card + .ai-card{margin-top:0}
+#adm .ai-grid + h2,#adm .ai-grid ~ .row{margin-top:14px}
+.adm-tabs{position:relative}
+@media (max-width:760px){
+  #adm .adm-stats{grid-template-columns:1fr 1fr}
+  #adm .adm-num{border-right:0;border-bottom:1px solid var(--edge);padding:12px 6px}
+  #adm .adm-num:nth-child(odd){border-right:1px solid var(--edge)}
+  #adm .adm-num:nth-last-child(-n+2){border-bottom:0}
+  #adm .adm-num b{font-size:22px}
+  .ai-grid{grid-template-columns:1fr}
+  .adm-tabs{-webkit-mask-image:linear-gradient(to right,#000 88%,transparent);mask-image:linear-gradient(to right,#000 88%,transparent);padding-right:24px}
+  #adm > section{padding:16px 14px}
+}

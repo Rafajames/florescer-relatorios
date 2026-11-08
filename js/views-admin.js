@@ -19,7 +19,7 @@ export async function renderAdmin() {
   if (!state.profile?.is_admin) { location.hash = '#/painel'; return; }
   const main = shell('admin');
   const tab = new URLSearchParams((location.hash.split('?')[1]) || '').get('aba') || 'uso';
-  main.innerHTML = pageHeader('Administração', 'Altere o sistema sem editar o código. Você não vê pacientes, relatórios nem transcrições.') +
+  main.innerHTML = pageHeader('Administração', 'Altere o sistema sem código. Você não vê pacientes nem relatórios.') +
     `<div class="adm-tabs">${TABS.map(([k, l]) => `<a class="btn ${k === tab ? '' : 'quiet'} sm" href="#/admin?aba=${k}">${l}</a>`).join('')}</div><div id="adm"></div>`;
   const box = $('#adm'); loading(box);
   try { await VIEWS[tab](box); } catch (e) { box.innerHTML = `<div class="callout warn">${icon('info')}<div class="grow"><p>${esc(e.message)}</p><p class="muted small">Se a tabela ainda não existe, rode o arquivo supabase/admin.sql no Supabase.</p></div></div>`; }
@@ -33,7 +33,7 @@ const VIEWS = {
       <p class="muted small">Alterações valem para novos relatórios. Relatórios já criados não mudam.</p>
       <div class="list">${list.map((t) => `<div class="li"><div class="grow"><div class="t">${esc(t.name)} ${chip(KINDS[t.kind] || 'Evolução', 'petrol')} ${t.specialty ? chip(t.specialty) : ''}</div>
         <div class="muted small">${t.sections.map((s) => esc(s.title)).join(', ')}</div></div>
-        <button class="btn quiet sm" data-edit="${t.id}">${icon('edit')}Editar</button><button class="icon-btn" data-del="${t.id}" aria-label="Excluir modelo">${icon('trash')}</button></div>`).join('')}</div></section>`;
+        <button class="btn quiet sm" data-edit="${t.id}">${icon('edit')}Editar</button><button class="icon-btn danger" data-del="${t.id}" aria-label="Excluir modelo">${icon('trash')}</button></div>`).join('')}</div></section>`;
     const by = Object.fromEntries(list.map((t) => [t.id, t]));
     $('#new').onclick = async () => { if (await templateModal({ sys: true })) renderAdmin(); };
     $$('[data-edit]', box).forEach((b) => (b.onclick = async () => { if (await templateModal({ ...by[b.dataset.edit], sys: true })) renderAdmin(); }));
@@ -67,20 +67,21 @@ const VIEWS = {
     const draw = () => {
       box.innerHTML = `<section class="panel"><h2>Serviços de IA</h2>
         <p class="muted small">Modelo padrão de cada serviço e outros modelos que o profissional pode escolher (separados por vírgula). Vale na próxima abertura do site.</p>
-        ${Object.keys(labels).map((k) => `<div class="grid2"><label class="field">${labels[k]}: modelo padrão<input data-m="${k}" value="${esc(PROVIDERS[k].model)}"></label>
-          <label class="field">Outros modelos<input data-l="${k}" value="${esc(list((settings.ai_models || {})[k]))}" placeholder="ex.: modelo-a, modelo-b"></label></div>`).join('')}
-        <h2 style="margin-top:22px">Outros serviços</h2>
+        <div class="ai-grid">${Object.keys(labels).map((k) => `<div class="ai-card"><h3>${labels[k]}</h3>
+          <label class="field">Modelo padrão<input data-m="${k}" value="${esc(PROVIDERS[k].model)}"></label>
+          <label class="field">Outros modelos<input data-l="${k}" value="${esc(list((settings.ai_models || {})[k]))}" placeholder="ex.: modelo-a, modelo-b"></label></div>`).join('')}</div>
+        <h2 style="margin-top:24px">Outros serviços</h2>
         <p class="muted small">Qualquer serviço compatível com o formato da OpenAI (OpenRouter, Mistral, DeepSeek, Together…). O endereço base termina antes de /chat/completions. O serviço precisa aceitar chamadas vindas do navegador.</p>
-        ${custom.map((c, i) => `<div class="sec-edit" data-i="${i}" style="display:grid;gap:8px">
+        ${custom.map((c, i) => `<div class="ai-card" data-i="${i}"><h3>${esc(c.name || 'Novo serviço')}</h3>
           <input data-f="name" placeholder="Nome (ex.: OpenRouter)" value="${esc(c.name || '')}"><input data-f="base" placeholder="Endereço base (ex.: https://openrouter.ai/api/v1)" value="${esc(c.base || '')}">
           <input data-f="model" placeholder="Modelo padrão" value="${esc(c.model || '')}"><input data-f="models" placeholder="Outros modelos, separados por vírgula" value="${esc(list(c.models))}">
           <input data-f="keyUrl" placeholder="Link para criar a chave (opcional)" value="${esc(c.keyUrl || '')}">
-          <button class="btn quiet sm" data-rm="${i}">${icon('trash')}Remover serviço</button></div>`).join('')}
+          <button class="btn quiet sm danger" data-rm="${i}">${icon('trash')}Remover serviço</button></div>`).join('')}
         <div class="row" style="margin-top:12px"><button class="btn quiet" id="add">${icon('plus')}Adicionar serviço</button><button class="btn" id="ok">Salvar</button></div></section>`;
       $('#add').onclick = () => { custom.push({ id: 'c' + Date.now().toString(36), name: '', base: '', model: '', models: [] }); draw(); };
       $$('[data-rm]', box).forEach((b) => (b.onclick = () => { custom.splice(+b.dataset.rm, 1); draw(); }));
       box.oninput = (e) => {
-        const r = e.target.closest('.sec-edit'); if (!r || !e.target.dataset.f) return;
+        const r = e.target.closest('.ai-card'); if (!r || !e.target.dataset.f) return;
         const c = custom[+r.dataset.i], f = e.target.dataset.f;
         c[f] = f === 'models' ? e.target.value.split(',').map((x) => x.trim()).filter(Boolean) : e.target.value.trim();
       };
@@ -111,14 +112,14 @@ const VIEWS = {
       <p class="muted small">Só dados de cadastro. Conta desativada não consegue mais entrar nem usar o sistema; os dados dela ficam guardados.</p>
       <div class="list">${list.map((p) => `<div class="li"><div class="grow"><div class="t">${esc(p.full_name || '(sem nome)')} ${p.is_admin ? chip('Administrador', 'bloom') : ''} ${p.disabled ? chip('Desativado') : ''}</div>
         <div class="muted small">${esc(p.email)} · ${esc(p.specialty || 'Sem área')} · desde ${esc(fmtDate(p.created_at))}</div></div>
-        ${p.id === state.profile.id ? '' : `<button class="btn quiet sm" data-mfa="${p.id}" title="Remove o autenticador de quem não consegue entrar">Resetar autenticador</button><button class="btn quiet sm" data-t="${p.id}" data-off="${p.disabled ? '' : '1'}">${p.disabled ? 'Reativar' : 'Desativar'}</button>`}</div>`).join('')}</div></section>`;
+        ${p.id === state.profile.id ? '' : `<button class="btn quiet sm danger" data-mfa="${p.id}" title="Remove o autenticador de quem não consegue entrar">Resetar autenticador</button><button class="btn quiet sm ${p.disabled ? '' : 'danger'}" data-t="${p.id}" data-off="${p.disabled ? '' : '1'}">${p.disabled ? 'Reativar' : 'Desativar'}</button>`}</div>`).join('')}</div></section>`;
     $$('[data-mfa]', box).forEach((b) => (b.onclick = async () => {
-      if (!(await confirmBox('Remover o autenticador desta conta? A pessoa volta a entrar só com a senha e pode ativar de novo.', 'Resetar'))) return;
+      if (!(await confirmBox('Remover o autenticador desta conta? A pessoa volta a entrar só com a senha e pode ativar de novo.', 'Remover autenticador'))) return;
       await api.adminResetMfa(b.dataset.mfa); api.addAdminLog('reset_mfa', b.dataset.mfa); toast('Autenticador removido.');
     }));
     $$('[data-t]', box).forEach((b) => (b.onclick = async () => {
       const off = Boolean(b.dataset.off);
-      if (off && !(await confirmBox('Desativar esta conta? A pessoa perde o acesso até você reativar.', 'Desativar'))) return;
+      if (off && !(await confirmBox('Desativar esta conta? A pessoa não consegue mais entrar até você reativar. Os dados dela continuam guardados.', 'Desativar conta'))) return;
       await api.adminSetDisabled(b.dataset.t, off); api.addAdminLog(off ? 'desativar' : 'reativar', b.dataset.t); toast(off ? 'Conta desativada.' : 'Conta reativada.'); renderAdmin();
     }));
   },
@@ -141,7 +142,7 @@ const VIEWS = {
 
   async uso(box) {
     const s = await api.adminStats();
-    const card = (n, l) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`;
+    const card = (n, l) => `<div class="adm-num"><b>${n}</b><span>${l}</span></div>`;
     box.innerHTML = `<section class="panel"><h2>Uso do sistema</h2><p class="muted small">Só totais. Nenhum conteúdo de paciente ou relatório aparece aqui.</p>
       <div class="adm-stats">${card(s.professionals, 'profissionais')}${card(s.new_professionals_30d, 'novos nos últimos 30 dias')}${card(s.patient_accounts, 'pacientes com acesso ao portal')}
       ${card(s.patients, 'pacientes cadastrados')}${card(s.reports, 'relatórios')}${card(s.reports_7d, 'relatórios nos últimos 7 dias')}${card(s.released, 'liberados a pacientes')}${card(s.with_mfa, 'contas com autenticador')}</div></section>`;
@@ -155,7 +156,7 @@ const VIEWS = {
       <div class="row" style="margin:14px 0"><input id="note" placeholder="Para quem é (opcional)" style="max-width:260px"><button class="btn" id="gen">${icon('plus')}Gerar código</button></div>
       <div class="list">${list.map((i) => `<div class="li"><div class="grow"><div class="t"><code>${esc(i.code)}</code> ${i.used_by ? chip('Usado', 'ok') : i.active ? chip('Disponível', 'petrol') : chip('Cancelado')}</div>
         <div class="muted small">${esc(i.note || 'Sem observação')} · criado em ${esc(fmtDate(i.created_at))}${i.used_at ? ' · usado em ' + esc(fmtDate(i.used_at)) : ''}</div></div>
-        ${i.used_by ? '' : `<button class="btn quiet sm" data-c="${i.code}" data-a="${i.active ? '' : '1'}">${i.active ? 'Cancelar' : 'Reativar'}</button>`}</div>`).join('') || '<p class="muted">Nenhum código ainda.</p>'}</div></section>`;
+        ${i.used_by ? '' : `<button class="btn quiet sm ${i.active ? 'danger' : ''}" data-c="${i.code}" data-a="${i.active ? '' : '1'}">${i.active ? 'Cancelar' : 'Reativar'}</button>`}</div>`).join('') || '<p class="muted">Nenhum código ainda.</p>'}</div></section>`;
     $('#req').onchange = (e) => save('invite_required', e.target.checked);
     $('#gen').onclick = async () => {
       const code = Array.from(crypto.getRandomValues(new Uint8Array(8)), (n) => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[n % 32]).join('');
