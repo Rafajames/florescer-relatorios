@@ -137,11 +137,13 @@ export function shell(active) {
         </div>
       </aside>
       <div class="stage">
-        ${isPatient || isAdm ? '' : `<div class="topbar">
+        <div class="topbar">
+          <button class="icon-btn back-btn" id="go-back" title="Voltar" aria-label="Voltar">${icon('left')}</button>
+          ${isPatient || isAdm ? '<span class="grow"></span>' : `
           <button class="search-trigger" id="open-search" aria-label="Buscar">${icon('search')}<span>Buscar paciente ou relatório</span><kbd>Ctrl K</kbd></button>
           <button class="icon-btn help-btn" id="open-help" title="Atalhos do teclado (?)" aria-label="Atalhos do teclado">${icon('info')}</button>
-          <a class="btn bloom" href="#/nova" data-new>${icon('plus')}<span>Novo</span></a>
-        </div>`}
+          <a class="btn bloom" href="#/nova" data-new>${icon('plus')}<span>Novo</span></a>`}
+        </div>
         ${nt ? `<div class="notice ${nt.level === 'warn' ? 'warn' : ''}" role="status">${icon('info')}<span>${esc(nt.text)}</span></div>` : ''}
         <main id="main" class="page"></main>
       </div>
@@ -151,6 +153,12 @@ export function shell(active) {
     </div>`;
   const s = $('#open-search');
   if (s) s.onclick = () => import('./search.js').then((m) => m.openSearch());
+  // Voltar: usa o histórico do navegador; sem histórico, vai para o início do perfil.
+  const back = $('#go-back');
+  if (back) back.onclick = () => {
+    if (history.length > 1) history.back();
+    else location.hash = isPatient ? '#/portal' : isAdm ? '#/admin' : '#/painel';
+  };
   return $('#main');
 }
 
