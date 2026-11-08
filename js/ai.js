@@ -123,6 +123,8 @@ async function ask(system, user, opts = {}) {
 
 /** Testa uma chave com uma chamada mínima. Lança erro se falhar. */
 export async function testKey(provider, key) {
+  key = String(key || '').trim();
+  if (provider === 'gemini' && !key.startsWith('AIza')) throw new Error('Essa chave não é do Google AI Studio (ela deve começar com "AIza"). Chaves que começam com "AQ." são do Vertex AI e não funcionam aqui. Crie a chave em aistudio.google.com/apikey.');
   const out = await callText(provider, key, 'Responda apenas com a palavra: ok', 'Teste de conexão.', { maxTokens: 20 });
   if (!out.trim()) throw new Error('A IA respondeu vazio.');
   return true;
