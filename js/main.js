@@ -8,6 +8,8 @@ import * as report from './views-report.js';
 import * as lists from './views-lists.js';
 import * as settings from './views-settings.js';
 import * as portal from './views-portal.js';
+import { renderOnboarding } from './views-onboarding.js';
+import { brandOf, applyBrand, rememberBrand, cachedBrand, DEFAULT_BRAND } from './brand.js';
 
 const PRO_ROUTES = [
   [/^#\/painel$/, () => home.renderDashboard()],
@@ -35,12 +37,26 @@ async function doRoute() {
   if (!api.configured) return renderSetup();
   try {
     const session = await api.getSession();
-    if (!session) { state.user = null; state.profile = null; return renderAuth(); }
+    if (!session) {
+      state.user = null; state.profile = null;
+      // tela de login com a marca do profissional: pelo link próprio (#/c/nome) ou pelo último uso neste navegador
+      const slug = (location.hash.match(/^#\/c\/([\w-]+)/) || [])[1];
+      let brand = null;
+      if (slug) { try { brand = await api.brandBySlug(slug); } catch { brand = null; } }
+      if (brand) brand = { ...brand, slug }; else brand = cachedBrand();
+      applyBrand(brand || DEFAULT_BRAND);
+      return renderAuth(brand);
+    }
     if (!state.profile || state.profile.id !== session.user.id) {
       state.user = session.user;
       state.profile = await api.getProfile();
     }
     const isPatient = state.profile.role === 'patient';
+    if (isPatient) applyBrand(DEFAULT_BRAND);
+    else {
+      const b = brandOf(state.profile); applyBrand(b); rememberBrand(b);
+      if (!state.profile.onboarded) return renderOnboarding(() => { location.hash = '#/painel'; route(); });
+    }
     const home = isPatient ? '#/portal' : '#/painel';
     const [path, query = ''] = (location.hash || home).split('?');
     const routes = isPatient ? PATIENT_ROUTES : PRO_ROUTES;

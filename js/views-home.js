@@ -1,6 +1,7 @@
 import * as api from './api.js';
 import * as ai from './ai.js';
 import { state, DEFAULT_CONSENT } from './state.js';
+import { exportDossierWord, exportDossierPdf, KIND_LABEL } from './export.js';
 import {
   $, $$, esc, fmtDate, fmtDateTime, toast, openModal, confirmBox, statusChip, chip, meta, callout,
   shell, loading, pageHeader, backLink, icon, greeting, longDate,
@@ -12,7 +13,7 @@ const siteUrl = () => location.origin + location.pathname;
 export const reportLine = (r) => `
   <a class="li" href="#/relatorio/${r.id}">
     <div class="grow"><div class="t ellip">${esc(r.title)}</div>
-    ${meta([esc(r.patients?.name || ''), fmtDate(r.session_date), r.kind === 'periodo' ? 'Período' : ''])}</div>
+    ${meta([esc(r.patients?.name || ''), fmtDate(r.session_date), KIND_LABEL[r.kind] || ''])}</div>
     ${statusChip(r)}${icon('right', 'go')}
   </a>`;
 
@@ -27,13 +28,12 @@ export async function renderDashboard() {
   const drafts = reports.filter((r) => r.status === 'rascunho');
   const noConsent = patients.filter((x) => !api.hasActiveConsent(x.consents));
   const ready = reports.filter((r) => r.status === 'revisado' && !r.released_to_patient && r.patients?.email && r.kind);
-  const keys = ai.getKeys();
 
   const todo = [
     ['Cadastrar o primeiro paciente', patients.length > 0, '#/pacientes'],
     ['Completar o perfil (registro e nome do consultório)', Boolean(p.council_registry && p.clinic_name), '#/config?aba=perfil'],
     ['Revisar o texto do termo de consentimento', Boolean(p.consent_text), '#/config?aba=consentimento'],
-    ['Cadastrar as chaves de IA', Boolean(keys.anthropic), '#/config?aba=chaves'],
+    ['Conectar uma IA (opcional, há opções gratuitas)', ai.hasTextAI(), '#/config?aba=chaves'],
   ];
   const doneN = todo.filter((t) => t[1]).length;
 
@@ -62,7 +62,7 @@ export async function renderDashboard() {
           <div class="list">${ready.slice(0, 4).map(reportLine).join('')}</div>` : ''}
         ${noConsent.length ? `<h3>${noConsent.length} ${noConsent.length === 1 ? 'paciente' : 'pacientes'} sem consentimento</h3>
           <div class="list">${noConsent.slice(0, 5).map((x) => `<a class="li" href="#/pacientes/${x.id}"><div class="grow t">${esc(x.name)}</div>${chip('Sem consentimento', 'warn')}${icon('right', 'go')}</a>`).join('')}</div>` : ''}
-        <h3 style="margin-top:28px">Últimas sessões</h3>
+        <h3 style="margin-top:28px">Últimos registros</h3>
         ${reports.length ? `<div class="list">${reports.slice(0, 6).map(reportLine).join('')}</div>` : '<p class="muted">Ainda não há relatórios.</p>'}
       </div>
 
@@ -150,11 +150,18 @@ export async function renderPatientDetail(id) {
   const main = shell('pacientes'); loading(main);
   const [p, consents, reports] = await Promise.all([api.getPatient(id), api.listConsents(id), api.listReports({ patientId: id })]);
   const active = api.hasActiveConsent(consents);
+  const anamneses = reports.filter((r) => r.kind === 'anamnese');
+  const evolucoes = reports.filter((r) => r.kind === 'sessao');
+  const periodos = reports.filter((r) => r.kind === 'periodo');
+  const group = (title, list, emptyText, cta = '') => `<div class="panel-head" style="margin-top:22px"><h2>${title}</h2>${cta}</div>
+    ${list.length ? `<div class="list">${list.map(reportLine).join('')}</div>` : `<p class="muted small">${emptyText}</p>`}`;
 
   main.innerHTML = backLink('#/pacientes', 'Pacientes') +
     pageHeader(p.name, '', `
-      <a class="btn bloom" href="#/nova?paciente=${p.id}">${icon('mic')}Nova sessão</a>
-      <a class="btn quiet" href="#/periodo?paciente=${p.id}">${icon('calendar')}Relatório por período</a>
+      <a class="btn bloom" href="#/nova?paciente=${p.id}">${icon('mic')}Nova evolução</a>
+      <a class="btn quiet" href="#/nova?paciente=${p.id}&tipo=anamnese">${icon('file')}${anamneses.length ? 'Nova anamnese' : 'Fazer anamnese'}</a>
+      <a class="btn quiet" href="#/periodo?paciente=${p.id}">${icon('calendar')}Por período</a>
+      <button class="btn quiet" id="dossier">${icon('download')}Prontuário</button>
       <button class="btn quiet" id="edit">${icon('edit')}Editar</button>`) +
     meta([p.email ? esc(p.email) : 'sem e-mail', p.phone ? esc(p.phone) : '', p.birth_date ? 'nascimento ' + fmtDate(p.birth_date) : '']) +
     '<div style="height:20px"></div>' +
@@ -162,9 +169,9 @@ export async function renderPatientDetail(id) {
     (!p.email ? callout('<p>Sem e-mail cadastrado, não é possível liberar relatórios no portal do paciente.</p>', '', '<button class="btn sm quiet" id="edit-mail">Adicionar e-mail</button>') : '') + `
     <div class="cols">
       <section>
-        <div class="panel-head"><h2>Sessões e relatórios</h2></div>
-        ${reports.length ? `<div class="list">${reports.map(reportLine).join('')}</div>`
-          : `<div class="empty"><b>Nenhum relatório ainda</b>Inicie uma sessão para criar o primeiro.</div>`}
+        ${group('Anamnese', anamneses, 'A anamnese é a entrevista inicial. Use “Fazer anamnese” no topo.')}
+        ${group('Evoluções', evolucoes, 'Nenhuma evolução ainda. Use “Nova evolução” para registrar a primeira sessão.')}
+        ${periodos.length ? group('Relatórios por período', periodos, '') : ''}
         ${p.notes ? `<h3 style="margin-top:26px">Observações</h3><p class="pre">${esc(p.notes)}</p>` : ''}
       </section>
       <aside>
@@ -194,6 +201,18 @@ export async function renderPatientDetail(id) {
 
   const editIt = async () => { if (await patientModal(p)) renderPatientDetail(id); };
   $('#edit').onclick = editIt;
+  $('#dossier').onclick = async () => {
+    if (!reports.length) return toast('Este paciente ainda não tem registros.', 'err');
+    const r = await openModal('Prontuário completo', `
+      <p>Reúne anamnese, evoluções e relatórios de <b>${esc(p.name)}</b> em um só documento, com o seu timbre.</p>
+      <label class="check"><input type="checkbox" name="only">Incluir só as seções visíveis ao paciente</label>
+      <label class="field">Formato<select name="fmt"><option value="pdf">PDF (imprimir ou salvar)</option><option value="word">Word</option></select></label>`,
+    { okText: 'Gerar prontuário', onOk: (d) => ({ only: d.querySelector('[name=only]').checked, fmt: d.querySelector('[name=fmt]').value }) });
+    if (!r || r === true) return;
+    const full = await api.listReports({ patientId: id, withSections: true });
+    const args = { patient: p, professional: state.profile, reports: full, only: r.only };
+    (r.fmt === 'word' ? exportDossierWord : exportDossierPdf)(args);
+  };
   if ($('#edit-mail')) $('#edit-mail').onclick = editIt;
   $('#archive').onclick = async () => { await api.savePatient({ id, archived: !p.archived }); toast(p.archived ? 'Paciente reativado.' : 'Paciente arquivado.'); renderPatientDetail(id); };
   $('#del').onclick = async () => {

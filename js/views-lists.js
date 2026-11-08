@@ -20,7 +20,7 @@ export async function renderReports(params) {
       <input id="q" type="search" placeholder="Buscar por título ou paciente" style="max-width:290px;margin:0" aria-label="Buscar">
       <select id="fp" style="width:auto;margin:0" aria-label="Paciente"><option value="">Todos os pacientes</option>
         ${patients.map((p) => `<option value="${p.id}" ${p.id === f0.paciente ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
-      <select id="fk" style="width:auto;margin:0" aria-label="Tipo"><option value="">Todos os tipos</option><option value="sessao">Sessões</option><option value="periodo">Por período</option></select>
+      <select id="fk" style="width:auto;margin:0" aria-label="Tipo"><option value="">Todos os tipos</option><option value="sessao">Evoluções</option><option value="anamnese">Anamneses</option><option value="periodo">Por período</option></select>
       <select id="fs" style="width:auto;margin:0" aria-label="Situação">
         <option value="">Qualquer situação</option>
         <option value="rascunho" ${f0.status === 'rascunho' ? 'selected' : ''}>Rascunho</option>
@@ -56,7 +56,7 @@ export async function renderReports(params) {
       (list.length ? list.map((r) => `
         <div class="tr cols-reports ${selected.has(r.id) ? 'sel' : ''}">
           <span><input type="checkbox" data-id="${r.id}" ${selected.has(r.id) ? 'checked' : ''} aria-label="Selecionar"></span>
-          <a href="#/relatorio/${r.id}" class="ellip t" style="text-decoration:none;color:inherit">${esc(r.title)}${r.kind === 'periodo' ? ' ' + chip('Período') : ''}</a>
+          <a href="#/relatorio/${r.id}" class="ellip t" style="text-decoration:none;color:inherit">${esc(r.title)}${r.kind === 'periodo' ? ' ' + chip('Período') : r.kind === 'anamnese' ? ' ' + chip('Anamnese', 'petrol') : ''}</a>
           <span class="ellip">${esc(r.patients?.name || '')}</span>
           <span>${fmtDate(r.session_date)}</span>
           <span>${statusChip(r)}</span>
@@ -125,7 +125,8 @@ export async function renderPeriod(params) {
         <label class="field">De<input type="date" id="from" value="${daysAgoISO(90)}"></label>
         <label class="field">Até<input type="date" id="to" value="${todayISO()}"></label>
       </div>
-      <label class="check"><input type="checkbox" id="drafts">Incluir sessões ainda em rascunho</label>
+      <label class="check"><input type="checkbox" id="drafts">Incluir registros ainda em rascunho</label>
+      <label class="check"><input type="checkbox" id="anam">Incluir a anamnese do paciente como contexto</label>
       <div class="row" style="margin-top:6px"><button class="btn" id="search">${icon('search')}Buscar sessões</button></div>
     </div>
     <div id="result"></div>`;
@@ -133,18 +134,17 @@ export async function renderPeriod(params) {
   $('#search').onclick = (e) => busy(e.target, 'Buscando…', async () => {
     const patientId = $('#patient').value;
     if (!patientId) throw new Error('Selecione o paciente.');
-    found = await api.listReports({
-      patientId, kind: 'sessao', from: $('#from').value, to: $('#to').value,
-      status: $('#drafts').checked ? undefined : 'revisado', withSections: true,
-    });
+    const st = $('#drafts').checked ? undefined : 'revisado';
+    found = await api.listReports({ patientId, kind: 'sessao', from: $('#from').value, to: $('#to').value, status: st, withSections: true });
+    if ($('#anam').checked) found = [...(await api.listReports({ patientId, kind: 'anamnese', status: st, withSections: true })), ...found];
     const box = $('#result');
     if (!found.length) { box.innerHTML = '<div class="empty"><b>Nenhuma sessão nesse período</b>Por padrão só entram sessões revisadas. Marque a opção de rascunhos se precisar.</div>'; return; }
-    found.sort((a, b) => a.session_date.localeCompare(b.session_date));
+    found.sort((a, b) => (a.kind === 'anamnese' ? -1 : b.kind === 'anamnese' ? 1 : a.session_date.localeCompare(b.session_date)));
     box.innerHTML = `<div class="panel"><h3>${found.length} ${found.length === 1 ? 'sessão encontrada' : 'sessões encontradas'}</h3>
-      <div class="list">${found.map((x) => `<label class="li"><input type="checkbox" data-pick="${x.id}" checked><span class="grow"><span class="t">${esc(x.title)}</span> <span class="muted small">${fmtDate(x.session_date)}</span></span>${statusChip(x)}</label>`).join('')}</div>
+      <div class="list">${found.map((x) => `<label class="li"><input type="checkbox" data-pick="${x.id}" checked><span class="grow"><span class="t">${esc(x.title)}</span> <span class="muted small">${x.kind === 'anamnese' ? 'Anamnese' : fmtDate(x.session_date)}</span></span>${statusChip(x)}</label>`).join('')}</div>
       <div class="row end" style="margin-top:14px">
         <button class="btn quiet" id="blank">Criar em branco</button>
-        <button class="btn bloom" id="gen">${icon('sparkle')}Gerar relatório de acompanhamento</button>
+        ${ai.hasTextAI() ? `<button class="btn bloom" id="gen">${icon('sparkle')}Gerar relatório de acompanhamento</button>` : `<a class="btn quiet" href="#/config?aba=chaves">Conectar IA para gerar o texto</a>`}
       </div></div>`;
 
     const build = async (withAI, btn) => {
@@ -160,7 +160,7 @@ export async function renderPeriod(params) {
           sections = (await ai.generatePeriodSections({
             template: tpl.sections,
             periodLabel: `${fmtDate($('#from').value)} a ${fmtDate($('#to').value)}`,
-            sessions: picked.map((x) => ({ date: fmtDate(x.session_date), title: x.title, sections: x.sections })),
+            sessions: picked.map((x) => ({ date: fmtDate(x.session_date), title: x.title, sections: x.sections, kindLabel: x.kind === 'anamnese' ? 'Anamnese' : 'Evolução' })),
             options: { detail: prefs.detail, flagUncertain: prefs.flagUncertain, instructions: prefs.instructions },
           })).map((s) => ({ ...s, patient_visible: vis }));
         }
@@ -172,7 +172,7 @@ export async function renderPeriod(params) {
         goto(`#/relatorio/${rep.id}`);
       });
     };
-    $('#gen').onclick = (ev) => build(true, ev.currentTarget);
+    if ($('#gen')) $('#gen').onclick = (ev) => build(true, ev.currentTarget);
     $('#blank').onclick = (ev) => build(false, ev.currentTarget);
   });
   if (pre) $('#search').click();

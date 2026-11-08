@@ -1,71 +1,166 @@
-// IA com a chave de cada profissional. As chaves ficam apenas no navegador
-// (localStorage) deste computador e nunca são enviadas ao banco de dados.
+// IA opcional, com a chave de cada profissional. As chaves ficam apenas no
+// navegador (localStorage) deste computador e nunca são enviadas ao banco.
+// Sem nenhuma chave, o sistema continua funcionando em modo manual.
 const KEY = 'florescer.keys.v1';
-export const MODEL = 'claude-sonnet-5-5';
+
+export const PROVIDERS = {
+  gemini: {
+    label: 'Google Gemini', free: true, text: true, vision: true, stt: false,
+    model: 'gemini-2.5-flash',
+    keyUrl: 'https://aistudio.google.com/apikey',
+    steps: 'Entre com sua conta Google, toque em “Create API key” e copie a chave.',
+    privacy: 'No plano gratuito, o Google pode usar o conteúdo enviado para melhorar seus produtos. Para dados de pacientes, prefira um plano pago ou outro provedor.',
+  },
+  groq: {
+    label: 'Groq (Llama + Whisper)', free: true, text: true, vision: false, stt: true,
+    model: 'llama-3.3-70b-versatile', sttModel: 'whisper-large-v3-turbo',
+    keyUrl: 'https://console.groq.com/keys',
+    steps: 'Crie uma conta, abra “API Keys”, toque em “Create API Key” e copie a chave. Serve também para transcrever áudio.',
+    privacy: 'Plano gratuito com limites diários. Confira os termos de uso de dados do provedor antes de enviar conteúdo de pacientes.',
+  },
+  anthropic: {
+    label: 'Anthropic (Claude)', free: false, text: true, vision: true, stt: false,
+    model: 'claude-sonnet-5-5',
+    keyUrl: 'https://console.anthropic.com/settings/keys',
+    steps: 'Crie uma chave em Settings → API Keys. O uso é cobrado por consumo.',
+    privacy: 'API paga. Por padrão, o conteúdo enviado pela API não é usado para treinar modelos.',
+  },
+  openai: {
+    label: 'OpenAI (GPT + Whisper)', free: false, text: true, vision: true, stt: true,
+    model: 'gpt-4o-mini', sttModel: 'whisper-1',
+    keyUrl: 'https://platform.openai.com/api-keys',
+    steps: 'Crie uma chave em API keys. O uso é cobrado por consumo. Serve também para transcrever áudio.',
+    privacy: 'API paga. Confira a política de retenção de dados da conta.',
+  },
+};
 
 export const getKeys = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
 export const setKeys = (k) => localStorage.setItem(KEY, JSON.stringify(k));
 export const clearKeys = () => localStorage.removeItem(KEY);
-export const hasClaudeKey = () => Boolean(getKeys().anthropic);
-export const hasWhisperKey = () => Boolean(getKeys().openai);
 
-/* ---------- transcrição (Whisper) ---------- */
+/** Provedor de texto em uso: o escolhido ou, se faltar, o primeiro com chave. */
+export function textProvider() {
+  const k = getKeys();
+  if (k.textProvider && k[k.textProvider]) return k.textProvider;
+  return ['gemini', 'groq', 'anthropic', 'openai'].find((p) => k[p]) || '';
+}
+export function sttProvider() {
+  const k = getKeys();
+  if (k.sttProvider && k[k.sttProvider] && PROVIDERS[k.sttProvider]?.stt) return k.sttProvider;
+  return ['groq', 'openai'].find((p) => k[p]) || '';
+}
+export const hasTextAI = () => Boolean(textProvider());
+export const hasTranscribeAI = () => Boolean(sttProvider());
+export const hasVisionAI = () => {
+  const k = getKeys();
+  return ['gemini', 'anthropic', 'openai'].find((p) => k[p]) || '';
+};
+// nomes antigos, usados em outras telas
+export const hasClaudeKey = hasTextAI;
+export const hasWhisperKey = hasTranscribeAI;
+export const noAIMessage = 'Conecte uma IA em Configurações → Chaves de IA para usar este recurso. Há opções gratuitas.';
+
+const httpError = (name, status) => {
+  if (status === 401 || status === 403) return new Error(`Chave de ${name} inválida ou sem permissão.`);
+  if (status === 429) return new Error(`Limite de uso de ${name} atingido (cota gratuita ou crédito). Tente em instantes.`);
+  return new Error(`Falha na IA ${name} (${status}).`);
+};
+
+/* ---------- texto ---------- */
+async function callText(provider, key, system, user, { maxTokens = 4000, json = false, image = null } = {}) {
+  const p = PROVIDERS[provider];
+  if (provider === 'anthropic') {
+    const content = image
+      ? [{ type: 'image', source: { type: 'base64', media_type: image.mime, data: image.b64 } }, { type: 'text', text: user }]
+      : user;
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: p.model, max_tokens: maxTokens, system, messages: [{ role: 'user', content }] }),
+    });
+    if (!r.ok) throw httpError(p.label, r.status);
+    return ((await r.json()).content || []).map((b) => b.text || '').join('');
+  }
+  if (provider === 'gemini') {
+    const parts = [{ text: user }];
+    if (image) parts.unshift({ inline_data: { mime_type: image.mime, data: image.b64 } });
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${p.model}:generateContent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: 'user', parts }],
+        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.2, ...(json ? { responseMimeType: 'application/json' } : {}), thinkingConfig: { thinkingBudget: 0 } },
+      }),
+    });
+    if (!r.ok) throw httpError(p.label, r.status);
+    const d = await r.json();
+    return (d.candidates?.[0]?.content?.parts || []).map((x) => x.text || '').join('');
+  }
+  // groq e openai: formato compatível com o da OpenAI
+  const url = provider === 'groq' ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions';
+  const userContent = image
+    ? [{ type: 'text', text: user }, { type: 'image_url', image_url: { url: `data:${image.mime};base64,${image.b64}` } }]
+    : user;
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: p.model, max_tokens: maxTokens, temperature: 0.2,
+      ...(json ? { response_format: { type: 'json_object' } } : {}),
+      messages: [{ role: 'system', content: system }, { role: 'user', content: userContent }],
+    }),
+  });
+  if (!r.ok) throw httpError(p.label, r.status);
+  return (await r.json()).choices?.[0]?.message?.content || '';
+}
+
+async function ask(system, user, opts = {}) {
+  const provider = opts.image ? hasVisionAI() : textProvider();
+  if (!provider) throw new Error(opts.image ? 'Para ler imagens, conecte Gemini, Claude ou OpenAI em Configurações → Chaves de IA.' : noAIMessage);
+  return callText(provider, getKeys()[provider], system, user, opts);
+}
+
+/** Testa uma chave com uma chamada mínima. Lança erro se falhar. */
+export async function testKey(provider, key) {
+  const out = await callText(provider, key, 'Responda apenas com a palavra: ok', 'Teste de conexão.', { maxTokens: 20 });
+  if (!out.trim()) throw new Error('A IA respondeu vazio.');
+  return true;
+}
+
+/* ---------- transcrição ---------- */
 export async function transcribeAudio(blob) {
-  const { openai } = getKeys();
-  if (!openai) throw new Error('Cadastre sua chave da OpenAI (Whisper) em Configurações para transcrever áudio.');
-  if (blob.size > 25 * 1024 * 1024) throw new Error('O áudio passa de 25 MB (limite do Whisper). Divida o arquivo em partes menores.');
+  const provider = sttProvider();
+  if (!provider) throw new Error('Para transcrever áudio, conecte Groq (grátis) ou OpenAI em Configurações → Chaves de IA.');
+  if (blob.size > 25 * 1024 * 1024) throw new Error('O áudio passa de 25 MB (limite do serviço). Divida o arquivo em partes menores.');
   const type = blob.type || 'audio/webm';
   const ext = type.includes('mp4') || type.includes('m4a') ? 'm4a' : type.includes('mpeg') ? 'mp3' : type.includes('wav') ? 'wav' : type.includes('ogg') ? 'ogg' : 'webm';
   const fd = new FormData();
   fd.append('file', blob, `sessao.${ext}`);
-  fd.append('model', 'whisper-1');
+  fd.append('model', PROVIDERS[provider].sttModel);
   fd.append('language', 'pt');
   fd.append('response_format', 'json');
-  const r = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method: 'POST', headers: { Authorization: `Bearer ${openai}` }, body: fd,
-  });
-  if (!r.ok) {
-    if (r.status === 401) throw new Error('Chave da OpenAI inválida.');
-    if (r.status === 429) throw new Error('Limite ou crédito da conta OpenAI esgotado.');
-    throw new Error(`Falha na transcrição (${r.status}).`);
-  }
+  const url = provider === 'groq' ? 'https://api.groq.com/openai/v1/audio/transcriptions' : 'https://api.openai.com/v1/audio/transcriptions';
+  const r = await fetch(url, { method: 'POST', headers: { Authorization: `Bearer ${getKeys()[provider]}` }, body: fd });
+  if (!r.ok) throw httpError(PROVIDERS[provider].label, r.status);
   return ((await r.json()).text || '').trim();
 }
 
-/* ---------- Claude ---------- */
-async function claude(system, user, maxTokens = 4000) {
-  const { anthropic } = getKeys();
-  if (!anthropic) throw new Error('Cadastre sua chave da Anthropic (Claude) em Configurações para gerar esboços.');
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': anthropic,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] }),
-  });
-  if (!r.ok) {
-    if (r.status === 401) throw new Error('Chave da Anthropic inválida.');
-    if (r.status === 429) throw new Error('Limite de uso da conta Anthropic atingido. Tente em instantes.');
-    throw new Error(`Falha na IA (${r.status}).`);
-  }
-  const d = await r.json();
-  return (d.content || []).map((b) => b.text || '').join('');
+/* ---------- relatórios ---------- */
+function parseJson(raw) {
+  const s = raw.indexOf('{'), e = raw.lastIndexOf('}');
+  if (s < 0 || e < 0) throw new Error('A IA devolveu um formato inesperado. Tente novamente.');
+  try { return JSON.parse(raw.slice(s, e + 1)); } catch { throw new Error('A IA devolveu um formato inesperado. Tente novamente.'); }
 }
 
 function parseSections(raw, template) {
-  const s = raw.indexOf('{'), e = raw.lastIndexOf('}');
-  if (s < 0 || e < 0) throw new Error('A IA devolveu um formato inesperado. Tente novamente.');
-  let obj;
-  try { obj = JSON.parse(raw.slice(s, e + 1)); } catch { throw new Error('A IA devolveu um formato inesperado. Tente novamente.'); }
+  const obj = parseJson(raw);
   const got = Array.isArray(obj.sections) ? obj.sections : [];
   const norm = (t) => String(t || '').trim().toLowerCase();
-  // mantém a ordem e os títulos do modelo
+  // mantém a ordem, os títulos e o tipo dos campos do modelo
   return template.map((t, i) => {
     const hit = got.find((g) => norm(g.title) === norm(t.title)) || got[i] || {};
-    return { title: t.title, text: String(hit.text || '').trim() };
+    return { title: t.title, text: String(hit.text || '').trim(), ...(t.type ? { type: t.type } : {}), ...(t.options ? { options: t.options } : {}) };
   });
 }
 
@@ -87,24 +182,29 @@ function rules(o = {}) {
 - Se uma seção não tiver conteúdo no material, escreva exatamente: "Não abordado."
 - Linguagem técnica, objetiva e neutra, em português do Brasil, referindo-se a "o(a) paciente". Não inclua nomes próprios de pessoas.
 - ${DETAIL[o.detail] || DETAIL.padrao}${flag}
+- Campos de tipo "marcar" respondem apenas "Sim", "Não" ou "Não abordado."; campos "escolha" respondem com uma das opções listadas ou "Não abordado."; campos "curto" cabem em uma linha; campos "data" usam DD/MM/AAAA.
 - Responda APENAS com JSON válido, sem texto antes ou depois, no formato:
 {"sections":[{"title":"<título exato da seção>","text":"<texto da seção>"}]}${own}${extra}`;
 }
 
-export async function generateSessionSections({ template, transcript, options }) {
-  const system = `Você auxilia profissionais de saúde a redigir RASCUNHOS de registro de atendimento a partir da transcrição de uma sessão. O profissional revisará tudo.\n${rules(options)}`;
-  const outline = template.map((s, i) => `${i + 1}. ${s.title}${s.hint ? ` — ${s.hint}` : ''}`).join('\n');
-  const user = `Seções do relatório (use exatamente estes títulos, nesta ordem):\n${outline}\n\nTranscrição da sessão:\n"""\n${transcript}\n"""`;
-  return parseSections(await claude(system, user), template);
+const outlineOf = (template) => template.map((s, i) =>
+  `${i + 1}. ${s.title}${s.type && s.type !== 'longo' ? ` [campo ${s.type}${s.options?.length ? ': ' + s.options.join(' / ') : ''}]` : ''}${s.hint ? ` — ${s.hint}` : ''}`).join('\n');
+
+export async function generateSessionSections({ template, transcript, notes, kind, options }) {
+  const what = kind === 'anamnese'
+    ? 'registro de ANAMNESE (entrevista inicial) a partir da transcrição'
+    : 'registro de EVOLUÇÃO (atendimento) a partir da transcrição de uma sessão';
+  const system = `Você auxilia profissionais de saúde a redigir RASCUNHOS de ${what}. O profissional revisará tudo.\n${rules(options)}`;
+  const user = `Seções do relatório (use exatamente estes títulos, nesta ordem):\n${outlineOf(template)}\n\nTranscrição:\n"""\n${transcript || '(sem transcrição)'}\n"""${(notes || '').trim() ? `\n\nAnotações do profissional durante a sessão:\n"""\n${notes.trim()}\n"""` : ''}`;
+  return parseSections(await ask(system, user, { json: true }), template);
 }
 
 export async function generatePeriodSections({ template, sessions, periodLabel, options }) {
   const system = `Você auxilia profissionais de saúde a redigir RASCUNHOS de relatório de acompanhamento a partir dos registros das sessões de um período. O profissional revisará tudo.\n${rules(options)}`;
-  const outline = template.map((s, i) => `${i + 1}. ${s.title}${s.hint ? ` — ${s.hint}` : ''}`).join('\n');
   const body = sessions.map((r) =>
-    `### Sessão de ${r.date} — ${r.title}\n` + r.sections.map((s) => `${s.title}: ${s.text}`).join('\n')).join('\n\n');
-  const user = `Período: ${periodLabel}\nNúmero de sessões: ${sessions.length}\n\nSeções do relatório (use exatamente estes títulos, nesta ordem):\n${outline}\n\nRegistros das sessões:\n"""\n${body}\n"""`;
-  return parseSections(await claude(system, user, 5000), template);
+    `### ${r.kindLabel || 'Sessão'} de ${r.date} — ${r.title}\n` + r.sections.map((s) => `${s.title}: ${s.text}`).join('\n')).join('\n\n');
+  const user = `Período: ${periodLabel}\nNúmero de registros: ${sessions.length}\n\nSeções do relatório (use exatamente estes títulos, nesta ordem):\n${outlineOf(template)}\n\nRegistros:\n"""\n${body}\n"""`;
+  return parseSections(await ask(system, user, { maxTokens: 5000, json: true }), template);
 }
 
 /** Reescreve uma única seção, seguindo uma instrução do profissional. */
@@ -116,9 +216,36 @@ Regras obrigatórias:
 - Português do Brasil, linguagem técnica e neutra, "o(a) paciente", sem nomes próprios.
 - ${DETAIL[(options || {}).detail] || DETAIL.padrao}
 - Responda APENAS com JSON válido: {"text":"<texto da seção>"}${(options?.instructions || '').trim() ? `\n\nInstruções fixas do profissional (se não contrariarem as regras):\n"""${options.instructions.trim()}"""` : ''}`;
-  const user = `Seção: ${title}${hint ? ` — ${hint}` : ''}\n\nTexto atual:\n"""\n${current || '(vazio)'}\n"""\n\nTranscrição da sessão:\n"""\n${transcript || '(não disponível)'}\n"""\n\nInstrução do profissional: ${instruction || 'Reescreva a seção com clareza.'}`;
-  const raw = await claude(system, user, 1500);
-  const a = raw.indexOf('{'), b = raw.lastIndexOf('}');
-  try { return String(JSON.parse(raw.slice(a, b + 1)).text || '').trim(); }
-  catch { throw new Error('A IA devolveu um formato inesperado. Tente novamente.'); }
+  const user = `Seção: ${title}${hint ? ` — ${hint}` : ''}\n\nTexto atual:\n"""\n${current || '(vazio)'}\n"""\n\nTranscrição:\n"""\n${transcript || '(não disponível)'}\n"""\n\nInstrução do profissional: ${instruction || 'Reescreva a seção com clareza.'}`;
+  return String(parseJson(await ask(system, user, { maxTokens: 1500, json: true })).text || '').trim();
+}
+
+/* ---------- modelos a partir de documentos ---------- */
+const TEMPLATE_SYSTEM = `Você analisa o MODELO de um documento clínico (ficha, anamnese, relatório, laudo, declaração) e extrai a lista de campos a preencher.
+Regras:
+- Devolva os campos na ordem em que aparecem. Ignore cabeçalho institucional, logotipo, rodapé e linhas de assinatura.
+- Não copie dados de pessoas reais que estejam preenchidos no exemplo.
+- Para cada campo: "title" (rótulo curto), "hint" (instrução curta do que escrever, pode ser vazia), "type" (um de: curto, longo, data, marcar, escolha) e, só para "escolha", "options" (lista de opções).
+- "curto" = uma linha (nome, idade, profissão); "longo" = texto livre; "data" = data; "marcar" = sim/não; "escolha" = opções fixas.
+Responda APENAS com JSON válido: {"name":"<nome sugerido do modelo>","sections":[{"title":"","hint":"","type":"","options":[]}]}`;
+
+export async function extractTemplateFromText(text) {
+  const out = parseJson(await ask(TEMPLATE_SYSTEM, `Texto do documento-modelo:\n"""\n${text.slice(0, 24000)}\n"""`, { maxTokens: 3000, json: true }));
+  return cleanTemplate(out);
+}
+export async function extractTemplateFromImage(image) {
+  const out = parseJson(await ask(TEMPLATE_SYSTEM, 'Esta é uma imagem (foto ou digitalização) do documento-modelo. Extraia os campos.', { maxTokens: 3000, json: true, image }));
+  return cleanTemplate(out);
+}
+function cleanTemplate(o) {
+  const types = ['curto', 'longo', 'data', 'marcar', 'escolha'];
+  const sections = (Array.isArray(o.sections) ? o.sections : []).map((s) => {
+    const type = types.includes(s.type) ? s.type : 'longo';
+    return {
+      title: String(s.title || '').trim(), hint: String(s.hint || '').trim(), type,
+      ...(type === 'escolha' ? { options: (Array.isArray(s.options) ? s.options : []).map((x) => String(x).trim()).filter(Boolean) } : {}),
+    };
+  }).filter((s) => s.title);
+  if (!sections.length) throw new Error('Não encontrei campos neste documento. Tente outro arquivo ou monte o modelo manualmente.');
+  return { name: String(o.name || '').trim(), sections };
 }

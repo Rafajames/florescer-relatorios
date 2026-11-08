@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { icon } from './icons.js';
+import { brandOf } from './brand.js';
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -110,13 +111,15 @@ export function shell(active) {
   const p = state.profile;
   const isPatient = p && p.role === 'patient';
   const nav = isPatient ? NAV_PATIENT : NAV;
+  const br = isPatient ? { logo: '', org_name: '' } : brandOf(p);
   $('#app').innerHTML = `
     <div class="app">
       <aside class="rail">
-        <a class="brand" href="${isPatient ? '#/portal' : '#/painel'}"><span class="mark">${icon('flower')}</span><b>Florescer</b></a>
+        <a class="brand" href="${isPatient ? '#/portal' : '#/painel'}"><span class="mark ${br.logo ? 'has-logo' : ''}">${br.logo ? `<img src="${esc(br.logo)}" alt="">` : icon('flower')}</span><b>${esc(br.org_name || 'Florescer')}</b></a>
         <nav class="nav" aria-label="Principal">
           ${nav.map(([k, h, ic, l]) => `<a href="${h}" class="${k === active ? 'on' : ''}" ${k === active ? 'aria-current="page"' : ''}>${icon(ic)}${l}</a>`).join('')}
         </nav>
+        <div class="rail-credit">Feito com Florescer</div>
         <div class="rail-foot">
           <span class="avatar">${esc(initials(p?.full_name || state.user?.email))}</span>
           <div class="who"><b>${esc(p?.full_name || state.user?.email || '')}</b><span>${esc(isPatient ? 'Paciente' : (p?.specialty || 'Profissional'))}</span></div>

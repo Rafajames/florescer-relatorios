@@ -3,6 +3,8 @@ import * as ai from './ai.js';
 import { exportWord, exportPdf } from './export.js';
 import { state } from './state.js';
 import { getPrefs } from './prefs.js';
+import { brandOf } from './brand.js';
+import { KIND_LABEL } from './export.js';
 import {
   $, $$, esc, fmtDate, fmtDateTime, fmtTime, toast, openModal, confirmBox, busy, autosize, debounce, wordCount,
   chip, statusChip, meta, callout, shell, loading, backLink, icon,
@@ -14,14 +16,15 @@ const visible = (s) => s.patient_visible !== false;
 
 export async function renderReport(id) {
   const main = shell('relatorios'); loading(main);
-  const [r, audit] = await Promise.all([api.getReport(id), api.listAudit(id)]);
+  const [r, audit, versions] = await Promise.all([api.getReport(id), api.listAudit(id), api.listVersions(id).catch(() => [])]);
   const prefs = getPrefs();
   const sections = clone(r.sections || []);
-  let dirty = false, tab = 'relatorio', savedAt = null;
+  let dirty = false, tab = 'relatorio', savedAt = null, confirmedLive = false;
   const reviewed = r.status === 'revisado';
   const canRelease = reviewed && r.patients?.email;
   const pro = state.profile;
   const reg = [pro.specialty, pro.council_registry].filter(Boolean).join(', ');
+  const brand = brandOf(pro);
 
   main.innerHTML = backLink(`#/pacientes/${r.patients.id}`, r.patients.name) + `
     <div class="editor">
@@ -29,14 +32,15 @@ export async function renderReport(id) {
         <input id="title" class="title-input" value="${esc(r.title)}" aria-label="Título do relatório">
         ${meta([
           r.kind === 'periodo' ? `Período ${fmtDate(r.period_start)} a ${fmtDate(r.period_end)}` : `<input type="date" id="date" class="inline-date" value="${esc(r.session_date)}" aria-label="Data">`,
-          statusChip(r), r.ai_generated ? chip('Esboço com IA', 'bloom') : '',
+          chip(KIND_LABEL[r.kind] || 'Registro', 'petrol'), statusChip(r), r.ai_generated ? chip('Esboço com IA', 'bloom') : '',
           `<span id="wc"></span>`,
         ])}
+        ${r.released_to_patient ? '<div style="height:14px"></div>' + callout('<p>Este relatório está <b>liberado ao paciente</b>. Você pode editar a qualquer momento: ao salvar, o paciente passa a ver a versão nova. As versões anteriores ficam no Histórico.</p>') : reviewed ? '<div style="height:14px"></div>' + callout('<p>Este relatório já foi revisado. Você pode continuar editando; use <b>Salvar agora</b> para gravar as mudanças.</p>') : ''}
         ${r.ai_generated && !reviewed ? '<div style="height:14px"></div>' + callout('<p>Este texto foi gerado com apoio de IA e pode conter erros. Confira com a transcrição e edite antes de marcar como revisado.</p>', 'warn') : ''}
         <div class="tabs" role="tablist">
           <button class="tab on" data-tab="relatorio" role="tab">Relatório</button>
-          ${r.transcript ? '<button class="tab" data-tab="transcricao" role="tab">Transcrição</button>' : ''}
-          <button class="tab" data-tab="historico" role="tab">Histórico</button>
+          ${r.transcript || r.notes ? '<button class="tab" data-tab="transcricao" role="tab">Transcrição e anotações</button>' : ''}
+          <button class="tab" data-tab="historico" role="tab">Histórico e versões</button>
         </div>
         <div id="pane"></div>
       </div>
@@ -52,7 +56,7 @@ export async function renderReport(id) {
             ${!reviewed ? `<button class="btn bloom" id="review">${icon('check')}Marcar como revisado</button>` : ''}
             ${reviewed && !r.released_to_patient ? `<button class="btn bloom" id="release" ${canRelease ? '' : 'disabled'}>${icon('eye')}Liberar ao paciente</button>` : ''}
             ${r.released_to_patient ? `<button class="btn quiet" id="unrelease">${icon('eyeoff')}Retirar do portal</button>` : ''}
-            ${reviewed ? `<button class="btn quiet" id="reopen">${icon('edit')}Reabrir para edição</button>` : ''}
+            ${reviewed ? `<button class="btn quiet" id="reopen">${icon('edit')}Voltar para rascunho</button>` : ''}
           </div>
           ${reviewed && !r.patients?.email ? '<p class="small muted" style="margin-top:8px">Cadastre o e-mail do paciente para poder liberar.</p>' : ''}
           <div class="save-state" id="savestate"></div>
@@ -81,10 +85,6 @@ export async function renderReport(id) {
   const save = async (extra = {}) => {
     const patch = { title: $('#title').value.trim() || r.title, sections, ...extra };
     if ($('#date')) patch.session_date = $('#date').value || r.session_date;
-    if (dirty && r.status === 'revisado' && !('status' in extra)) {
-      Object.assign(patch, { status: 'rascunho', released_to_patient: false, released_at: null });
-      toast('Você editou um relatório revisado: ele voltou para rascunho e saiu do portal.');
-    }
     await api.updateReport(id, patch);
     dirty = false; window.__dirty = false; savedAt = new Date();
   };
@@ -98,19 +98,19 @@ export async function renderReport(id) {
 
   const markDirty = () => {
     dirty = true; window.__dirty = true; updateWc();
-    setState(r.status === 'rascunho' && prefs.autosave ? 'Alterações pendentes…' : 'Alterações não salvas');
+    setState(r.status === 'rascunho' && prefs.autosave ? 'Alterações pendentes…' : 'Alterações não salvas. Use Salvar agora.');
     autosave();
   };
 
   /* ---------- painéis ---------- */
   const sheet = () => `
     <article class="sheet">
-      <div class="sheet-head"><b>${esc(pro.clinic_name || pro.full_name || '')}</b><span>${esc(pro.full_name || '')}${reg ? ', ' + esc(reg) : ''}</span></div>
+      <div class="sheet-head">${brand.logo ? `<img class="sheet-logo" src="${esc(brand.logo)}" alt="">` : ''}<div><b>${esc(brand.org_name || pro.clinic_name || pro.full_name || '')}</b><span>${esc(pro.full_name || '')}${reg ? ', ' + esc(reg) : ''}</span></div></div>
       <div class="sheet-meta"><b>${esc(r.patients.name)}</b>${r.kind === 'periodo' ? `, período ${fmtDate(r.period_start)} a ${fmtDate(r.period_end)}` : `, ${fmtDate($('#date')?.value || r.session_date)}`}</div>
       <div id="secs">${sections.map((s, i) => secHtml(s, i)).join('')}</div>
       <div class="sheet-foot">${r.ai_generated ? 'Elaborado com apoio de ferramenta de inteligência artificial e revisado pelo(a) profissional responsável. ' : ''}Documento confidencial, com dados sensíveis de saúde (LGPD).</div>
     </article>
-    <div class="row add-sec"><button class="btn quiet sm" id="add-sec">${icon('plus')}Adicionar seção</button>
+    <div class="row add-sec"><button class="btn quiet sm" id="add-sec">${icon('plus')}Adicionar campo</button>
       <button class="btn quiet sm" id="save">Salvar agora</button></div>`;
 
   const secHtml = (s, i) => `
@@ -121,26 +121,45 @@ export async function renderReport(id) {
           <button class="icon-btn" data-act="up" title="Subir seção" ${i === 0 ? 'disabled' : ''}>${icon('up')}</button>
           <button class="icon-btn" data-act="down" title="Descer seção" ${i === sections.length - 1 ? 'disabled' : ''}>${icon('down')}</button>
           <button class="icon-btn ${visible(s) ? '' : 'off'}" data-act="vis" title="${visible(s) ? 'Visível ao paciente (clique para ocultar)' : 'Oculta ao paciente (clique para mostrar)'}">${icon(visible(s) ? 'eye' : 'eyeoff')}</button>
-          ${r.kind === 'sessao' ? `<button class="icon-btn" data-act="ai" title="Reescrever esta seção com IA">${icon('sparkle')}</button>` : ''}
+          ${r.kind !== 'periodo' && ai.hasTextAI() && (!s.type || s.type === 'longo' || s.type === 'curto') ? `<button class="icon-btn" data-act="ai" title="Reescrever esta seção com IA">${icon('sparkle')}</button>` : ''}
           <button class="icon-btn" data-act="rm" title="Remover seção">${icon('trash')}</button>
         </div>
         ${visible(s) ? '' : '<span class="chip bloom sec-hidden">Oculta ao paciente</span>'}
       </div>
-      <textarea data-f="text" rows="2" aria-label="Texto da seção ${esc(s.title)}">${esc(s.text)}</textarea>
+      ${fieldHtml(s)}
     </div>`;
+
+  const fieldHtml = (s) => {
+    const label = `aria-label="Texto de ${esc(s.title)}"`;
+    if (s.type === 'marcar') return `<select data-f="text" class="fld" ${label}>${['', 'Sim', 'Não', 'Não abordado.'].map((o) => `<option ${o === (s.text || '') ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+    if (s.type === 'escolha') { const opts = ['', ...(s.options || [])]; if (s.text && !opts.includes(s.text)) opts.push(s.text); return `<select data-f="text" class="fld" ${label}>${opts.map((o) => `<option ${o === (s.text || '') ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`; }
+    if (s.type === 'curto' || s.type === 'data') return `<input data-f="text" class="fld" ${label} value="${esc(s.text)}" ${s.type === 'data' ? 'placeholder="DD/MM/AAAA"' : ''}>`;
+    return `<textarea data-f="text" rows="2" ${label}>${esc(s.text)}</textarea>`;
+  };
 
   const drawSheet = () => {
     $('#pane').innerHTML = sheet();
     $$('#pane textarea').forEach(autosize);
     updateWc();
-    $('#add-sec').onclick = () => { sections.push({ title: 'Nova seção', text: '', patient_visible: prefs.sectionsVisibleToPatient }); drawSheet(); markDirty(); };
-    $('#save').onclick = (e) => busy(e.target, 'Salvando…', async () => { await save(); setState(`Salvo às ${fmtTime(savedAt)}`, true); toast('Salvo.'); if (r.status === 'revisado') renderReport(id); });
+    $('#add-sec').onclick = () => { sections.push({ title: 'Novo campo', text: '', patient_visible: prefs.sectionsVisibleToPatient }); drawSheet(); markDirty(); };
+    $('#save').onclick = async (e) => {
+      const btn = e.currentTarget;
+      if (r.released_to_patient && dirty && !confirmedLive) {
+        if (!(await confirmBox('Este relatório está liberado. Ao salvar, o paciente passa a ver a versão nova. Salvar mesmo assim?', 'Salvar'))) return;
+        confirmedLive = true;
+      }
+      await busy(btn, 'Salvando…', async () => { await save(); setState(`Salvo às ${fmtTime(savedAt)}`, true); toast('Salvo.'); });
+    };
     const secs = $('#secs');
     secs.addEventListener('input', (e) => {
       const card = e.target.closest('.sec'); if (!card) return;
       sections[+card.dataset.i][e.target.dataset.f] = e.target.value;
       if (e.target.tagName === 'TEXTAREA') autosize(e.target);
       markDirty();
+    });
+    secs.addEventListener('change', (e) => {
+      const card = e.target.closest('.sec'); if (!card || e.target.tagName !== 'SELECT') return;
+      sections[+card.dataset.i][e.target.dataset.f] = e.target.value; markDirty();
     });
     secs.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-act]'); if (!btn) return;
@@ -157,7 +176,7 @@ export async function renderReport(id) {
   };
 
   const rewrite = async (i) => {
-    if (!ai.hasClaudeKey()) return toast('Cadastre a chave da Anthropic em Configurações.', 'err');
+    if (!ai.hasTextAI()) return toast(ai.noAIMessage, 'err');
     let result = '';
     const s = sections[i];
     await openModal(`Reescrever “${s.title}” com IA`, `
@@ -184,6 +203,8 @@ export async function renderReport(id) {
   const drawTranscript = () => {
     $('#pane').innerHTML = `
       <div class="row" style="margin-bottom:10px"><input id="tq" type="search" placeholder="Buscar na transcrição" style="max-width:320px;margin:0" aria-label="Buscar na transcrição"><span class="muted small" id="tcount"></span></div>
+      ${r.notes ? `<h3 style="margin-bottom:6px">Anotações da sessão</h3><div class="transcript" style="max-height:none;margin-bottom:16px">${esc(r.notes)}</div>` : ''}
+      <h3 style="margin-bottom:6px">Transcrição</h3>
       <div class="transcript" id="ttext"></div>
       <p class="muted small" style="margin-top:8px">Somente leitura. É o registro do que foi captado, para você conferir o que a IA escreveu.</p>`;
     const reEsc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -197,9 +218,25 @@ export async function renderReport(id) {
     $('#tq').oninput = paint; paint();
   };
   const drawHistory = () => {
-    $('#pane').innerHTML = audit.length ? `<div class="list">${audit.map((a) => `
+    const ev = audit.length ? `<div class="list">${audit.map((a) => `
       <div class="li"><span class="grow">${esc({ insert: 'Criado', update: 'Alterado', delete: 'Excluído' }[a.action] || a.action)}${a.detail?.status ? `, ${esc(a.detail.status)}` : ''}${a.detail?.released ? ', liberado ao paciente' : ''}</span><span class="muted small">${fmtDateTime(a.created_at)}</span></div>`).join('')}</div>`
-      : '<div class="empty">Sem registros ainda.</div>';
+      : '<p class="muted">Sem registros ainda.</p>';
+    const ver = versions.length ? `<div class="list">${versions.map((v) => `
+      <div class="li"><span class="grow"><span class="t">Versão de ${fmtDateTime(v.saved_at)}</span><br><span class="muted small">${esc(v.title || '')}, ${wordCount((v.sections || []).map((x) => x.text).join(' '))} palavras</span></span>
+      <button class="btn quiet sm" data-view="${v.id}">Ver</button><button class="btn quiet sm" data-restore="${v.id}">Restaurar</button></div>`).join('')}</div>
+      <p class="muted small" style="margin-top:8px">Restaurar traz o texto da versão para o editor. Ele só vale depois de você salvar.</p>`
+      : '<p class="muted">As versões anteriores aparecem aqui depois das primeiras alterações.</p>';
+    $('#pane').innerHTML = `<h3 style="margin-bottom:8px">Versões anteriores</h3>${ver}<h3 style="margin:22px 0 8px">Atividade</h3>${ev}`;
+    $$('[data-view]').forEach((bt) => (bt.onclick = () => {
+      const v = versions.find((x) => String(x.id) === bt.dataset.view);
+      openModal(`Versão de ${fmtDateTime(v.saved_at)}`, (v.sections || []).map((x) => `<h3 style="margin-top:12px">${esc(x.title)}</h3><p class="pre">${esc(x.text)}</p>`).join(''), { wide: true });
+    }));
+    $$('[data-restore]').forEach((bt) => (bt.onclick = async () => {
+      const v = versions.find((x) => String(x.id) === bt.dataset.restore);
+      if (!(await confirmBox('Trazer o texto desta versão para o editor? O texto atual será substituído até você salvar.', 'Restaurar'))) return;
+      sections.splice(0, sections.length, ...clone(v.sections || []));
+      showTab('relatorio'); markDirty(); toast('Versão trazida para o editor. Salve para confirmar.');
+    }));
   };
   const showTab = (t) => {
     tab = t;
@@ -217,7 +254,7 @@ export async function renderReport(id) {
     await busy(e.target, 'Salvando…', async () => { await save({ status: 'revisado' }); toast('Marcado como revisado.'); reload(); });
   };
   if ($('#reopen')) $('#reopen').onclick = (e) => busy(e.target, 'Salvando…', async () => {
-    await save({ status: 'rascunho', released_to_patient: false, released_at: null }); toast('Relatório reaberto para edição.'); reload();
+    await save({ status: 'rascunho', released_to_patient: false, released_at: null }); toast('Relatório voltou para rascunho.'); reload();
   });
   if ($('#release')) $('#release').onclick = async (e) => {
     const n = sections.filter(visible).length;

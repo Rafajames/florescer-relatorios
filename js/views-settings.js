@@ -2,6 +2,9 @@ import * as api from './api.js';
 import * as ai from './ai.js';
 import { state, SPECIALTIES, DEFAULT_CONSENT } from './state.js';
 import { DEFAULT_PREFS, getPrefs } from './prefs.js';
+import { brandOf, applyBrand, rememberBrand, imageToDataUrl, PALETTES, slugify } from './brand.js';
+import { connectorHtml, bindConnector } from './ai-connect.js';
+import { importTemplate } from './import-template.js';
 import {
   $, $$, esc, fmtDateTime, todayISO, toast, openModal, confirmBox, busy, chip, callout, shell, loading, pageHeader, icon,
 } from './ui.js';
@@ -10,7 +13,7 @@ import {
    CONFIGURAÇÕES
    ===================================================================== */
 const TABS = [
-  ['perfil', 'Perfil e timbre'], ['preferencias', 'Preferências'], ['chaves', 'Chaves de IA'],
+  ['perfil', 'Perfil e timbre'], ['aparencia', 'Aparência e marca'], ['preferencias', 'Preferências'], ['chaves', 'Chaves de IA'],
   ['consentimento', 'Consentimento'], ['dados', 'Dados e privacidade'],
 ];
 
@@ -65,6 +68,88 @@ export async function renderSettings(params) {
     };
   }
 
+  if (tab === 'aparencia') {
+    const b = brandOf(p);
+    const draft = { ...b };
+    const base = location.origin + location.pathname;
+    pane.innerHTML = `
+      <form id="bf">
+      <section class="panel"><h2>Aparência e marca</h2>
+        <p class="muted">A plataforma passa a ter a sua cara: logo, cores e nome aparecem no menu, na tela de login e nos documentos.</p>
+        <div class="grid2">
+          <label class="field">Nome que aparece na plataforma<input name="org_name" value="${esc(draft.org_name)}" placeholder="Ex.: Espaço Florescer"></label>
+          <label class="field">Frase da tela de login<input name="tagline" value="${esc(draft.tagline)}" placeholder="Ex.: Cuidado com escuta e ciência."></label>
+        </div>
+        <div class="grid2">
+          <div class="field">Logo
+            <div class="logo-pick"><span class="logo-box" id="logo-box"></span>
+              <input type="file" id="logo-file" accept="image/*" aria-label="Enviar logo">
+              <button type="button" class="link" id="logo-rm">Remover logo</button></div>
+            <small>PNG com fundo transparente fica melhor. A imagem é reduzida automaticamente.</small></div>
+          <div class="field">Assinatura ou carimbo (opcional)
+            <div class="logo-pick"><span class="logo-box" id="sig-box"></span>
+              <input type="file" id="sig-file" accept="image/*" aria-label="Enviar assinatura">
+              <button type="button" class="link" id="sig-rm">Remover</button></div>
+            <small>Aparece acima do seu nome no fim dos documentos.</small></div>
+        </div>
+        <div class="field">Cores
+          <div class="swatches">${PALETTES.map((pl, i) => `<label class="swatch" title="${esc(pl.name)}"><input type="radio" name="pal" value="${i}" ${pl.color === draft.color && pl.accent === draft.accent ? 'checked' : ''}><span style="background:linear-gradient(135deg,${pl.color} 55%,${pl.accent} 55%)"></span></label>`).join('')}</div>
+          <div class="row" style="margin-top:8px">
+            <label class="small">Cor principal <input type="color" name="color" value="${esc(draft.color)}" style="width:52px;min-height:34px;padding:2px;margin:0 0 0 4px"></label>
+            <label class="small">Cor de destaque <input type="color" name="accent" value="${esc(draft.accent)}" style="width:52px;min-height:34px;padding:2px;margin:0 0 0 4px"></label></div></div>
+        <label class="field">Rodapé dos documentos (opcional)<textarea name="footer" rows="2" placeholder="Ex.: Rua das Flores, 100, Boa Vista, telefone, site">${esc(draft.footer)}</textarea></label>
+      </section>
+      <section class="panel"><h2>Seu link próprio</h2>
+        <p class="muted">Quem abrir este link vê a tela de login com a sua marca. Mande aos seus pacientes.</p>
+        <label class="field">Endereço<div class="row" style="flex-wrap:nowrap"><span class="muted small" style="white-space:nowrap">${esc(base)}#/c/</span><input name="slug" value="${esc(b.slug)}" placeholder="meu-consultorio" style="margin:0" pattern="[a-z0-9\-]{3,40}"></div>
+          <small>Só letras minúsculas, números e hífen (3 a 40 caracteres).</small></label>
+        <p class="small" id="slug-link"></p>
+      </section>
+      <section class="panel"><h2>Prévia</h2>
+        <div class="brand-preview" id="prev"></div>
+        <div class="row" style="margin-top:14px"><button class="btn" type="submit">Salvar aparência</button><button type="button" class="link" id="brand-reset">Voltar ao padrão do Florescer</button></div>
+      </section></form>`;
+    const f = $('#bf');
+    const el = (n) => f.elements[n];
+    const img = (id, src) => { $(id).innerHTML = src ? `<img src="${src}" alt="">` : '<span class="muted small">Sem imagem</span>'; };
+    const paint = () => {
+      draft.org_name = el('org_name').value.trim(); draft.tagline = el('tagline').value.trim(); draft.footer = el('footer').value.trim();
+      draft.color = el('color').value; draft.accent = el('accent').value;
+      img('#logo-box', draft.logo); img('#sig-box', draft.signature);
+      applyBrand(draft);
+      const slug = el('slug').value.trim();
+      $('#slug-link').innerHTML = slug ? `Seu link: <a href="${esc(base)}#/c/${esc(slug)}" target="_blank" rel="noopener">${esc(base)}#/c/${esc(slug)}</a>` : '';
+      $('#prev').innerHTML = `
+        <div class="prev-login" style="background:${esc(draft.color)}">${draft.logo ? `<span class="mark has-logo"><img src="${draft.logo}" alt=""></span>` : ''}
+          <b>${esc(draft.org_name || p.full_name)}</b><span>${esc(draft.tagline || 'Acesse sua área.')}</span><i style="background:${esc(draft.accent)}">Entrar</i></div>
+        <div class="letterhead" style="border-bottom-color:${esc(draft.color)}">${draft.logo ? `<img class="lh-logo" src="${draft.logo}" alt="">` : ''}<div><b style="color:${esc(draft.color)}">${esc(draft.org_name || p.clinic_name || p.full_name)}</b><span>${esc(p.full_name)}${p.council_registry ? ', ' + esc(p.council_registry) : ''}</span></div></div>`;
+    };
+    f.oninput = paint;
+    $$('input[name=pal]', f).forEach((r) => (r.onchange = () => { const pl = PALETTES[+r.value]; el('color').value = pl.color; el('accent').value = pl.accent; paint(); }));
+    const pick = (inputId, key, max) => { $(inputId).onchange = async (e) => { try { draft[key] = await imageToDataUrl(e.target.files[0], { max }); paint(); } catch (err) { toast(err.message, 'err'); } e.target.value = ''; }; };
+    pick('#logo-file', 'logo', 400); pick('#sig-file', 'signature', 300);
+    $('#logo-rm').onclick = () => { draft.logo = ''; paint(); };
+    $('#sig-rm').onclick = () => { draft.signature = ''; paint(); };
+    $('#brand-reset').onclick = async () => {
+      if (!(await confirmBox('Remover logo, cores e textos personalizados?', 'Voltar ao padrão'))) return;
+      await saveProfile({ branding: {}, slug: null }); const nb = brandOf(state.profile); applyBrand(nb); rememberBrand(nb); toast('Aparência restaurada.'); renderSettings(params);
+    };
+    f.onsubmit = (e) => {
+      e.preventDefault(); paint();
+      const slug = slugify(el('slug').value);
+      if (el('slug').value.trim() && (slug.length < 3)) return toast('O endereço precisa ter ao menos 3 caracteres.', 'err');
+      return busy($('[type=submit]', f), 'Salvando…', async () => {
+        await saveProfile({
+          clinic_name: draft.org_name || p.clinic_name, slug: slug || null,
+          branding: { org_name: draft.org_name, tagline: draft.tagline, logo: draft.logo, signature: draft.signature, color: draft.color, accent: draft.accent, footer: draft.footer },
+        });
+        const nb = brandOf(state.profile); applyBrand(nb); rememberBrand(nb);
+        toast('Aparência salva.'); renderSettings(params);
+      });
+    };
+    paint();
+  }
+
   if (tab === 'preferencias') {
     const pr = getPrefs();
     const tpls = (await api.listTemplates()).filter((t) => t.kind === 'sessao');
@@ -110,22 +195,30 @@ export async function renderSettings(params) {
 
   if (tab === 'chaves') {
     const keys = ai.getKeys();
+    const have = Object.keys(ai.PROVIDERS).filter((id) => keys[id]);
+    const textOpts = have.filter((id) => ai.PROVIDERS[id].text), sttOpts = have.filter((id) => ai.PROVIDERS[id].stt);
     pane.innerHTML = `
-      <section class="panel"><h2>Chaves de IA</h2>
-        ${callout('<p>As chaves ficam guardadas só neste navegador e <b>nunca</b> vão para o banco de dados. O texto das sessões é enviado ao provedor (Anthropic ou OpenAI) para gerar o esboço, informe isso no consentimento. Defina um limite de gasto no painel de cada provedor.</p>')}
-        <form id="keys">
-          <label class="field">Anthropic (Claude), gera os esboços ${ai.hasClaudeKey() ? chip('Salva', 'ok') : chip('Não cadastrada', 'warn')}
-            <input type="password" name="anthropic" autocomplete="off" placeholder="${keys.anthropic ? 'Deixe em branco para manter a atual' : 'sk-ant-…'}"></label>
-          <label class="field">OpenAI (Whisper), transcreve áudio ${ai.hasWhisperKey() ? chip('Salva', 'ok') : chip('Não cadastrada', 'warn')}
-            <input type="password" name="openai" autocomplete="off" placeholder="${keys.openai ? 'Deixe em branco para manter a atual' : 'sk-…'}"></label>
-          <div class="row"><button class="btn" type="submit">Salvar chaves</button><button type="button" class="link" id="clear-keys">Remover as chaves deste computador</button></div>
-        </form></section>`;
-    $('#keys').onsubmit = (e) => {
-      e.preventDefault(); const f = new FormData(e.target); const cur = ai.getKeys();
-      ai.setKeys({ anthropic: f.get('anthropic').trim() || cur.anthropic, openai: f.get('openai').trim() || cur.openai });
-      toast('Chaves salvas neste computador.'); renderSettings(params);
-    };
-    $('#clear-keys').onclick = async () => {
+      <section class="panel"><h2>Inteligência artificial</h2>
+        ${callout('<p>A IA é <b>opcional</b>. Sem ela, você grava ou digita a sessão e escreve o relatório no editor. As chaves ficam guardadas só neste navegador e <b>nunca</b> vão para o banco. O texto das sessões (sem o nome do paciente) é enviado ao provedor escolhido; informe isso no consentimento.</p>')}
+        <h3 style="margin:14px 0 8px">Conectadas neste navegador</h3>
+        ${have.length ? `<div class="list">${have.map((id) => `<div class="li"><div class="grow"><div class="t">${esc(ai.PROVIDERS[id].label)} ${ai.PROVIDERS[id].free ? chip('Gratuito', 'ok') : ''}</div></div><button class="btn quiet sm" data-rm="${id}">Remover</button></div>`).join('')}</div>` : '<p class="muted">Nenhuma IA conectada. O sistema está no modo manual.</p>'}
+        ${have.length ? `<div class="grid2" style="margin-top:14px">
+          <label class="field">Escrever relatórios com<select id="sel-text">${textOpts.map((id) => `<option value="${id}" ${ai.textProvider() === id ? 'selected' : ''}>${esc(ai.PROVIDERS[id].label)}</option>`).join('')}</select></label>
+          <label class="field">Transcrever áudio com<select id="sel-stt">${sttOpts.length ? sttOpts.map((id) => `<option value="${id}" ${ai.sttProvider() === id ? 'selected' : ''}>${esc(ai.PROVIDERS[id].label)}</option>`).join('') : '<option value="">Conecte Groq ou OpenAI</option>'}</select>
+            <small>Sem isso, a gravação usa a transcrição ao vivo do navegador (Chrome ou Edge), que é grátis.</small></label></div>` : ''}
+      </section>
+      <section class="panel"><h2>Conectar uma IA</h2><div id="conn">${connectorHtml('gemini')}</div></section>
+      ${have.length ? '<section class="panel flat"><button class="btn danger sm" id="clear-keys">Remover todas as chaves deste computador</button></section>' : ''}`;
+    bindConnector($('#conn'), { onSaved: () => renderSettings(params) });
+    $$('[data-rm]').forEach((bt) => (bt.onclick = () => {
+      const k = ai.getKeys(); delete k[bt.dataset.rm];
+      if (k.textProvider === bt.dataset.rm) delete k.textProvider;
+      if (k.sttProvider === bt.dataset.rm) delete k.sttProvider;
+      ai.setKeys(k); toast('Chave removida.'); renderSettings(params);
+    }));
+    if ($('#sel-text')) $('#sel-text').onchange = (e) => { ai.setKeys({ ...ai.getKeys(), textProvider: e.target.value }); toast('Salvo.'); };
+    if ($('#sel-stt')) $('#sel-stt').onchange = (e) => { ai.setKeys({ ...ai.getKeys(), sttProvider: e.target.value }); toast('Salvo.'); };
+    if ($('#clear-keys')) $('#clear-keys').onclick = async () => {
       if (!(await confirmBox('Remover as chaves de IA deste computador?', 'Remover'))) return;
       ai.clearKeys(); toast('Chaves removidas.'); renderSettings(params);
     };
@@ -184,32 +277,44 @@ export async function renderSettings(params) {
 /* =====================================================================
    MODELOS
    ===================================================================== */
+const TYPES = [['longo', 'Texto longo'], ['curto', 'Texto curto'], ['data', 'Data'], ['marcar', 'Sim ou não'], ['escolha', 'Escolha']];
+const KINDS = { sessao: 'Evolução', anamnese: 'Anamnese', periodo: 'Período' };
+
 async function templateModal(t = {}) {
-  let rows = (t.sections || [{ title: '', hint: '' }]).map((s) => ({ ...s }));
-  return openModal(t.id && t.professional_id ? 'Editar modelo' : 'Novo modelo', `
+  let rows = (t.sections || [{ title: '', hint: '', type: 'longo' }]).map((s) => ({ type: 'longo', ...s }));
+  const heading = t.imported ? 'Revisar modelo importado' : t.id && t.professional_id ? 'Editar modelo' : 'Novo modelo';
+  return openModal(heading, `
+    ${t.imported ? `<div class="callout ok">${icon('info')}<div class="grow"><p>Importado de <b>${esc(t.imported.source)}</b>${t.imported.usedAI ? ' com ajuda da IA' : ' por leitura automática'}. Confira os campos, ajuste os tipos e acrescente o que faltar.</p></div></div>` : ''}
     <label class="field">Nome do modelo<input name="name" required value="${esc(t.name || '')}"></label>
     <div class="grid2">
       <label class="field">Área<select name="specialty">${['Geral', ...SPECIALTIES].map((s) => `<option ${s === (t.specialty || state.profile.specialty) ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
-      <label class="field">Tipo<select name="kind"><option value="sessao" ${t.kind !== 'periodo' ? 'selected' : ''}>Sessão</option><option value="periodo" ${t.kind === 'periodo' ? 'selected' : ''}>Período</option></select></label>
+      <label class="field">Usar para<select name="kind">${Object.entries(KINDS).map(([k, l]) => `<option value="${k}" ${(t.kind || 'sessao') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
     </div>
-    <div class="field" style="margin-bottom:6px">Seções do relatório<small>O título vira o cabeçalho. A orientação diz à IA o que escrever ali.</small></div>
+    <div class="field" style="margin-bottom:6px">Campos do documento<small>O título vira o cabeçalho do campo. A orientação diz à IA o que escrever ali. O tipo muda como o campo aparece no editor.</small></div>
     <div id="rows"></div>
-    <button type="button" class="btn quiet sm" id="addrow">${icon('plus')}Adicionar seção</button>`,
+    <button type="button" class="btn quiet sm" id="addrow">${icon('plus')}Adicionar campo</button>`,
   {
     wide: true,
     onOpen: (d) => {
       const draw = () => {
         $('#rows', d).innerHTML = rows.map((r, i) => `
-          <div class="sec-edit" data-i="${i}">
-            <input data-f="title" placeholder="Título da seção" value="${esc(r.title)}" aria-label="Título">
-            <input data-f="hint" placeholder="Orientação para a IA (opcional)" value="${esc(r.hint || '')}" aria-label="Orientação">
+          <div class="sec-edit tpl-row" data-i="${i}">
+            <input data-f="title" placeholder="Título do campo" value="${esc(r.title)}" aria-label="Título">
+            <select data-f="type" aria-label="Tipo do campo">${TYPES.map(([v, l]) => `<option value="${v}" ${(r.type || 'longo') === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
             <div class="row"><button type="button" class="icon-btn" data-a="up" title="Subir" ${i === 0 ? 'disabled' : ''}>${icon('up')}</button>
               <button type="button" class="icon-btn" data-a="down" title="Descer" ${i === rows.length - 1 ? 'disabled' : ''}>${icon('down')}</button>
               <button type="button" class="icon-btn" data-a="rm" title="Remover">${icon('trash')}</button></div>
+            <input data-f="hint" class="tpl-hint" placeholder="Orientação para a IA (opcional)" value="${esc(r.hint || '')}" aria-label="Orientação">
+            ${r.type === 'escolha' ? `<input data-f="options" class="tpl-hint" placeholder="Opções separadas por vírgula" value="${esc((r.options || []).join(', '))}" aria-label="Opções">` : ''}
           </div>`).join('');
       };
       draw();
-      $('#rows', d).addEventListener('input', (e) => { const row = e.target.closest('.sec-edit'); if (row) rows[+row.dataset.i][e.target.dataset.f] = e.target.value; });
+      $('#rows', d).addEventListener('input', (e) => {
+        const row = e.target.closest('.sec-edit'); if (!row) return;
+        const f = e.target.dataset.f, r = rows[+row.dataset.i];
+        if (f === 'options') r.options = e.target.value.split(',').map((x) => x.trim()).filter(Boolean); else r[f] = e.target.value;
+      });
+      $('#rows', d).addEventListener('change', (e) => { if (e.target.dataset.f === 'type') draw(); });
       $('#rows', d).addEventListener('click', (e) => {
         const b = e.target.closest('[data-a]'); if (!b) return;
         const i = +b.closest('.sec-edit').dataset.i;
@@ -218,13 +323,17 @@ async function templateModal(t = {}) {
         if (b.dataset.a === 'rm') rows.splice(i, 1);
         draw();
       });
-      $('#addrow', d).onclick = () => { rows.push({ title: '', hint: '' }); draw(); };
+      $('#addrow', d).onclick = () => { rows.push({ title: '', hint: '', type: 'longo' }); draw(); };
     },
     onOk: (d) => {
       const g = (n) => d.querySelector(`[name=${n}]`).value.trim();
-      const sections = rows.map((r) => ({ title: (r.title || '').trim(), hint: (r.hint || '').trim() })).filter((r) => r.title);
-      if (!sections.length) throw new Error('Informe ao menos uma seção com título.');
-      return api.saveTemplate({ ...(t.id && t.professional_id ? { id: t.id } : {}), name: g('name'), specialty: g('specialty'), kind: g('kind'), sections });
+      const sections = rows.map((r) => ({
+        title: (r.title || '').trim(), hint: (r.hint || '').trim(), type: r.type || 'longo',
+        ...(r.type === 'escolha' && r.options?.length ? { options: r.options } : {}),
+      })).filter((r) => r.title);
+      if (!sections.length) throw new Error('Informe ao menos um campo com título.');
+      const meta = t.imported ? { source: t.imported.source, ai: t.imported.usedAI } : (t.meta || {});
+      return api.saveTemplate({ ...(t.id && t.professional_id ? { id: t.id } : {}), name: g('name'), specialty: g('specialty'), kind: g('kind'), sections, meta });
     },
   });
 }
@@ -234,19 +343,31 @@ export async function renderTemplates() {
   const list = await api.listTemplates();
   const sys = list.filter((t) => !t.professional_id), mine = list.filter((t) => t.professional_id);
   const row = (t, own) => `<div class="li">
-    <div class="grow"><div class="t">${esc(t.name)} ${chip(t.kind === 'periodo' ? 'Período' : 'Sessão', 'petrol')} ${t.specialty ? chip(t.specialty) : ''}</div>
+    <div class="grow"><div class="t">${esc(t.name)} ${chip(KINDS[t.kind] || 'Evolução', 'petrol')} ${t.specialty ? chip(t.specialty) : ''} ${t.meta?.source ? chip('Importado', 'bloom') : ''}</div>
     <div class="muted small">${t.sections.map((s) => esc(s.title)).join(', ')}</div></div>
     ${own
       ? `<button class="btn quiet sm" data-edit="${t.id}">${icon('edit')}Editar</button><button class="icon-btn" data-del="${t.id}" title="Excluir modelo" aria-label="Excluir modelo">${icon('trash')}</button>`
       : `<button class="btn quiet sm" data-dup="${t.id}">Duplicar e editar</button>`}</div>`;
 
-  main.innerHTML = pageHeader('Modelos de relatório', 'Defina as seções de cada tipo de relatório. A IA segue essas seções.', `<button class="btn" id="new">${icon('plus')}Novo modelo</button>`) + `
+  main.innerHTML = pageHeader('Modelos de documento', 'Defina os campos de cada tipo de registro, ou envie um documento seu para virar modelo.',
+    `<label class="btn quiet" id="imp-label">${icon('download')}Enviar meu documento<input type="file" id="imp" accept=".docx,.pdf,image/*" hidden></label><button class="btn" id="new">${icon('plus')}Novo modelo</button>`) + `
+    <div id="imp-msg"></div>
     <section class="panel"><h2>Meus modelos</h2>
-      ${mine.length ? `<div class="list">${mine.map((t) => row(t, true)).join('')}</div>` : '<div class="empty"><b>Você ainda não criou modelos</b>Duplique um modelo do sistema para adaptar ao seu jeito.</div>'}</section>
+      ${mine.length ? `<div class="list">${mine.map((t) => row(t, true)).join('')}</div>` : '<div class="empty"><b>Você ainda não criou modelos</b>Envie um documento seu (Word, PDF ou foto) ou duplique um modelo do sistema.</div>'}</section>
     <section class="panel"><h2>Modelos do sistema</h2><div class="list">${sys.map((t) => row(t, false)).join('')}</div></section>`;
 
   const byId = Object.fromEntries(list.map((t) => [t.id, t]));
   $('#new').onclick = async () => { if (await templateModal()) renderTemplates(); };
+  $('#imp').onchange = async (e) => {
+    const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+    const msg = $('#imp-msg');
+    msg.innerHTML = callout('<p id="imp-status">Lendo o documento…</p>');
+    try {
+      const r = await importTemplate(file, { onStatus: (t) => { const el = $('#imp-status'); if (el) el.textContent = t; } });
+      msg.innerHTML = '';
+      if (await templateModal({ name: r.name, sections: r.sections, kind: 'sessao', imported: { source: r.source, usedAI: r.usedAI } })) { toast('Modelo salvo.'); renderTemplates(); }
+    } catch (err) { msg.innerHTML = callout(`<p>${esc(err.message)}</p>`, 'warn'); }
+  };
   $$('[data-edit]').forEach((b) => (b.onclick = async () => { if (await templateModal(byId[b.dataset.edit])) renderTemplates(); }));
   $$('[data-dup]').forEach((b) => (b.onclick = async () => {
     const t = byId[b.dataset.dup];

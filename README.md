@@ -21,6 +21,18 @@ supabase/schema.sql banco de dados + regras de segurança (PostgreSQL)
 local/              versão antiga de arquivo único (dados só no navegador, sem login)
 ```
 
+## Novidades da versão 3
+
+- **IA opcional.** O sistema funciona sem nenhuma IA (você grava ou digita e escreve o relatório no editor). Com IA, escolha o provedor: **Google Gemini** e **Groq** têm plano gratuito; **Claude** e **OpenAI** são pagos. A conexão pode ser feita no cadastro, no primeiro acesso ou em Configurações → Chaves de IA, com botão de testar. Atenção à LGPD: em planos gratuitos o provedor pode usar o conteúdo enviado; o sistema nunca envia o nome do paciente.
+- **Anamnese e Evolução.** Cada paciente tem anamnese (entrevista inicial, com modelos por área) e evoluções por sessão, além dos relatórios por período, que podem incluir a anamnese como contexto.
+- **Edição a qualquer momento.** O relatório pode ser aberto durante a sessão (com bloco de anotações) e continua editável depois de revisado ou liberado. Alterações em relatório liberado pedem confirmação, e as versões anteriores ficam no Histórico, com botão de restaurar.
+- **Modelos a partir dos seus documentos.** Envie .docx, PDF ou foto (foto exige IA com visão: Gemini, Claude ou OpenAI). O sistema monta um modelo de campos (texto, data, sim/não, escolha) que você ajusta. Ele reproduz a **estrutura** do documento, não o layout visual exato.
+- **Marca própria.** Em Configurações → Aparência: logo, cores, nome, frase de login, rodapé e assinatura. A tela de login mostra a sua marca, pelo link próprio `…/#/c/seu-nome` ou pela última marca usada no navegador.
+- **Áudio melhor.** Ganho ajustável com compressor, medidor de volume, escolha de microfone, teste de 5 segundos com reprodução e captação opcional do áudio da aba (teleconsulta).
+- **Prontuário completo** em PDF ou Word, por paciente.
+
+> Depois de atualizar, rode de novo `supabase/schema.sql` no SQL Editor (é seguro repetir).
+
 ## O que há de novo na versão 2 (interface redesenhada)
 
 - **Início orientado à ação**: escolha o paciente e inicie a sessão; fila de "o que precisa da sua atenção" (rascunhos, relatórios revisados não liberados, pacientes sem consentimento) e checklist de configuração.

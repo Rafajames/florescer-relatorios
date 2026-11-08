@@ -11,7 +11,8 @@ function friendly(error) {
   if (/already registered|already been registered/i.test(m)) return 'Este e-mail já está cadastrado.';
   if (/Password should be at least/i.test(m)) return 'A senha precisa ter pelo menos 6 caracteres.';
   if (/row-level security/i.test(m)) return 'Você não tem permissão para esta ação.';
-  if (/preferences/i.test(m) && /column|schema cache/i.test(m)) return 'O banco precisa ser atualizado: rode de novo o arquivo supabase/schema.sql no SQL Editor do Supabase.';
+  if (/profiles_slug_key|duplicate key.*slug/i.test(m)) return 'Este endereço já está em uso por outro profissional. Escolha outro.';
+  if (/(preferences|branding|slug|onboarded|meta|notes|report_versions|brand_by_slug)/i.test(m) && /column|schema cache|does not exist|function/i.test(m)) return 'O banco precisa ser atualizado: rode de novo o arquivo supabase/schema.sql no SQL Editor do Supabase.';
   if (/released_only_if_reviewed/i.test(m)) return 'Só é possível liberar ao paciente um relatório já revisado.';
   return m;
 }
@@ -85,6 +86,17 @@ export const updateReport = (id, patch) => sb.from('reports').update(patch).eq('
 export const deleteReport = (id) => sb.from('reports').delete().eq('id', id).then(unwrap);
 export const updateReports = (ids, patch) => sb.from('reports').update(patch).in('id', ids).select('id').then(unwrap);
 export const deleteReports = (ids) => sb.from('reports').delete().in('id', ids).then(unwrap);
+
+/* ---------- versões do relatório ---------- */
+export const listVersions = (reportId) =>
+  sb.from('report_versions').select('id,title,sections,saved_at').eq('report_id', reportId).order('saved_at', { ascending: false }).limit(30).then(unwrap);
+
+/* ---------- marca pública (tela de login personalizada) ---------- */
+export const brandBySlug = async (slug) => {
+  const { data, error } = await sb.rpc('brand_by_slug', { p_slug: slug });
+  if (error) return null;
+  return (data && data[0]) || null;
+};
 
 /* ---------- auditoria ---------- */
 export const listAudit = (entityId) =>

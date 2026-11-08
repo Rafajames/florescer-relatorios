@@ -21,6 +21,11 @@ create table if not exists public.profiles (
   created_at       timestamptz not null default now()
 );
 alter table public.profiles add column if not exists preferences jsonb not null default '{}'::jsonb;
+-- marca própria (logo, cores, nome da clínica, rodapé) e link personalizado
+alter table public.profiles add column if not exists branding jsonb not null default '{}'::jsonb;
+alter table public.profiles add column if not exists slug text;
+create unique index if not exists profiles_slug_key on public.profiles (lower(slug)) where slug is not null;
+alter table public.profiles add column if not exists onboarded boolean not null default false;
 
 -- Cria o perfil automaticamente quando alguém se cadastra
 create or replace function public.handle_new_user()
@@ -91,6 +96,10 @@ create table if not exists public.templates (
   created_at      timestamptz not null default now()
 );
 create index if not exists templates_prof_idx on public.templates (professional_id);
+alter table public.templates add column if not exists meta jsonb not null default '{}'::jsonb; -- origem (arquivo importado), observações
+-- aceita também o tipo 'anamnese' (recria a restrição de forma idempotente)
+alter table public.templates drop constraint if exists templates_kind_check;
+alter table public.templates add constraint templates_kind_check check (kind in ('sessao','periodo','anamnese'));
 
 -- ---------------------------------------------------------------------
 -- Relatórios (de sessão ou de período)
@@ -117,6 +126,39 @@ create table if not exists public.reports (
 );
 create index if not exists reports_prof_idx on public.reports (professional_id, session_date desc);
 create index if not exists reports_patient_idx on public.reports (patient_id, session_date desc);
+alter table public.reports add column if not exists notes text;  -- anotações do profissional durante a sessão
+alter table public.reports drop constraint if exists reports_kind_check;
+alter table public.reports add constraint reports_kind_check check (kind in ('sessao','periodo','anamnese'));
+
+-- ---------------------------------------------------------------------
+-- Versões do relatório: guarda o texto anterior a cada alteração relevante
+-- (no máximo uma versão a cada 5 minutos por relatório)
+-- ---------------------------------------------------------------------
+create table if not exists public.report_versions (
+  id              bigint generated always as identity primary key,
+  report_id       uuid not null references public.reports(id) on delete cascade,
+  professional_id uuid not null references public.profiles(id) on delete cascade,
+  title           text,
+  sections        jsonb not null,
+  saved_at        timestamptz not null default now()
+);
+create index if not exists report_versions_idx on public.report_versions (report_id, saved_at desc);
+
+create or replace function public.keep_report_version()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if old.sections is distinct from new.sections or old.title is distinct from new.title then
+    if not exists (select 1 from public.report_versions v where v.report_id = old.id and v.saved_at > now() - interval '5 minutes') then
+      insert into public.report_versions (report_id, professional_id, title, sections) values (old.id, old.professional_id, old.title, old.sections);
+      delete from public.report_versions where report_id = old.id and id not in
+        (select id from public.report_versions where report_id = old.id order by saved_at desc limit 30);
+    end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists reports_versions on public.reports;
+create trigger reports_versions before update on public.reports
+  for each row execute function public.keep_report_version();
 
 -- ---------------------------------------------------------------------
 -- Trilha de auditoria (não guarda conteúdo clínico, só quem fez o quê)
@@ -241,6 +283,12 @@ create policy reports_all_own on public.reports
     and exists (select 1 from public.patients p where p.id = patient_id and p.professional_id = auth.uid())
   );
 
+-- versões: só o próprio profissional lê (e restaura pelo editor)
+alter table public.report_versions enable row level security;
+drop policy if exists versions_select_own on public.report_versions;
+create policy versions_select_own on public.report_versions
+  for select to authenticated using (professional_id = auth.uid());
+
 -- audit_log: cada um lê só o próprio histórico; ninguém escreve direto (só os gatilhos)
 drop policy if exists audit_select_own on public.audit_log;
 create policy audit_select_own on public.audit_log
@@ -276,6 +324,20 @@ language sql stable security definer set search_path = public as $$
     and exists (select 1 from public.profiles me where me.id = auth.uid() and me.role = 'patient')
   order by coalesce(r.released_at, r.created_at) desc;
 $$;
+
+-- Marca pública de um profissional (para a tela de login personalizada).
+-- Expõe SOMENTE nome, logo, cores e frase de apresentação — nada de pacientes.
+create or replace function public.brand_by_slug(p_slug text)
+returns table (org_name text, logo text, color text, accent text, tagline text)
+language sql stable security definer set search_path = public as $$
+  select coalesce(nullif(branding->>'org_name',''), nullif(clinic_name,''), full_name),
+         branding->>'logo', branding->>'color', branding->>'accent', branding->>'tagline'
+  from public.profiles
+  where role = 'professional' and slug is not null and lower(slug) = lower(p_slug)
+  limit 1;
+$$;
+revoke all on function public.brand_by_slug(text) from public;
+grant execute on function public.brand_by_slug(text) to anon, authenticated;
 
 revoke all on function public.portal_list_reports() from public, anon;
 grant execute on function public.portal_list_reports() to authenticated;
@@ -338,3 +400,63 @@ insert into public.templates (professional_id, name, specialty, kind, sections) 
 end if;
 end
 $seed$;
+
+-- ---------------------------------------------------------------------
+-- Modelos de anamnese do sistema (idempotente)
+-- tipos de campo: curto | longo | data | marcar | escolha
+-- ---------------------------------------------------------------------
+do $seed2$
+begin
+if not exists (select 1 from public.templates where professional_id is null and kind = 'anamnese') then
+insert into public.templates (professional_id, name, specialty, kind, sections) values
+(null, 'Anamnese geral', 'Geral', 'anamnese', '[
+  {"title":"Queixa principal","hint":"Motivo da consulta, nas palavras do paciente.","type":"longo"},
+  {"title":"História da queixa atual","hint":"Início, evolução, fatores que pioram ou melhoram.","type":"longo"},
+  {"title":"Histórico de saúde","hint":"Doenças, cirurgias, internações, alergias.","type":"longo"},
+  {"title":"Medicamentos em uso","hint":"Somente os citados pelo paciente.","type":"longo"},
+  {"title":"Histórico familiar","hint":"Condições de saúde relevantes na família.","type":"longo"},
+  {"title":"Rotina e hábitos","hint":"Sono, alimentação, atividade física, trabalho.","type":"longo"},
+  {"title":"Acompanhamentos anteriores","hint":"Tratamentos e profissionais anteriores.","type":"longo"},
+  {"title":"Expectativas e objetivos","hint":"O que o paciente espera do acompanhamento.","type":"longo"}
+]'::jsonb),
+(null, 'Anamnese psicológica', 'Psicologia', 'anamnese', '[
+  {"title":"Queixa principal e demanda","hint":"Motivo da busca por atendimento.","type":"longo"},
+  {"title":"História da queixa","hint":"Quando começou, como evoluiu, impactos.","type":"longo"},
+  {"title":"Histórico de saúde mental e acompanhamentos","hint":"Terapias, psiquiatra, internações.","type":"longo"},
+  {"title":"Uso de medicação","hint":"Somente o relatado.","type":"longo"},
+  {"title":"Contexto familiar e social","hint":"Convivência, rede de apoio, relações.","type":"longo"},
+  {"title":"Trabalho e/ou estudos","hint":"Rotina, dificuldades, satisfação.","type":"longo"},
+  {"title":"Sono, alimentação e hábitos","hint":"Rotina diária relatada.","type":"longo"},
+  {"title":"Expectativas e objetivos da terapia","hint":"O que deseja trabalhar.","type":"longo"}
+]'::jsonb),
+(null, 'Anamnese nutricional', 'Nutrição', 'anamnese', '[
+  {"title":"Objetivo e queixa principal","hint":"Motivo da consulta.","type":"longo"},
+  {"title":"Histórico de saúde e doenças","hint":"Condições relatadas.","type":"longo"},
+  {"title":"Medicamentos e suplementos","hint":"Somente os citados.","type":"longo"},
+  {"title":"Histórico alimentar e rotina","hint":"Refeições, horários, preferências, restrições.","type":"longo"},
+  {"title":"Hidratação e funcionamento intestinal","hint":"Relato do paciente.","type":"longo"},
+  {"title":"Atividade física e sono","hint":"Frequência e qualidade relatadas.","type":"longo"},
+  {"title":"Histórico familiar","hint":"Condições relevantes.","type":"longo"},
+  {"title":"Metas combinadas","hint":"Metas iniciais acordadas.","type":"longo"}
+]'::jsonb),
+(null, 'Anamnese fonoaudiológica', 'Fonoaudiologia', 'anamnese', '[
+  {"title":"Queixa principal","hint":"Motivo do encaminhamento ou busca.","type":"longo"},
+  {"title":"História do desenvolvimento","hint":"Marcos relatados de fala, linguagem, audição.","type":"longo"},
+  {"title":"Histórico de saúde","hint":"Condições, cirurgias, otites, internações.","type":"longo"},
+  {"title":"Alimentação e hábitos orais","hint":"Mastigação, deglutição, chupeta, respiração.","type":"longo"},
+  {"title":"Escolaridade e contexto familiar","hint":"Escola, convivência, rede de apoio.","type":"longo"},
+  {"title":"Acompanhamentos anteriores","hint":"Terapias e avaliações prévias.","type":"longo"},
+  {"title":"Expectativas da família","hint":"O que esperam do atendimento.","type":"longo"}
+]'::jsonb),
+(null, 'Anamnese fisioterapêutica', 'Fisioterapia', 'anamnese', '[
+  {"title":"Queixa principal","hint":"Dor ou limitação principal, nas palavras do paciente.","type":"longo"},
+  {"title":"História da lesão ou doença atual","hint":"Início, causa, evolução.","type":"longo"},
+  {"title":"Localização e características da dor","hint":"Somente o relatado; não inventar escalas.","type":"longo"},
+  {"title":"Histórico de saúde e cirurgias","hint":"Condições e procedimentos.","type":"longo"},
+  {"title":"Medicamentos em uso","hint":"Somente os citados.","type":"longo"},
+  {"title":"Atividades e rotina de trabalho","hint":"Impactos funcionais relatados.","type":"longo"},
+  {"title":"Objetivos do paciente","hint":"O que deseja recuperar ou alcançar.","type":"longo"}
+]'::jsonb);
+end if;
+end
+$seed2$;
