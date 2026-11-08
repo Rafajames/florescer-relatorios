@@ -117,10 +117,15 @@ async function callText(provider, key, system, user, { maxTokens = 4000, json = 
   return (await r.json()).choices?.[0]?.message?.content || '';
 }
 
+// Trava contra cliques repetidos: uma chamada por serviço por vez, para não gastar a cota à toa.
+const emAndamento = new Set();
 async function ask(system, user, opts = {}) {
   const provider = opts.image ? hasVisionAI() : textProvider();
   if (!provider) throw new Error(opts.image ? 'Para ler imagens, conecte Gemini, Claude ou OpenAI em Configurações → Chaves de IA.' : noAIMessage);
-  return callText(provider, getKeys()[provider], system, user, opts);
+  if (emAndamento.has(provider)) throw new Error('A IA ainda está respondendo. Aguarde terminar antes de pedir de novo.');
+  emAndamento.add(provider);
+  try { return await callText(provider, getKeys()[provider], system, user, opts); }
+  finally { emAndamento.delete(provider); }
 }
 
 async function fetchFirst(urls, init) {

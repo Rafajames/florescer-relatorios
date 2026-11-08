@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Página não encontrada · Florescer Relatórios</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌱%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600&family=Newsreader:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{--petrol:#134B5F;--paper:#F3EFE8;--ink:#1B282D;--muted:#4A5A61}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#15262C;--ink:#E9EEF0;--muted:#A9B9BF;--petrol:#7FB8C9}}
+:root[data-theme="dark"]{--paper:#15262C;--ink:#E9EEF0;--muted:#A9B9BF;--petrol:#7FB8C9}
+body{margin:0;min-height:100vh;background:var(--paper);color:var(--ink);font-family:'Instrument Sans',system-ui,sans-serif;display:grid;place-items:center;padding:16px;box-sizing:border-box}
+main{max-width:420px;text-align:center}
+.code{font-family:'Newsreader',Georgia,serif;font-size:72px;color:var(--petrol);margin:0;line-height:1}
+h1{font-size:24px;margin:12px 0 8px}
+p{color:var(--muted);line-height:1.5;margin:0 0 20px}
+a.btn{display:inline-flex;align-items:center;min-height:48px;padding:0 24px;border-radius:12px;background:var(--petrol);color:#fff;font-weight:600;text-decoration:none}
+</style>
+</head>
+<body>
+<main>
+  <p class="code">404</p>
+  <h1>Página não encontrada</h1>
+  <p>O endereço que você abriu não existe ou foi movido.</p>
+  <a class="btn" id="home" href="./">Voltar ao início</a>
+</main>
+<script>
+  // Funciona tanto no GitHub Pages (/florescer-relatorios/) quanto em um domínio próprio (raiz).
+  document.getElementById('home').href = location.hostname.endsWith('github.io') ? '/florescer-relatorios/' : '/';
+</script>
+</body>
+</html>

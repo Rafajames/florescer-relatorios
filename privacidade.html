@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Como o Florescer Relatórios trata seus dados e os dados dos pacientes.">
+<title>Política de Privacidade · Florescer Relatórios</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌱%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=Newsreader:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{--petrol:#134B5F;--paper:#F3EFE8;--card:#FFFFFF;--ink:#1B282D;--muted:#4A5A61;--line:#D9D2C6;--warn:#FBEFD5;--warn-ink:#6B4A00}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#15262C;--card:#1D323A;--ink:#E9EEF0;--muted:#A9B9BF;--petrol:#7FB8C9;--line:#34505A;--warn:#3A3216;--warn-ink:#F3DFA4}}
+:root[data-theme="dark"]{--paper:#15262C;--card:#1D323A;--ink:#E9EEF0;--muted:#A9B9BF;--petrol:#7FB8C9;--line:#34505A;--warn:#3A3216;--warn-ink:#F3DFA4}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Instrument Sans',system-ui,sans-serif;line-height:1.6;font-size:16px}
+.wrap{max-width:760px;margin:0 auto;padding:32px 16px 64px}
+h1{font-family:'Newsreader',Georgia,serif;font-weight:500;color:var(--petrol);font-size:34px;margin:8px 0 6px}
+h2{font-size:19px;margin:32px 0 8px;color:var(--petrol)}
+p,li{color:var(--ink)}
+ul{padding-left:20px}
+.muted{color:var(--muted);font-size:14px}
+.draft{background:var(--warn);color:var(--warn-ink);border-radius:12px;padding:12px 16px;font-size:14px;margin:16px 0}
+.back{display:inline-block;margin-bottom:12px;color:var(--petrol);font-weight:600}
+a{color:var(--petrol)}
+footer{margin-top:40px;border-top:1px solid var(--line);padding-top:16px;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="./">← Voltar ao Florescer</a>
+  <h1>Política de Privacidade</h1>
+  <p class="muted">Última atualização: [DATA]</p>
+  <div class="draft"><strong>Versão preliminar.</strong> Antes de divulgar o sistema, este texto precisa ser revisado por um advogado e completado com os dados do responsável (campos entre colchetes).</div>
+
+  <h2>1. Quem trata os dados</h2>
+  <p>O Florescer Relatórios é uma ferramenta para registro de sessões, anamneses, evoluções e relatórios de profissionais de saúde. Quem mantém o sistema é <strong>[NOME DO RESPONSÁVEL]</strong>, contato: <strong>[E-MAIL DE CONTATO]</strong>.</p>
+  <p>Nos prontuários, o profissional de saúde que atende o paciente é o responsável pelo registro clínico. O sistema guarda e processa essas informações a serviço dele.</p>
+
+  <h2>2. Quais dados são tratados</h2>
+  <ul>
+    <li><strong>Dados do profissional:</strong> nome, e-mail, conselho de classe, número de registro, UF, categoria, redes sociais opcionais e dados de acesso (senha protegida e, se ativado, autenticador).</li>
+    <li><strong>Dados dos pacientes cadastrados pelo profissional:</strong> nome, contatos, informações de anamnese, evoluções, relatórios e, quando usada a gravação, o texto transcrito das sessões.</li>
+    <li><strong>Dados de acesso do paciente:</strong> e-mail e registros de acesso ao portal.</li>
+    <li><strong>Registro de atividades:</strong> ações feitas no sistema, para auditoria e segurança.</li>
+  </ul>
+
+  <h2>3. Para que usamos</h2>
+  <ul>
+    <li>Permitir que o profissional registre e organize o atendimento.</li>
+    <li>Liberar relatórios ao paciente e à família pelo portal, somente quando o profissional autorizar.</li>
+    <li>Garantir segurança, auditoria e suporte.</li>
+  </ul>
+  <p>Dados de saúde são dados pessoais sensíveis (LGPD, art. 5º, II). O tratamento se apoia na tutela da saúde, realizada por profissionais de saúde, e no consentimento do paciente, registrado no termo de consentimento do próprio sistema.</p>
+
+  <h2>4. Inteligência artificial</h2>
+  <p>As funções de IA são opcionais. Cada profissional conecta a própria chave de um serviço escolhido por ele (por exemplo, Gemini, Groq, Claude ou OpenAI). Quando a IA é usada, o texto necessário para a tarefa é enviado diretamente do navegador desse profissional ao serviço escolhido. <strong>O nome do paciente não é enviado à IA.</strong> O uso desses serviços segue as políticas de privacidade de cada provedor.</p>
+
+  <h2>5. Onde os dados ficam</h2>
+  <p>Os dados ficam em um banco de dados hospedado pelo Supabase, na região de São Paulo (Brasil). As chaves de IA ficam apenas no navegador do profissional, não em nossos servidores.</p>
+
+  <h2>6. Compartilhamento</h2>
+  <p>Não vendemos dados. Compartilhamos somente com os provedores necessários para o funcionamento do sistema (hospedagem e banco de dados) e com os serviços de IA escolhidos pelo profissional, quando ele os usa.</p>
+
+  <h2>7. Por quanto tempo guardamos</h2>
+  <p>Os dados ficam guardados enquanto a conta estiver ativa e pelo prazo exigido pela legislação e pelas normas dos conselhos profissionais. Depois disso, são apagados ou anonimizados.</p>
+
+  <h2>8. Seus direitos</h2>
+  <p>Você pode pedir confirmação de tratamento, acesso, correção, exportação, eliminação e informações sobre compartilhamento. Pacientes podem pedir por meio do próprio profissional. Profissionais podem pedir diretamente pelo contato acima.</p>
+
+  <h2>9. Segurança</h2>
+  <p>Usamos conexão criptografada (HTTPS), controle de acesso por perfil, senhas protegidas e registro de atividades. Nenhum sistema é totalmente imune a falhas; por isso, pedimos que cada profissional mantenha sua senha e seu autenticador em segurança.</p>
+
+  <h2>10. Alterações</h2>
+  <p>Esta política pode ser atualizada. Quando houver mudança relevante, avisaremos no sistema.</p>
+
+  <footer>Florescer Relatórios · <a href="termos.html">Termos de Uso</a></footer>
+</div>
+</body>
+</html>

@@ -72,7 +72,7 @@ export function renderAuth(brand = null) {
         ${mode === 'login' ? '<button type="button" class="link" id="forgot">Esqueci minha senha</button>' : ''}
         ${mode === 'signup' ? '<p class="muted small">Pacientes: use o mesmo e-mail que seu profissional cadastrou para você. Você verá somente os relatórios que ele liberar.</p>' : ''}
       </form>
-      <p class="auth-credit">Feito com Florescer Relatórios</p>
+      <p class="auth-credit">${mode === 'signup' ? 'Ao criar a conta, você concorda com os <a href="termos.html">Termos de Uso</a> e a <a href="privacidade.html">Política de Privacidade</a>.<br>' : ''}Feito com Florescer Relatórios · <a href="privacidade.html">Privacidade</a> · <a href="termos.html">Termos</a></p>
     </div></div></div>`;
 
     document.querySelectorAll('.auth-card .tab').forEach((b) => (b.onclick = () => { mode = b.dataset.mode; draw(); }));
