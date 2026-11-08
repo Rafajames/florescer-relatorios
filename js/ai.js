@@ -34,6 +34,7 @@ export const PROVIDERS = {
   },
 };
 
+export const modelOf = (id) => (getKeys().models || {})[id] || PROVIDERS[id]?.model;
 export const getKeys = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } };
 export const setKeys = (k) => localStorage.setItem(KEY, JSON.stringify(k));
 export const clearKeys = () => localStorage.removeItem(KEY);
@@ -42,7 +43,7 @@ export const clearKeys = () => localStorage.removeItem(KEY);
 export function textProvider() {
   const k = getKeys();
   if (k.textProvider && k[k.textProvider]) return k.textProvider;
-  return ['gemini', 'groq', 'anthropic', 'openai'].find((p) => k[p]) || '';
+  return Object.keys(PROVIDERS).find((p) => k[p]) || '';
 }
 export function sttProvider() {
   const k = getKeys();
@@ -67,8 +68,9 @@ const httpError = (name, status) => {
 };
 
 /* ---------- texto ---------- */
-async function callText(provider, key, system, user, { maxTokens = 4000, json = false, image = null } = {}) {
+async function callText(provider, key, system, user, { maxTokens = 4000, json = false, image = null, model: pick } = {}) {
   const p = PROVIDERS[provider];
+  const model = pick || modelOf(provider);
   if (provider === 'anthropic') {
     const content = image
       ? [{ type: 'image', source: { type: 'base64', media_type: image.mime, data: image.b64 } }, { type: 'text', text: user }]
@@ -76,7 +78,7 @@ async function callText(provider, key, system, user, { maxTokens = 4000, json = 
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model: p.model, max_tokens: maxTokens, system, messages: [{ role: 'user', content }] }),
+      body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content }] }),
     });
     if (!r.ok) throw httpError(p.label, r.status);
     return ((await r.json()).content || []).map((b) => b.text || '').join('');
@@ -84,7 +86,7 @@ async function callText(provider, key, system, user, { maxTokens = 4000, json = 
   if (provider === 'gemini') {
     const parts = [{ text: user }];
     if (image) parts.unshift({ inline_data: { mime_type: image.mime, data: image.b64 } });
-    const r = await fetchFirst(geminiUrls(key, p.model), {
+    const r = await fetchFirst(geminiUrls(key, model), {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
@@ -98,7 +100,7 @@ async function callText(provider, key, system, user, { maxTokens = 4000, json = 
     return (d.candidates?.[0]?.content?.parts || []).map((x) => x.text || '').join('');
   }
   // groq e openai: formato compatível com o da OpenAI
-  const url = provider === 'groq' ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions';
+  const url = p.custom ? p.base.replace(/\/+$/, '') + '/chat/completions' : provider === 'groq' ? 'https://api.groq.com/openai/v1/chat/completions' : 'https://api.openai.com/v1/chat/completions';
   const userContent = image
     ? [{ type: 'text', text: user }, { type: 'image_url', image_url: { url: `data:${image.mime};base64,${image.b64}` } }]
     : user;
@@ -106,7 +108,7 @@ async function callText(provider, key, system, user, { maxTokens = 4000, json = 
     method: 'POST',
     headers: { 'content-type': 'application/json', Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      model: p.model, max_tokens: maxTokens, temperature: 0.2,
+      model, max_tokens: maxTokens, temperature: 0.2,
       ...(json ? { response_format: { type: 'json_object' } } : {}),
       messages: [{ role: 'system', content: system }, { role: 'user', content: userContent }],
     }),
@@ -143,9 +145,9 @@ export const geminiUrls = (key, model) => [
 ];
 
 /** Testa uma chave com uma chamada mínima. Lança erro se falhar. */
-export async function testKey(provider, key) {
+export async function testKey(provider, key, model) {
   key = String(key || '').trim();
-  const out = await callText(provider, key, 'Responda apenas com a palavra: ok', 'Teste de conexão.', { maxTokens: 20 });
+  const out = await callText(provider, key, 'Responda apenas com a palavra: ok', 'Teste de conexão.', { maxTokens: 20, model });
   if (!out.trim()) throw new Error('A IA respondeu vazio.');
   return true;
 }

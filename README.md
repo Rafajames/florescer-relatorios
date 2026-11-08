@@ -101,3 +101,6 @@ Na ficha do paciente, "Novo documento": página livre com formatação e tabelas
 
 ## v5 — Administração
 Painel `#/admin` (só para quem tem `is_admin`): modelos do sistema, textos padrão (consentimento, rodapé, áreas), nomes dos modelos de IA, aviso geral, lista de profissionais (ativar/desativar) e tópicos extras da Ajuda. O administrador não acessa pacientes, relatórios nem transcrições. SQL em `supabase/admin.sql`. Para conceder o acesso: `update public.profiles set is_admin = true where id = (select id from auth.users where email = 'SEU@EMAIL');`
+
+### v5.1
+Admin: uso (só totais), convites (exigência opcional, desligada por padrão), registro de ações com "Desfazer", resetar autenticador, serviços de IA extras (compatíveis com OpenAI) e lista de modelos por serviço. Autenticador (TOTP) opcional em Configurações → Segurança, desligado por padrão; quem perde o aparelho usa "Perdi meu autenticador" (link por e-mail) ou pede reset ao admin. SQL em `supabase/admin2.sql`.

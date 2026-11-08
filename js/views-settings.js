@@ -16,7 +16,7 @@ import {
    ===================================================================== */
 const TABS = [
   ['perfil', 'Perfil e timbre'], ['aparencia', 'Aparência e marca'], ['preferencias', 'Preferências'], ['chaves', 'Chaves de IA'],
-  ['consentimento', 'Consentimento'], ['dados', 'Dados e privacidade'],
+  ['consentimento', 'Consentimento'], ['seguranca', 'Segurança'], ['dados', 'Dados e privacidade'],
 ];
 
 const download = (name, text, type) => {
@@ -277,6 +277,35 @@ export async function renderSettings(params) {
       e.preventDefault();
       return busy($('[type=submit]', e.target), 'Salvando…', async () => {
         await saveProfile({ consent_text: new FormData(e.target).get('consent_text').trim() || null }); toast('Termo salvo.');
+      });
+    };
+  }
+
+  if (tab === 'seguranca') {
+    const fs = await api.mfaFactors(), on = fs.find((f) => f.status === 'verified');
+    pane.innerHTML = `<section class="panel"><h2>Autenticador no login</h2>
+      <p class="muted">Proteção extra: além da senha, o login pede um código de 6 dígitos de um aplicativo (Google Authenticator, Authy, Microsoft Authenticator). É opcional e vale só para a sua conta.</p>
+      ${on ? `<p>${chip('Ativado', 'ok')}</p><p class="muted small">Se perder o celular, use "Perdi meu autenticador" na tela de login (link por e-mail) ou peça ao administrador.</p><button class="btn quiet" id="mfa-off">Desativar autenticador</button>`
+        : '<p>' + chip('Desativado', '') + '</p><button class="btn" id="mfa-on">Ativar autenticador</button>'}
+      <div id="mfa-box"></div></section>`;
+    const off = $('#mfa-off');
+    if (off) off.onclick = async () => {
+      if (!(await confirmBox('Desativar o autenticador? O login volta a pedir só a senha.', 'Desativar'))) return;
+      await api.mfaUnenroll(on.id); toast('Autenticador desativado.'); renderSettings(params);
+    };
+    const act = $('#mfa-on');
+    if (act) act.onclick = async (e) => {
+      for (const f of fs) { try { await api.mfaUnenroll(f.id); } catch { /* resto de tentativa anterior */ } }
+      const en = await api.mfaEnroll();
+      $('#mfa-box').innerHTML = `<div class="callout">${icon('info')}<div class="grow"><p><b>1.</b> No aplicativo autenticador, escaneie o código abaixo.</p>
+        <img alt="QR code do autenticador" src="${en.totp.qr_code}" style="width:180px;height:180px;background:#fff;padding:6px;border-radius:8px">
+        <p class="muted small">Sem câmera? Digite esta chave no aplicativo: <code>${esc(en.totp.secret)}</code></p>
+        <p><b>2.</b> Digite o código de 6 dígitos que o aplicativo mostrar.</p>
+        <div class="row"><input id="mfa-c" inputmode="numeric" maxlength="7" placeholder="000000" style="max-width:140px"><button class="btn" id="mfa-ok">Confirmar e ativar</button></div></div></div>`;
+      e.currentTarget.classList.add('hide');
+      $('#mfa-ok').onclick = (b) => busy(b.currentTarget, 'Verificando…', async () => {
+        try { await api.mfaVerify(en.id, $('#mfa-c').value); } catch { throw new Error('Código incorreto. Confira o aplicativo e tente de novo.'); }
+        toast('Autenticador ativado.'); renderSettings(params);
       });
     };
   }

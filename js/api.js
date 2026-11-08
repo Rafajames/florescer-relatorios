@@ -10,6 +10,8 @@ function friendly(error) {
   if (/Email not confirmed/i.test(m)) return 'Confirme seu e-mail antes de entrar (veja a caixa de entrada).';
   if (/already registered|already been registered/i.test(m)) return 'Este e-mail já está cadastrado.';
   if (/Password should be at least/i.test(m)) return 'A senha precisa ter pelo menos 6 caracteres.';
+  if (/convite/i.test(m) || /Database error saving new user/i.test(m)) return 'Código de convite inválido ou já usado.';
+  if (/confirme pelo link/i.test(m)) return 'Confirme pelo link enviado ao seu e-mail e tente de novo.';
   if (/row-level security/i.test(m)) return 'Você não tem permissão para esta ação.';
   if (/profiles_slug_key|duplicate key.*slug/i.test(m)) return 'Este endereço já está em uso por outro profissional. Escolha outro.';
   if (/(preferences|branding|slug|onboarded|meta|notes|report_versions|brand_by_slug)/i.test(m) && /column|schema cache|does not exist|function/i.test(m)) return 'O banco precisa ser atualizado: rode de novo o arquivo supabase/schema.sql no SQL Editor do Supabase.';
@@ -39,6 +41,30 @@ export const saveSetting = (key, value) =>
   sb.from('app_settings').upsert({ key, value, updated_at: new Date().toISOString() }).then(unwrap);
 export const adminProfessionals = () => sb.rpc('admin_list_professionals').then(unwrap);
 export const adminSetDisabled = (uid, off) => sb.rpc('admin_set_disabled', { uid, off }).then(unwrap);
+
+export const adminStats = () => sb.rpc('admin_stats').then(unwrap);
+export const adminResetMfa = (uid) => sb.rpc('admin_reset_mfa', { uid }).then(unwrap);
+export const listInvites = () => sb.from('invites').select('*').order('created_at', { ascending: false }).then(unwrap);
+export const createInvite = (code, note) => sb.from('invites').insert({ code, note }).then(unwrap);
+export const setInviteActive = (code, active) => sb.from('invites').update({ active }).eq('code', code).then(unwrap);
+export const deleteInvite = (code) => sb.from('invites').delete().eq('code', code).then(unwrap);
+export const listAdminLog = () => sb.from('admin_log').select('*').order('at', { ascending: false }).limit(60).then(unwrap);
+export const addAdminLog = (action, target, old_value, new_value) =>
+  sb.from('admin_log').insert({ action, target, old_value: old_value ?? null, new_value: new_value ?? null }).then(() => {}, () => {});
+
+/* ---------- autenticador (MFA) ---------- */
+export const mfaFactors = async () => ((await sb.auth.mfa.listFactors()).data?.totp || []);
+export const mfaEnroll = () => sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Florescer ' + Date.now() }).then(unwrap);
+export const mfaVerify = async (factorId, code) => {
+  const ch = unwrap(await sb.auth.mfa.challenge({ factorId }));
+  unwrap(await sb.auth.mfa.verify({ factorId, challengeId: ch.id, code: String(code).replace(/\s/g, '') }));
+};
+export const mfaUnenroll = (factorId) => sb.auth.mfa.unenroll({ factorId }).then(unwrap);
+export const mfaNeedsCode = async () => {
+  const { data } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+  return Boolean(data && data.nextLevel === 'aal2' && data.currentLevel !== 'aal2');
+};
+export const mfaSelfReset = () => sb.rpc('mfa_self_reset').then(unwrap);
 
 /* ---------- pacientes ---------- */
 export const listPatients = (includeArchived = false) => {

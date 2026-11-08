@@ -2,12 +2,10 @@
 import * as ai from './ai.js';
 import { $, $$, esc, toast, busy, chip } from './ui.js';
 
-const ORDER = ['gemini', 'groq', 'anthropic', 'openai'];
-
 export function connectorHtml(selected = 'gemini') {
   return `
     <div class="prov-list" role="radiogroup" aria-label="Provedor de IA">
-      ${ORDER.map((id) => {
+      ${Object.keys(ai.PROVIDERS).map((id) => {
         const p = ai.PROVIDERS[id];
         return `<label class="prov ${id === selected ? 'on' : ''}">
           <input type="radio" name="provider" value="${id}" ${id === selected ? 'checked' : ''}>
@@ -18,6 +16,7 @@ export function connectorHtml(selected = 'gemini') {
       }).join('')}
     </div>
     <div id="prov-help" class="prov-help"></div>
+    <label class="field" id="model-wrap" style="margin-top:12px">Modelo<select name="model"></select></label>
     <label class="field" style="margin-top:12px">Chave de acesso (API key)
       <input type="password" name="apikey" autocomplete="off" placeholder="Cole aqui a chave do provedor escolhido"></label>
     <div class="row">
@@ -35,15 +34,20 @@ export function bindConnector(root, { onSaved } = {}) {
       <p><a href="${p.keyUrl}" target="_blank" rel="noopener">Abrir a página para criar a chave</a>. ${esc(p.steps)}</p>
       <p class="muted small">${esc(p.privacy)}</p>
       <p class="muted small">A chave fica só neste navegador. O sistema nunca envia o nome do paciente para a IA.</p>`;
+    const list = [...new Set([p.model, ...(p.models || [])])], cur = ai.modelOf(id);
+    $('#model-wrap', root).classList.toggle('hide', list.length < 2);
+    $('select[name=model]', root).innerHTML = list.map((m) => `<option ${m === cur ? 'selected' : ''}>${esc(m)}</option>`).join('');
   };
   $$('input[name=provider]', root).forEach((i) => (i.onchange = help));
   help();
   $('#prov-save', root).onclick = (e) => busy(e.currentTarget, 'Testando…', async () => {
     const id = $('input[name=provider]:checked', root).value;
     const key = $('input[name=apikey]', root).value.trim();
+    const model = $('select[name=model]', root).value;
+    if (!key && ai.getKeys()[id]) { saveModel(id, model); toast('Modelo atualizado.'); if (onSaved) onSaved(id); return; }
     if (!key) throw new Error('Cole a chave de acesso antes de conectar.');
-    await ai.testKey(id, key);
-    saveKey(id, key);
+    await ai.testKey(id, key, model);
+    saveKey(id, key); saveModel(id, model);
     $('input[name=apikey]', root).value = '';
     toast(`${ai.PROVIDERS[id].label} conectado.`);
     if (onSaved) onSaved(id);
@@ -57,4 +61,9 @@ export function saveKey(id, key) {
   if (ai.PROVIDERS[id].text && !cur.textProvider) next.textProvider = id;
   if (ai.PROVIDERS[id].stt && !cur.sttProvider) next.sttProvider = id;
   ai.setKeys(next);
+}
+
+function saveModel(id, model) {
+  const cur = ai.getKeys();
+  ai.setKeys({ ...cur, models: { ...(cur.models || {}), [id]: model } });
 }

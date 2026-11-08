@@ -1,6 +1,6 @@
 import * as api from './api.js';
 import { $, esc, toast, busy, openModal, icon } from './ui.js';
-import { SPECIALTIES } from './state.js';
+import { SPECIALTIES, settings } from './state.js';
 import * as ai from './ai.js';
 import { saveKey } from './ai-connect.js';
 
@@ -58,6 +58,7 @@ export function renderAuth(brand = null) {
           <label class="field">Nome completo<input name="full_name" required autocomplete="name"></label>
           <div id="pro-fields" class="stack">
             <label class="field">Área de atuação<select name="specialty">${SPECIALTIES.map((s) => `<option>${esc(s)}</option>`).join('')}</select></label>
+            ${settings.invite_required === true ? '<label class="field">Código de convite<input name="invite_code" required autocomplete="off" placeholder="Informado por quem administra o sistema"></label>' : ''}
             <label class="field">Registro no conselho (opcional)<input name="council_registry" placeholder="ex.: CRP 20/12345"></label>
             <details class="signup-ai"><summary>Conectar minha IA agora (opcional)</summary>
               <label class="field">Provedor<select name="ai_provider">${['gemini', 'groq', 'anthropic', 'openai'].map((id) => `<option value="${id}">${esc(ai.PROVIDERS[id].label)}${ai.PROVIDERS[id].free ? ' (gratuito)' : ''}</option>`).join('')}</select></label>
@@ -97,7 +98,7 @@ export function renderAuth(brand = null) {
         } else {
           const role = f.get('role');
           const meta = { role, full_name: f.get('full_name') };
-          if (role === 'professional') { meta.specialty = f.get('specialty'); meta.council_registry = f.get('council_registry'); }
+          if (role === 'professional') { meta.specialty = f.get('specialty'); meta.council_registry = f.get('council_registry'); if (f.get('invite_code')) meta.invite_code = f.get('invite_code'); }
           const res = await api.signUp(f.get('email'), f.get('password'), meta);
           const aiKey = (f.get('ai_key') || '').trim();
           if (role === 'professional' && aiKey) {
@@ -115,8 +116,38 @@ export function renderAuth(brand = null) {
   draw();
 }
 
-export function promptNewPassword() {
+export async function promptNewPassword() {
+  let has = false;
+  try { has = (await api.mfaFactors()).some((f) => f.status === 'verified'); } catch { /* sem autenticador */ }
   return openModal('Defina uma nova senha',
-    `<label class="field">Nova senha<input type="password" id="np" minlength="6" required></label>`,
-    { okText: 'Salvar senha', onOk: async (d) => { await api.setNewPassword($('#np', d).value); toast('Senha atualizada.'); } });
+    `<label class="field">Nova senha<input type="password" id="np" minlength="6" required></label>
+     ${has ? '<label class="check"><input type="checkbox" id="rm-mfa"> Perdi meu autenticador: removê-lo para eu poder entrar (ative de novo depois em Configurações → Segurança)</label>' : ''}`,
+    { okText: 'Salvar senha', onOk: async (d) => {
+      await api.setNewPassword($('#np', d).value);
+      if (has && $('#rm-mfa', d).checked) { await api.mfaSelfReset(); toast('Autenticador removido.'); setTimeout(() => location.reload(), 600); }
+      toast('Senha atualizada.');
+    } });
+}
+
+// segundo passo do login, quando a conta tem autenticador
+export function renderMfaChallenge(email, onDone) {
+  $('#app').innerHTML = `<div class="auth-wrap">${hero(null)}<div class="auth-side"><div class="auth-card">
+    <h2 style="margin-bottom:6px">Código do autenticador</h2>
+    <p class="muted">Abra o aplicativo autenticador e digite o código de 6 dígitos.</p>
+    <form id="mfa-form" class="stack"><label class="field">Código<input id="mfa-code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required autofocus></label>
+      <button class="btn lg" type="submit">Confirmar</button>
+      <button type="button" class="link" id="mfa-lost">Perdi meu autenticador</button>
+      <button type="button" class="link" id="mfa-out">Sair</button></form></div></div></div>`;
+  $('#mfa-form').onsubmit = async (e) => {
+    e.preventDefault();
+    await busy(e.target.querySelector('button[type=submit]'), 'Verificando…', async () => {
+      try { const f = (await api.mfaFactors()).find((x) => x.status === 'verified'); await api.mfaVerify(f.id, $('#mfa-code').value); onDone(); }
+      catch { toast('Código incorreto ou expirado. Tente o próximo código.', 'err'); }
+    });
+  };
+  $('#mfa-lost').onclick = async () => {
+    try { await api.resetPassword(email); toast('Enviamos um link ao seu e-mail. Ao abri-lo, marque "Perdi meu autenticador" na nova senha. Se não conseguir, peça ao administrador.'); }
+    catch (err) { toast(err.message, 'err'); }
+  };
+  $('#mfa-out').onclick = async () => { await api.signOut(); location.hash = ''; location.reload(); };
 }

@@ -20,5 +20,14 @@ export function applySettings(rows, providers) {
   for (const r of rows || []) settings[r.key] = r.value;
   if (Array.isArray(settings.specialties) && settings.specialties.length) SPECIALTIES.splice(0, SPECIALTIES.length, ...settings.specialties);
   DEFAULT_CONSENT = (typeof settings.consent_text === 'string' && settings.consent_text.trim()) || BASE_CONSENT;
-  if (providers && settings.models) for (const [k, m] of Object.entries(settings.models)) if (m && providers[k]) providers[k].model = m;
+  if (providers) {
+    if (settings.models) for (const [k, m] of Object.entries(settings.models)) if (m && providers[k]) providers[k].model = m;
+    for (const [k, l] of Object.entries(settings.ai_models || {})) if (providers[k] && Array.isArray(l)) providers[k].models = l;
+    for (const k of Object.keys(providers)) if (providers[k].custom) delete providers[k];
+    for (const c of settings.ai_custom || []) {
+      if (!c || !c.id || !c.name || !c.base || !c.model) continue;
+      providers[c.id] = { custom: true, label: c.name, free: false, text: true, vision: false, stt: false, model: c.model, models: c.models || [], base: c.base, keyUrl: c.keyUrl || '#',
+        steps: 'Crie uma chave no site do serviço e cole aqui.', privacy: 'Serviço adicionado pela administração. Confira os termos de uso de dados antes de enviar conteúdo de pacientes.' };
+    }
+  }
 }

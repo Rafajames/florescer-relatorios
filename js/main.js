@@ -1,7 +1,7 @@
 import * as api from './api.js';
 import { state } from './state.js';
 import { $, esc, toast, confirmBox, openModal } from './ui.js';
-import { renderSetup, renderAuth, promptNewPassword } from './views-auth.js';
+import { renderSetup, renderAuth, promptNewPassword, renderMfaChallenge } from './views-auth.js';
 import * as home from './views-home.js';
 import * as session from './views-session.js';
 import * as report from './views-report.js';
@@ -55,6 +55,7 @@ async function doRoute() {
       applyBrand(brand || DEFAULT_BRAND);
       return renderAuth(brand);
     }
+    if (await api.mfaNeedsCode()) return renderMfaChallenge(session.user.email, () => route());
     if (!state.profile || state.profile.id !== session.user.id) {
       state.user = session.user;
       state.profile = await api.getProfile();
