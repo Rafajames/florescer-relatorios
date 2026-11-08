@@ -85,7 +85,7 @@ export async function renderNewSession(params) {
         <div id="live" class="livetext hide"></div>
 
         <label class="field" style="margin-top:14px">Anotações da sessão
-          <small>Escreva à vontade durante o atendimento. Entram no relatório junto com a transcrição.</small>
+          <small>Escreva à vontade durante a sessão. Entram no relatório junto com a transcrição.</small>
           <textarea id="notes" rows="4" placeholder="Anotações livres."></textarea></label>
         <label class="field">Transcrição
           <small>Você pode digitar, colar ou corrigir o texto a qualquer momento.</small>
