@@ -76,6 +76,9 @@ async function doRoute() {
     const routes = isPatient ? PATIENT_ROUTES : PRO_ROUTES;
     const hit = routes.map(([re, fn]) => [path.match(re), fn]).find(([m]) => m);
     if (!hit) { location.hash = home; return; }
+    const TELAS = { painel: 'Início', pacientes: 'Pacientes', nova: 'Nova sessão', relatorios: 'Relatórios', relatorio: 'Relatório', periodo: 'Por período', modelos: 'Modelos', ajuda: 'Ajuda', admin: 'Administração', config: 'Configurações', portal: 'Portal' };
+    const tela = TELAS[path.split('/')[1]];
+    if (tela) document.title = `${tela} · ${document.title}`; // document.title já traz a marca (applyBrand)
     await hit[1](hit[0], new URLSearchParams(query));
   } catch (err) {
     console.error(err);

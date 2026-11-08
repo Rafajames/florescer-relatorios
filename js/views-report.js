@@ -290,10 +290,23 @@ export async function renderReport(id) {
   if ($('#unrelease')) $('#unrelease').onclick = (e) => busy(e.target, 'Salvando…', async () => {
     await save({ released_to_patient: false, released_at: null }); toast('Retirado do portal.'); reload();
   });
+  // prévia editável: o texto muda o relatório ao aplicar; para gravar, use Salvar agora
+  const pvField = (s) => (['marcar', 'escolha', 'curto', 'data'].includes(s.type)
+    ? fieldHtml(s)
+    : `<div class="rt fld" contenteditable="true" data-f="html" aria-label="Texto de ${esc(s.title)}">${s.html ? sanitize(s.html) : textToHtml(s.text)}</div>`);
   $('#preview').onclick = () => openModal('Como o paciente vê', `
-    ${sections.filter(visible).map((s) => `<h3 style="margin-top:12px">${esc(s.title)}</h3><p class="pre">${esc(s.text)}</p>`).join('') || '<p class="muted">Nenhuma seção visível ao paciente.</p>'}
+    <p class="muted small">Você pode editar o texto aqui. Ao aplicar, as mudanças entram no relatório e passam a valer quando você salvar.</p>
+    ${sections.map((s, i) => [s, i]).filter(([s]) => visible(s)).map(([s, i]) => `<div class="pv-sec" data-i="${i}" style="margin-top:12px"><label class="small muted">${esc(s.title)}</label>${pvField(s)}</div>`).join('') || '<p class="muted">Nenhuma seção visível ao paciente.</p>'}
     ${sections.some((s) => !visible(s)) ? `<p class="muted small" style="margin-top:14px">Ocultas: ${sections.filter((s) => !visible(s)).map((s) => esc(s.title)).join(', ')}.</p>` : ''}`,
-  { wide: true });
+  { wide: true, okText: 'Aplicar alterações', onOk: (d) => {
+    $$('.pv-sec', d).forEach((box) => {
+      const s = sections[+box.dataset.i]; const el = box.querySelector('[data-f]');
+      if (!s || !el) return;
+      if (el.dataset.f === 'html') { s.html = sanitize(el.innerHTML); s.text = el.innerText.trim(); }
+      else s[el.dataset.f] = el.value;
+    });
+    showTab('relatorio'); markDirty(); toast('Alterações aplicadas. Clique em Salvar agora para gravar.');
+  } });
 
   const exportArgs = () => {
     const secs = $('#onlyvis').checked ? sections.filter(visible) : sections;
