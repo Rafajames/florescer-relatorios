@@ -547,3 +547,8 @@ h1{font-size:34px;line-height:1.12} h2{font-size:22px;line-height:1.2} h3{font-w
 .sec .rt:hover{background:var(--hover)} .sec .rt:focus{background:var(--field);border-color:var(--line)}
 .rt p,.rt-view p{margin:0 0 .6em}.rt ul,.rt ol,.rt-view ul,.rt-view ol{margin:0 0 .6em 1.2em;padding:0}.rt h3,.rt-view h3{font:600 17px var(--serif);margin:.5em 0 .2em}
 .sec.collapsed .rt-wrap{display:none}
+.doc-free .sec{grid-template-columns:1fr;border:0;padding:0}
+.doc-free .sec-side{display:none}
+.doc-free .sec .rt{min-height:46vh}
+.rt table,.rt-view table{border-collapse:collapse;width:100%;margin:0 0 .8em}
+.rt td,.rt th,.rt-view td,.rt-view th{border:1px solid var(--line);padding:6px 8px;vertical-align:top}

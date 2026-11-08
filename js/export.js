@@ -7,7 +7,7 @@ const slug = (s) => String(s || 'relatorio').normalize('NFD').replace(/[̀-ͯ]/g
 
 const para = (t) => esc(t).replace(/\n/g, '<br>');
 
-export const KIND_LABEL = { sessao: 'Evolução', anamnese: 'Anamnese', periodo: 'Relatório por período' };
+export const KIND_LABEL = { sessao: 'Evolução', anamnese: 'Anamnese', periodo: 'Relatório por período', documento: 'Documento' };
 
 const FONTS = { classica: "Georgia, 'Times New Roman', serif", moderna: "Calibri, Arial, sans-serif" };
 const MARGINS = { estreita: '14mm 14mm', normal: '22mm 20mm', ampla: '28mm 26mm' };
@@ -27,7 +27,7 @@ const css = (c, st = {}) => `
   h3 { font-size: 12pt; color: ${darken(c, 0.1)}; margin: 22px 0 4px; }
   table.meta td { padding: 2px 14px 2px 0; font-size: 10.5pt; }
   .lab { color: #4a554d; }
-  p { margin: 0 0 6px; } .rt h3 { font-size: 12pt; margin: 8px 0 3px; } .rt ul, .rt ol { margin: 0 0 6px 20px; padding: 0; }
+  p { margin: 0 0 6px; } .rt table { border-collapse: collapse; width: 100%; } .rt td, .rt th { border: 1px solid #999; padding: 4px 6px; } .rt h3 { font-size: 12pt; margin: 8px 0 3px; } .rt ul, .rt ol { margin: 0 0 6px 20px; padding: 0; }
   .sign { margin-top: 40px; width: 300px; font-size: 10.5pt; }
   .sign img { max-height: 70px; max-width: 240px; display: block; }
   .sign .line { border-top: 1px solid #333; padding-top: 4px; }
@@ -64,7 +64,7 @@ function buildHtml({ report, patientName, professional, sections }) {
     <tr><td class="lab">Paciente:</td><td><b>${esc(patientName || '')}</b></td></tr>
     <tr><td class="lab">${report.kind === 'periodo' ? 'Período:' : 'Data:'}</td><td>${esc(whenOf(report))}</td></tr>
   </table>
-  ${sections.map((s) => `<h2>${esc(s.title)}</h2><div class="rt">${bodyHtml(s)}</div>`).join('\n')}
+  ${sections.map((s) => `${report && report.kind === 'documento' ? '' : `<h2>${esc(s.title)}</h2>`}<div class="rt">${bodyHtml(s)}</div>`).join('\n')}
   ${signature(professional, h.b, h.reg)}
   ${footer(h.b, report.ai_generated)}
 </body></html>`;
@@ -73,7 +73,7 @@ function buildHtml({ report, patientName, professional, sections }) {
 /** Prontuário completo: anamnese, evoluções e relatórios, em ordem cronológica. */
 function buildDossier({ patient, professional, reports, only }) {
   const h = header(professional);
-  const order = { anamnese: 0, sessao: 1, periodo: 2 };
+  const order = { anamnese: 0, sessao: 1, periodo: 2, documento: 3 };
   const list = [...reports].sort((a, b) => (order[a.kind] - order[b.kind]) || String(a.session_date).localeCompare(String(b.session_date)));
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Prontuário — ${esc(patient.name)}</title><style>${css(h.b.color, h.b)}</style></head><body>
   ${h.html}
@@ -83,7 +83,7 @@ function buildDossier({ patient, professional, reports, only }) {
   <tr><td class="lab">Emitido em:</td><td>${esc(fmtDate(new Date().toISOString()))}</td></tr>
   <tr><td class="lab">Registros:</td><td>${list.length}</td></tr></table>
   ${list.map((r, i) => `<h3 ${i ? 'class="brk"' : ''}>${esc(KIND_LABEL[r.kind] || 'Registro')} — ${esc(r.title)} (${esc(whenOf(r))})</h3>
-    ${(only ? (r.sections || []).filter((s) => s.patient_visible !== false) : (r.sections || [])).map((s) => `<h2>${esc(s.title)}</h2><div class="rt">${bodyHtml(s)}</div>`).join('\n')}`).join('\n')}
+    ${(only ? (r.sections || []).filter((s) => s.patient_visible !== false) : (r.sections || [])).map((s) => `${r.kind === 'documento' ? '' : `<h2>${esc(s.title)}</h2>`}<div class="rt">${bodyHtml(s)}</div>`).join('\n')}`).join('\n')}
   ${signature(professional, h.b, h.reg)}
   ${footer(h.b, list.some((r) => r.ai_generated))}
 </body></html>`;

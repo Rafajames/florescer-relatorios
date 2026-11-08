@@ -92,3 +92,6 @@ Em Configurações → Perfil: conselho, número, UF, categoria e links (Instagr
 
 ## Texto com formatação (versão 4.2)
 Campos longos do relatório têm barra de formatação (negrito, itálico, sublinhado, listas, título, alinhamento). Vale no editor, no portal e nas exportações. Sem mudança no banco.
+
+## Documento livre (versão 4.3)
+Na ficha do paciente, "Novo documento": página livre com formatação e tabelas. O paciente só vê depois de revisado e liberado. Exige a atualização do `reports_kind_check` (já em `supabase/schema.sql`).

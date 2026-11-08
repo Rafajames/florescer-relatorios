@@ -20,7 +20,7 @@ export async function renderReports(params) {
       <input id="q" type="search" placeholder="Buscar por título ou paciente" style="max-width:290px;margin:0" aria-label="Buscar">
       <select id="fp" style="width:auto;margin:0" aria-label="Paciente"><option value="">Todos os pacientes</option>
         ${patients.map((p) => `<option value="${p.id}" ${p.id === f0.paciente ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
-      <select id="fk" style="width:auto;margin:0" aria-label="Tipo"><option value="">Todos os tipos</option><option value="sessao">Evoluções</option><option value="anamnese">Anamneses</option><option value="periodo">Por período</option></select>
+      <select id="fk" style="width:auto;margin:0" aria-label="Tipo"><option value="">Todos os tipos</option><option value="sessao">Evoluções</option><option value="anamnese">Anamneses</option><option value="documento">Documentos</option><option value="periodo">Por período</option></select>
       <select id="fs" style="width:auto;margin:0" aria-label="Situação">
         <option value="">Qualquer situação</option>
         <option value="rascunho" ${f0.status === 'rascunho' ? 'selected' : ''}>Rascunho</option>

@@ -128,7 +128,7 @@ create index if not exists reports_prof_idx on public.reports (professional_id, 
 create index if not exists reports_patient_idx on public.reports (patient_id, session_date desc);
 alter table public.reports add column if not exists notes text;  -- anotações do profissional durante a sessão
 alter table public.reports drop constraint if exists reports_kind_check;
-alter table public.reports add constraint reports_kind_check check (kind in ('sessao','periodo','anamnese'));
+alter table public.reports add constraint reports_kind_check check (kind in ('sessao','periodo','anamnese','documento'));
 
 -- ---------------------------------------------------------------------
 -- Versões do relatório: guarda o texto anterior a cada alteração relevante

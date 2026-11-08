@@ -190,6 +190,7 @@ export async function renderPatientDetail(id) {
     pageHeader(p.name, '', `
       <a class="btn bloom" href="#/nova?paciente=${p.id}">${icon('mic')}Nova evolução</a>
       <a class="btn quiet" href="#/nova?paciente=${p.id}&tipo=anamnese">${icon('file')}${anamneses.length ? 'Nova anamnese' : 'Fazer anamnese'}</a>
+      <button class="btn quiet" id="newdoc">${icon('edit')}Novo documento</button>
       <a class="btn quiet" href="#/periodo?paciente=${p.id}">${icon('calendar')}Por período</a>
       <button class="btn quiet" id="dossier">${icon('download')}Prontuário</button>
       <button class="btn quiet" id="edit">${icon('edit')}Editar</button>`) +
@@ -265,5 +266,14 @@ export async function renderPatientDetail(id) {
     if (ok) { toast('Consentimento registrado.'); renderPatientDetail(id); }
   };
   $('#consent').onclick = addConsent;
+  $('#newdoc').onclick = async () => {
+    const rep = await openModal('Novo documento', `<p class="muted">Documento livre, escrito como no Word. O paciente só vê depois que você revisar e liberar.</p>
+      <label class="field">Título<input name="t" required placeholder="Ex.: Declaração, Plano terapêutico, Parecer"></label>`,
+    { okText: 'Criar e abrir', onOk: (d) => {
+      const t = d.querySelector('[name=t]').value.trim(); if (!t) throw new Error('Digite um título para o documento.');
+      return api.createReport({ patient_id: id, template_id: null, kind: 'documento', title: t, session_date: todayISO(), status: 'rascunho', sections: [{ title: 'Documento', text: '', patient_visible: true }] });
+    } });
+    if (rep && rep.id) goto(`#/relatorio/${rep.id}`);
+  };
   if ($('#consent-top')) $('#consent-top').onclick = addConsent;
 }

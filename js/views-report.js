@@ -108,13 +108,13 @@ export async function renderReport(id) {
   const collapse = window.matchMedia && window.matchMedia('(max-width:760px)').matches;
   let openSec = 0;
   const sheet = () => `
-    <article class="sheet">
+    <article class="sheet ${r.kind === 'documento' ? 'doc-free' : ''}">
       <div class="sheet-head">${brand.logo ? `<img class="sheet-logo" src="${esc(brand.logo)}" alt="">` : ''}<div><b>${esc(brand.org_name || pro.clinic_name || pro.full_name || '')}</b><span>${esc(pro.full_name || '')}${reg ? ', ' + esc(reg) : ''}</span></div></div>
       <div class="sheet-meta"><b>${esc(r.patients.name)}</b>${r.kind === 'periodo' ? `, período ${fmtDate(r.period_start)} a ${fmtDate(r.period_end)}` : `, ${fmtDate($('#date')?.value || r.session_date)}`}</div>
       <div id="secs">${sections.map((s, i) => secHtml(s, i)).join('')}</div>
       <div class="sheet-foot">${r.ai_generated ? 'Elaborado com apoio de ferramenta de inteligência artificial e revisado pelo(a) profissional responsável. ' : ''}Documento confidencial, com dados sensíveis de saúde (LGPD).</div>
     </article>
-    <div class="row add-sec"><button class="btn quiet sm" id="add-sec">${icon('plus')}Adicionar campo</button>
+    <div class="row add-sec"><button class="btn quiet sm" id="add-sec" ${r.kind === 'documento' ? 'hidden' : ''}>${icon('plus')}Adicionar campo</button>
       <button class="btn quiet sm" id="save">Salvar agora</button></div>`;
 
   const secHtml = (s, i) => `
