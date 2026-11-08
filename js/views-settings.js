@@ -299,11 +299,14 @@ export async function renderSettings(params) {
     if (act) act.onclick = async (e) => {
       for (const f of fs) { try { await api.mfaUnenroll(f.id); } catch { /* resto de tentativa anterior */ } }
       const en = await api.mfaEnroll();
-      $('#mfa-box').innerHTML = `<div class="callout">${icon('info')}<div class="grow"><p><b>1.</b> No aplicativo autenticador, escaneie o código abaixo.</p>
-        <img alt="QR code do autenticador" src="${en.totp.qr_code}" style="width:180px;height:180px;background:#fff;padding:6px;border-radius:8px">
-        <p class="muted small">Sem câmera? Digite esta chave no aplicativo: <code>${esc(en.totp.secret)}</code></p>
-        <p><b>2.</b> Digite o código de 6 dígitos que o aplicativo mostrar.</p>
-        <div class="row"><input id="mfa-c" inputmode="numeric" maxlength="7" placeholder="000000" style="max-width:140px"><button class="btn" id="mfa-ok">Confirmar e ativar</button></div></div></div>`;
+      $('#mfa-box').innerHTML = `<ol class="mfa-steps">
+        <li><b>Instale um aplicativo</b><span>Google Authenticator, Microsoft Authenticator ou Authy. São gratuitos.</span></li>
+        <li><b>Adicione esta conta</b><span>No aplicativo, toque em "+" e depois em "Ler QR code". Escaneie o código abaixo.</span>
+          <img alt="QR code do autenticador" src="${en.totp.qr_code}" class="mfa-qr">
+          <span class="muted small">Sem câmera? Digite esta chave no aplicativo: <code>${esc(en.totp.secret)}</code></span></li>
+        <li><b>Confirme com o código</b><span>O aplicativo mostra um código de 6 dígitos que muda a cada 30 segundos.</span>
+          <div class="row"><input id="mfa-c" inputmode="numeric" maxlength="7" placeholder="000000" autocomplete="one-time-code" style="max-width:150px"><button class="btn" id="mfa-ok">Confirmar e ativar</button></div></li>
+      </ol>`;
       e.currentTarget.classList.add('hide');
       $('#mfa-ok').onclick = (b) => busy(b.currentTarget, 'Verificando…', async () => {
         try { await api.mfaVerify(en.id, $('#mfa-c').value); } catch { throw new Error('Código incorreto. Confira o aplicativo e tente de novo.'); }

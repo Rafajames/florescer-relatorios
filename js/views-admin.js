@@ -8,6 +8,7 @@ const TABS = [['uso', 'Uso'], ['modelos', 'Modelos do sistema'], ['textos', 'Tex
 const KINDS = { sessao: 'Evolução', anamnese: 'Anamnese', periodo: 'Período' };
 
 async function save(key, value) {
+  window.__dirty = false; const n = document.getElementById('adm-dirty'); if (n) n.classList.add('hide');
   const old = settings[key] === undefined ? null : settings[key];
   await api.saveSetting(key, value);
   api.addAdminLog('config', key, old, value);
@@ -23,6 +24,11 @@ export async function renderAdmin() {
     `<label class="adm-sel-wrap"><span class="sr">Seção</span><select class="adm-sel" id="adm-sel">${TABS.map(([k, l]) => `<option value="${k}" ${k === tab ? 'selected' : ''}>${l}</option>`).join('')}</select></label><div class="adm-tabs">${TABS.map(([k, l]) => `<a class="btn ${k === tab ? '' : 'quiet'} sm" href="#/admin?aba=${k}">${l}</a>`).join('')}</div><div id="adm"></div>`;
   $('#adm-sel').onchange = (e) => { location.hash = '#/admin?aba=' + e.target.value; };
   const box = $('#adm'); loading(box);
+  window.__dirty = false;
+  let note = document.getElementById('adm-dirty');
+  if (!note) { note = document.createElement('div'); note.id = 'adm-dirty'; note.className = 'adm-dirty hide'; note.setAttribute('role', 'status'); note.textContent = 'Alterações não salvas. Toque em Salvar.'; document.body.appendChild(note); }
+  const markDirty = () => { window.__dirty = true; note.classList.remove('hide'); };
+  box.addEventListener('input', markDirty); box.addEventListener('change', markDirty);
   try { await VIEWS[tab](box); } catch (e) { box.innerHTML = `<div class="callout warn">${icon('info')}<div class="grow"><p>${esc(e.message)}</p><p class="muted small">Se a tabela ainda não existe, rode o arquivo supabase/admin.sql no Supabase.</p></div></div>`; }
 }
 
@@ -129,9 +135,9 @@ const VIEWS = {
     const { helpDefaults, resolvedHelp } = await import('./views-help.js');
     const D = helpDefaults(), R = resolvedHelp();
     const attr = (v) => esc(v);
-    const field = (key, label, val, def) => `<div class="ht-item"><div class="ht-head"><b>${esc(label)}</b>${val !== def ? chip('Alterado', 'bloom') : ''}</div>
-      <textarea rows="3" data-k="${attr(key)}" data-def="${attr(def)}" aria-label="${attr(label)}">${esc(val)}</textarea>
-      <button type="button" class="link small" data-reset="${attr(key)}">Voltar ao original</button></div>`;
+    const field = (key, label, val, def) => `<details class="ht-d"><summary><span>${esc(label)}</span>${val !== def ? chip('Alterado', 'bloom') : ''}</summary>
+      <div class="ht-body"><textarea rows="3" data-k="${attr(key)}" data-def="${attr(def)}" aria-label="${attr(label)}">${esc(val)}</textarea>
+      <button type="button" class="link small" data-reset="${attr(key)}">Voltar ao original</button></div></details>`;
     const firstHtml = R.FIRST.map(([t, d], n) => field('first|' + t, t, d, D.FIRST[n][1])).join('');
     const topicsHtml = R.TOPICS.map((tp, ti) => `<details class="ht-group"><summary><span>${esc(tp.t)}</span><span class="muted small">${tp.items.length} itens</span></summary>
       ${tp.items.map(([k, v], n) => field(tp.t + '|' + k, k, v, D.TOPICS[ti].items[n][1])).join('')}</details>`).join('');
@@ -170,7 +176,8 @@ const VIEWS = {
     const card = (n, l) => `<div class="adm-num"><b>${n}</b><span>${l}</span></div>`;
     box.innerHTML = `<section class="panel"><h2>Uso do sistema</h2><p class="muted small">Só totais. Nenhum conteúdo de paciente ou relatório aparece aqui.</p>
       <div class="adm-stats">${card(s.professionals, 'profissionais')}${card(s.new_professionals_30d, 'novos nos últimos 30 dias')}${card(s.patient_accounts, 'pacientes com acesso ao portal')}
-      ${card(s.patients, 'pacientes cadastrados')}${card(s.reports, 'relatórios')}${card(s.reports_7d, 'relatórios nos últimos 7 dias')}${card(s.released, 'liberados a pacientes')}${card(s.with_mfa, 'contas com autenticador')}</div></section>`;
+      ${card(s.patients, 'pacientes cadastrados')}${card(s.reports, 'relatórios')}${card(s.reports_7d, 'relatórios nos últimos 7 dias')}${card(s.released, 'liberados a pacientes')}${card(s.with_mfa, 'contas com autenticador')}</div>
+      <div class="adm-links"><a class="btn quiet sm" href="#/admin?aba=convites">Ver convites</a><a class="btn quiet sm" href="#/admin?aba=pessoas">Ver profissionais</a><a class="btn quiet sm" href="#/admin?aba=registro">Ver registro</a></div></section>`;
   },
 
   async convites(box) {
@@ -187,20 +194,26 @@ const VIEWS = {
       const code = Array.from(crypto.getRandomValues(new Uint8Array(8)), (n) => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[n % 32]).join('');
       await api.createInvite(code, $('#note').value.trim() || null); api.addAdminLog('convite', code); toast('Código gerado: ' + code); renderAdmin();
     };
-    $$('[data-c]', box).forEach((b) => (b.onclick = async () => { await api.setInviteActive(b.dataset.c, Boolean(b.dataset.a)); renderAdmin(); }));
+    $$('[data-c]', box).forEach((b) => (b.onclick = async () => { const on = Boolean(b.dataset.a); await api.setInviteActive(b.dataset.c, on); api.addAdminLog(on ? 'reativar_convite' : 'cancelar_convite', b.dataset.c); renderAdmin(); }));
   },
 
   async registro(box) {
     const log = await api.listAdminLog();
-    const NAMES = { config: 'Alterou configuração', reset_mfa: 'Resetou autenticador', desativar: 'Desativou conta', reativar: 'Reativou conta', convite: 'Gerou convite' };
+    const NAMES = { config: 'Alterou configuração', reset_mfa: 'Resetou autenticador', desativar: 'Desativou conta', reativar: 'Reativou conta', convite: 'Gerou convite', cancelar_convite: 'Cancelou convite', reativar_convite: 'Reativou convite', desfazer: 'Desfez uma ação' };
+    const UNDO = ['config', 'desativar', 'reativar', 'cancelar_convite'];
     box.innerHTML = `<section class="panel"><h2>Registro de ações</h2><p class="muted small">As 60 mudanças mais recentes. Em alterações de configuração, "Desfazer" volta ao valor anterior.</p>
       <div class="list">${log.map((l) => `<div class="li"><div class="grow"><div class="t">${esc(NAMES[l.action] || l.action)} ${l.target ? `<code>${esc(String(l.target).slice(0, 40))}</code>` : ''}</div>
-        <div class="muted small">${esc(fmtDateTime(l.at))}</div></div>${l.action === 'config' ? `<button class="btn quiet sm" data-u="${l.id}">Desfazer</button>` : ''}</div>`).join('') || '<p class="muted">Nada registrado ainda.</p>'}</div></section>`;
+        <div class="muted small">${esc(fmtDateTime(l.at))}</div></div>${UNDO.includes(l.action) ? `<button class="btn quiet sm" data-u="${l.id}">Desfazer</button>` : ''}</div>`).join('') || '<p class="muted">Nada registrado ainda.</p>'}</div></section>`;
     const by = Object.fromEntries(log.map((l) => [l.id, l]));
     $$('[data-u]', box).forEach((b) => (b.onclick = async () => {
       const l = by[b.dataset.u];
-      if (!(await confirmBox(`Voltar "${l.target}" ao valor anterior?`, 'Desfazer'))) return;
-      await save(l.target, l.old_value === null ? (typeof settings[l.target] === 'boolean' ? false : '') : l.old_value); renderAdmin();
+      const what = { config: `Voltar "${l.target}" ao valor anterior?`, desativar: 'Reativar esta conta?', reativar: 'Desativar esta conta de novo?', cancelar_convite: 'Reativar este convite?' }[l.action];
+      if (!(await confirmBox(what, 'Desfazer'))) return;
+      if (l.action === 'config') await save(l.target, l.old_value === null ? (typeof settings[l.target] === 'boolean' ? false : '') : l.old_value);
+      else if (l.action === 'desativar') await api.adminSetDisabled(l.target, false);
+      else if (l.action === 'reativar') await api.adminSetDisabled(l.target, true);
+      else if (l.action === 'cancelar_convite') await api.setInviteActive(l.target, true);
+      api.addAdminLog('desfazer', l.target); toast('Desfeito.'); renderAdmin();
     }));
   },
 };

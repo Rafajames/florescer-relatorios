@@ -133,7 +133,7 @@ export async function promptNewPassword() {
 export function renderMfaChallenge(email, onDone) {
   $('#app').innerHTML = `<div class="auth-wrap">${hero(null)}<div class="auth-side"><div class="auth-card">
     <h2 style="margin-bottom:6px">Código do autenticador</h2>
-    <p class="muted">Abra o aplicativo autenticador e digite o código de 6 dígitos.</p>
+    <p class="muted">Digite o código de 6 dígitos do seu aplicativo.</p>
     <form id="mfa-form" class="stack"><label class="field">Código<input id="mfa-code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required autofocus></label>
       <button class="btn lg" type="submit">Confirmar</button>
       <button type="button" class="link" id="mfa-lost">Perdi meu autenticador</button>
@@ -146,7 +146,7 @@ export function renderMfaChallenge(email, onDone) {
     });
   };
   $('#mfa-lost').onclick = async () => {
-    try { await api.resetPassword(email); toast('Enviamos um link ao seu e-mail. Ao abri-lo, marque "Perdi meu autenticador" na nova senha. Se não conseguir, peça ao administrador.'); }
+    try { await api.resetPassword(email); toast('Enviamos um link para o seu e-mail. Use-o para criar uma nova senha.'); }
     catch (err) { toast(err.message, 'err'); }
   };
   $('#mfa-out').onclick = async () => { await api.signOut(); location.hash = ''; location.reload(); };
