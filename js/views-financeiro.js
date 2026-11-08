@@ -131,6 +131,7 @@ async function chargesTab(pane, mes, from, to) {
     try { await api.updateAppointment(id, patch); toast('Cobrança atualizada.'); refresh(); }
     catch (err) { toast(err.message, 'err'); }
   };
+  $$('[data-cobrar]').forEach((b) => (b.onclick = () => cobrar(devById[b.dataset.cobrar], patients.find((x) => x.id === b.dataset.cobrar))));
   $$('#cob .tr[data-id]').forEach((row) => {
     $$('input,select', row).forEach((el) => (el.onchange = () => saveRow(row)));
   });
@@ -259,7 +260,6 @@ async function documentsTab(pane, mes, from, to) {
   };
   $('#rc-pdf').onclick = emitRecibo(exportReciboPdf);
   $('#rc-doc').onclick = emitRecibo(exportReciboWord);
-  $$('[data-cobrar]').forEach((b) => (b.onclick = () => cobrar(devById[b.dataset.cobrar], patients.find((x) => x.id === b.dataset.cobrar))));
 }
 
 /* ---------- Dados de pagamento (aparecem no orçamento e no recibo) ---------- */
