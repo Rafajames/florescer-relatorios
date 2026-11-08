@@ -113,7 +113,7 @@ export function shell(active) {
   const p = state.profile;
   const isPatient = p && p.role === 'patient';
   const isAdm = Boolean(p && p.is_admin);
-  const nav = isPatient ? NAV_PATIENT : (p && p.is_admin ? [['admin', '#/admin', 'sliders', 'Administração']] : NAV);
+  const nav = isPatient ? NAV_PATIENT : (p && p.is_admin ? [['admin', '#/admin', 'home', 'Início'], ['config', '#/config?aba=seguranca', 'shield', 'Minha segurança']] : NAV);
   const nt = settings.notice && settings.notice.on && settings.notice.text ? settings.notice : null;
   const br = isPatient ? { logo: '', org_name: '' } : brandOf(p);
   $('#app').innerHTML = `

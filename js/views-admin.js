@@ -20,7 +20,7 @@ export async function renderAdmin() {
   const main = shell('admin');
   const tab = new URLSearchParams((location.hash.split('?')[1]) || '').get('aba') || 'uso';
   main.innerHTML = pageHeader('Administração', 'Altere o sistema sem editar o código. Você não vê pacientes, relatórios nem transcrições.') +
-    `<div class="adm-tabs">${TABS.map(([k, l]) => `<a class="btn ${k === tab ? '' : 'quiet'} sm" href="#/admin?aba=${k}">${l}</a>`).join('')}<a class="btn quiet sm" href="#/config?aba=seguranca">${icon('shield')}Minha segurança</a></div><div id="adm"></div>`;
+    `<div class="adm-tabs">${TABS.map(([k, l]) => `<a class="btn ${k === tab ? '' : 'quiet'} sm" href="#/admin?aba=${k}">${l}</a>`).join('')}</div><div id="adm"></div>`;
   const box = $('#adm'); loading(box);
   try { await VIEWS[tab](box); } catch (e) { box.innerHTML = `<div class="callout warn">${icon('info')}<div class="grow"><p>${esc(e.message)}</p><p class="muted small">Se a tabela ainda não existe, rode o arquivo supabase/admin.sql no Supabase.</p></div></div>`; }
 }
