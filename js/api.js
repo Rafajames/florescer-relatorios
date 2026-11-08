@@ -169,6 +169,15 @@ export const saveAppointments = (rows) => sb.from('appointments').insert(rows).s
 export const updateAppointment = (id, patch) =>
   sb.from('appointments').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select().single().then(unwrap);
 export const deleteAppointment = (id) => sb.from('appointments').delete().eq('id', id).then(unwrap);
+/** Ao registrar a evolução de uma sessão, marca como realizada a sessão agendada do paciente naquele dia (a primeira do horário). Retorna a sessão marcada ou null. */
+export const markSessionRealized = async (patientId, date) => {
+  const { data, error } = await sb.from('appointments').select('id').eq('patient_id', patientId).eq('date', date).eq('status', 'agendado')
+    .order('time', { nullsFirst: true }).limit(1);
+  if (error) throw error;
+  const a = data && data[0];
+  if (!a) return null;
+  return updateAppointment(a.id, { status: 'realizado' });
+};
 export const getPatientAdmin = (patientId) =>
   sb.from('patient_admin').select('*').eq('patient_id', patientId).maybeSingle().then(unwrap);
 export const savePatientAdmin = (row) =>

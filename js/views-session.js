@@ -261,6 +261,10 @@ export async function renderNewSession(params) {
         title: $('#title').value.trim() || (kind === 'anamnese' ? 'Anamnese' : 'Evolução'), session_date: $('#date').value || todayISO(),
         transcript: transcript || null, notes: notes || null, sections, ai_generated: withAI,
       });
+      if (kind === 'sessao') {
+        try { const marcada = await api.markSessionRealized(patient_id, rep.session_date); if (marcada) toast('Sessão marcada como realizada e liberada para cobrança.'); }
+        catch (err) { console.warn('Não foi possível marcar a sessão como realizada:', err); }
+      }
       goto(`#/relatorio/${rep.id}`);
     });
   };

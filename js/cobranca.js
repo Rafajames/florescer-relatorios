@@ -45,11 +45,17 @@ export function lembreteTexto({ patient, professional, date, time, specialty }) 
 }
 
 /** Cobrança das sessões realizadas e não pagas, com o PIX copia-e-cola. */
-export function cobrancaTexto({ patient, professional, items, pix }) {
+/** Chaves PIX do profissional: a principal (payment.pix) e as extras cadastradas (payment.pix_extra). */
+export function chavesPix(pay = {}) {
+  const extras = (pay.pix_extra || []).filter((e) => e && e.key).map((e) => ({ label: e.label || e.key, key: e.key }));
+  return [...(pay.pix ? [{ label: 'Principal', key: pay.pix }] : []), ...extras];
+}
+
+export function cobrancaTexto({ patient, professional, items, pix, pixKey }) {
   const total = items.reduce((s, i) => s + Number(i.amount || 0), 0);
   const linhas = items.map((i) => `• ${dmy(i.date)}${i.time ? ' (' + hm(i.time) + ')' : ''}: ${brl(i.amount)}`).join('\n');
   const pag = pix
-    ? `Pagamento por PIX (copia e cola):\n${pix}\n\nDepois do pagamento, pode me enviar o comprovante.`
+    ? `Chave PIX: ${pixKey || ''}\n\nPagamento por PIX (copia e cola):\n${pix}\n\nDepois do pagamento, pode me enviar o comprovante.`
     : 'Me avise a forma de pagamento de sua preferência e envio os dados.';
   return `Olá, ${patient}! Tudo bem?\n\nSegue o resumo das sessões pendentes de pagamento:\n${linhas}\n\nTotal: ${brl(total)}\n\n${pag}\n\nObrigada(o)!\n${professional}`;
 }

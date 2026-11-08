@@ -267,25 +267,39 @@ async function paymentTab(pane) {
   const p = state.profile || {};
   const pay = (p.branding && p.branding.payment) || {};
   const f = (k, label, ph = '') => `<label class="field">${label}<input name="${k}" value="${esc(pay[k] || '')}" placeholder="${esc(ph)}"></label>`;
+  const extraRow = (e = {}) => `<div class="grid2 pix-extra-row" style="align-items:end">
+      <label class="field">Nome da chave<input name="xl" value="${esc(e.label || '')}" placeholder="Ex.: Outro banco"></label>
+      <label class="field">Chave PIX<input name="xk" value="${esc(e.key || '')}" placeholder="CPF, CNPJ, e-mail ou telefone"></label>
+      <button type="button" class="btn ghost small" data-rm-pix>Remover</button></div>`;
   pane.innerHTML = `
     <form id="pay-f" class="panel"><h2>Dados de pagamento</h2>
-      <p class="muted">Aparecem no rodapé do orçamento e no recibo, para o paciente pagar e enviar o comprovante.</p>
+      <p class="muted">Aparecem no rodapé do orçamento, na cobrança e no recibo, para o paciente pagar e enviar o comprovante.</p>
       <div class="grid2">
         ${f('doc', 'CNPJ ou CPF', 'Ex.: 00.000.000/0001-00')}
         ${f('bank', 'Banco', 'Ex.: Itaú')}
         ${f('agency', 'Agência')}
         ${f('account', 'Conta')}
         ${f('holder', 'Titular da conta')}
-        ${f('pix', 'Chave PIX', 'CNPJ, CPF, e-mail ou telefone')}
+        ${f('pix', 'Chave PIX principal', 'CNPJ, CPF, e-mail ou telefone')}
         ${f('city', 'Cidade (para o PIX)', 'Ex.: Boa Vista')}
       </div>
+      <h3 style="margin-top:14px">Outras chaves PIX</h3>
+      <p class="muted small">Cadastre outras chaves (ex.: de outro banco). Na hora de cobrar, você escolhe qual usar. Se houver só a principal, ela é usada.</p>
+      <div id="pix-extras">${(pay.pix_extra || []).map(extraRow).join('')}</div>
+      <button type="button" class="btn ghost small" id="add-pix" style="margin:8px 0">+ Adicionar chave PIX</button>
       <label class="field">Observação<textarea name="note" rows="2" placeholder="Ex.: enviar o comprovante pelo WhatsApp (83) 98778-2014">${esc(pay.note || '')}</textarea></label>
       <button class="btn" type="submit">Salvar dados de pagamento</button>
     </form>`;
+  const extras = $('#pix-extras', pane);
+  const bindRm = () => extras.querySelectorAll('[data-rm-pix]').forEach((b) => { b.onclick = () => b.closest('.pix-extra-row').remove(); });
+  bindRm();
+  $('#add-pix', pane).onclick = () => { extras.insertAdjacentHTML('beforeend', extraRow()); bindRm(); };
   $('#pay-f').onsubmit = (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
     const payment = Object.fromEntries(['doc', 'bank', 'agency', 'account', 'holder', 'pix', 'city', 'note'].map((k) => [k, String(fd.get(k) || '').trim()]));
+    const labels = fd.getAll('xl'), keys = fd.getAll('xk');
+    payment.pix_extra = keys.map((k, i) => ({ label: String(labels[i] || '').trim(), key: String(k || '').trim() })).filter((x) => x.key);
     return busy(e.submitter || $('[type=submit]', e.target), 'Salvando…', async () => {
       const branding = { ...(p.branding || {}), payment };
       const row = await api.updateProfile(p.id, { branding });
