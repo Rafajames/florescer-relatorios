@@ -17,7 +17,7 @@ const TOPICS = [
     ['Linha do tempo', 'A ficha mostra anamnese, evoluções, relatórios e documentos em ordem de data.'],
     ['Prontuário completo', 'Ficha do paciente → Prontuário: gera PDF ou Word com tudo, ou só o que o paciente pode ver.'],
     ['Arquivar ou excluir', 'Ficha do paciente → Ações com cuidado. Arquivar esconde; excluir apaga tudo e não volta.'],
-    ['Paciente de teste', 'Pacientes → Criar paciente de teste. Dados fictícios para você experimentar; remova com o mesmo botão.'],
+    ['Paciente de teste', 'Pacientes → Criar paciente de teste. Dados fictícios na sua área de atuação (psicologia, fisioterapia, etc.); remova com o mesmo botão.'],
   ] },
   { t: 'Sessão: gravar e transcrever', where: 'Nova sessão', link: '#/nova', items: [
     ['Escolher paciente e modelo', 'Passo 1. O botão Gravar só libera com consentimento registrado.'],
