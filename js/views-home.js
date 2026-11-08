@@ -1,9 +1,10 @@
 import * as api from './api.js';
 import * as ai from './ai.js';
 import { state, DEFAULT_CONSENT } from './state.js';
+import { createDemo, removeDemo, isDemo } from './demo.js';
 import { exportDossierWord, exportDossierPdf, KIND_LABEL } from './export.js';
 import {
-  $, $$, esc, fmtDate, fmtDateTime, toast, openModal, confirmBox, statusChip, chip, meta, callout,
+  $, $$, esc, fmtDate, fmtDateTime, toast, openModal, confirmBox, busy, statusChip, chip, meta, callout,
   shell, loading, pageHeader, backLink, icon, greeting, longDate, emptyState, todayISO,
 } from './ui.js';
 
@@ -122,7 +123,7 @@ export async function renderPatients() {
   let all = await api.listPatients(false);
   let showArchived = false;
 
-  main.innerHTML = pageHeader('Pacientes', 'Quem você atende.', `<button class="btn" id="add">${icon('plus')}Novo paciente</button>`) + `
+  main.innerHTML = pageHeader('Pacientes', 'Quem você atende.', `<button class="btn quiet" id="demo">${all.some(isDemo) ? 'Remover paciente de teste' : 'Criar paciente de teste'}</button><button class="btn" id="add">${icon('plus')}Novo paciente</button>`) + `
     <div class="row" style="margin-bottom:14px">
       <input id="q" type="search" placeholder="Buscar por nome ou e-mail" style="max-width:340px;margin:0" aria-label="Buscar paciente">
       <select id="filter" style="width:auto;margin:0" aria-label="Filtro">
@@ -155,6 +156,17 @@ export async function renderPatients() {
   $('#arch').onchange = async (e) => { showArchived = e.target.checked; all = await api.listPatients(showArchived); draw(); };
   const addP = async () => { const p = await patientModal(); if (p && p.id) goto(`#/pacientes/${p.id}`); };
   $('#add').onclick = addP;
+  $('#demo').onclick = async (e) => {
+    if (all.some(isDemo)) {
+      if (!(await confirmBox('Remover o paciente de teste e todos os registros dele? Os seus pacientes reais não são afetados.', 'Remover'))) return;
+      await busy(e.currentTarget, 'Removendo…', async () => { await removeDemo(); toast('Paciente de teste removido.'); renderPatients(); });
+    } else {
+      const r = await openModal('Criar paciente de teste', `<p>Cria um paciente fictício com consentimento, anamnese e duas evoluções, para você testar o sistema.</p>
+        <label class="field">E-mail para testar o portal (opcional)<input type="email" name="email" placeholder="um e-mail seu de teste"><small>Se informar, a evolução revisada já fica liberada para esse e-mail ver como paciente.</small></label>`,
+      { okText: 'Criar', onOk: (d) => createDemo({ email: d.querySelector('[name=email]').value }) });
+      if (r && r.id) { toast('Paciente de teste criado.'); goto(`#/pacientes/${r.id}`); }
+    }
+  };
   document.addEventListener('click', function h(e) { if (!document.contains($('#ptable'))) return document.removeEventListener('click', h); if (e.target.closest('#add2')) addP(); });
 }
 
@@ -181,6 +193,7 @@ export async function renderPatientDetail(id) {
       <a class="btn quiet" href="#/periodo?paciente=${p.id}">${icon('calendar')}Por período</a>
       <button class="btn quiet" id="dossier">${icon('download')}Prontuário</button>
       <button class="btn quiet" id="edit">${icon('edit')}Editar</button>`) +
+    (isDemo(p) ? callout('<p><b>Paciente de teste.</b> Dados fictícios para você experimentar. Remova em Pacientes quando não precisar mais.</p>', 'warn') : '') +
     meta([p.email ? esc(p.email) : 'sem e-mail', p.phone ? esc(p.phone) : '', p.birth_date ? 'nascimento ' + fmtDate(p.birth_date) : '']) +
     '<div style="height:20px"></div>' +
     (!active ? callout('<p><b>Falta o consentimento deste paciente.</b> Sem ele, a gravação e o envio de áudio ficam bloqueados.</p>', 'warn', '<button class="btn sm" id="consent-top">Registrar agora</button>') : '') +
