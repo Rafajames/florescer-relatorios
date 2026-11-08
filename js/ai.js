@@ -84,7 +84,7 @@ async function callText(provider, key, system, user, { maxTokens = 4000, json = 
   if (provider === 'gemini') {
     const parts = [{ text: user }];
     if (image) parts.unshift({ inline_data: { mime_type: image.mime, data: image.b64 } });
-    const r = await fetch(geminiUrl(key, p.model), {
+    const r = await fetchFirst(geminiUrls(key, p.model), {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
@@ -122,14 +122,20 @@ async function ask(system, user, opts = {}) {
 }
 
 /** Testa uma chave com uma chamada mínima. Lança erro se falhar. */
-/** Chaves "AIza…" usam o Google AI Studio; chaves "AQ.…" são do Vertex AI (modo expresso). */
-export const geminiUrl = (key, model) => String(key).startsWith('AQ.')
-  ? `https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:generateContent`
-  : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+async function fetchFirst(urls, init) {
+  let r;
+  for (const u of urls) { r = await fetch(u, init); if (r.ok || ![401, 403, 404].includes(r.status)) return r; }
+  return r;
+}
+
+/** AI Studio hoje emite chaves "AIza…" e "AQ.…", ambas na API Gemini. Chaves "AQ." do Vertex usam o 2º endereço. */
+export const geminiUrls = (key, model) => [
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+  ...(String(key).startsWith('AQ.') ? [`https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:generateContent`] : []),
+];
 
 export async function testKey(provider, key) {
   key = String(key || '').trim();
-  if (provider === 'gemini' && !/^(AIza|AQ\.)/.test(key)) throw new Error('Essa chave não parece do Google. Chaves do AI Studio começam com "AIza" e as do Vertex AI com "AQ.". Crie uma em aistudio.google.com/apikey.');
   const out = await callText(provider, key, 'Responda apenas com a palavra: ok', 'Teste de conexão.', { maxTokens: 20 });
   if (!out.trim()) throw new Error('A IA respondeu vazio.');
   return true;
