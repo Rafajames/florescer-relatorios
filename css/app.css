@@ -697,3 +697,16 @@ h1{font-size:34px;line-height:1.12} h2{font-size:22px;line-height:1.2} h3{font-w
 }
 .ht-group>.ht-d{border:0;border-top:1px solid var(--edge);border-radius:0;background:transparent;margin-top:0}
 .ht-group>.ht-d>summary{padding:12px 14px}
+/* administrativo */
+.ag-day{margin-bottom:18px}.ag-day h3{font-size:15px;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.ag-day.today .table{border-color:var(--petrol)}
+.cols-agenda{grid-template-columns:56px minmax(0,1.6fr) minmax(0,1.2fr) auto}
+.ag-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.ag-meta a{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.ag-st{width:auto;margin:0;padding:5px 8px;min-height:0;font-size:13px}
+.ag-st.st-realizado{border-color:var(--ok)}.ag-st.st-falta{border-color:var(--warn)}.ag-st.st-cancelado{color:var(--ink-2)}
+.cols-freq{grid-template-columns:30px minmax(0,1fr) auto}
+.more-item{display:flex;align-items:center;gap:12px}
+@media (max-width:760px){
+  .cols-agenda{grid-template-columns:46px minmax(0,1fr) auto}
+  .cols-agenda .ag-meta{grid-column:2/-1;grid-row:2}
+}

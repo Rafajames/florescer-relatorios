@@ -24,6 +24,9 @@ const PRO_ROUTES = [
   [/^#\/relatorio\/([\w-]+)$/, (m) => report.renderReport(m[1])],
   [/^#\/periodo$/, (m, q) => lists.renderPeriod(q)],
   [/^#\/modelos$/, () => settings.renderTemplates()],
+  [/^#\/administrativo$/, (m, q) => import('./views-administrativo.js').then((v) => v.renderAdministrativo(q))],
+  [/^#\/financeiro$/, () => import('./views-administrativo.js').then((v) => v.renderFinanceiro())],
+  [/^#\/mais$/, () => import('./views-administrativo.js').then((v) => v.renderMore())],
   [/^#\/ajuda$/, () => renderHelp()],
   [/^#\/admin$/, () => import('./views-admin.js').then((m) => m.renderAdmin())],
   [/^#\/config$/, (m, q) => settings.renderSettings(q)],
@@ -76,7 +79,7 @@ async function doRoute() {
     const routes = isPatient ? PATIENT_ROUTES : PRO_ROUTES;
     const hit = routes.map(([re, fn]) => [path.match(re), fn]).find(([m]) => m);
     if (!hit) { location.hash = home; return; }
-    const TELAS = { painel: 'Início', pacientes: 'Pacientes', nova: 'Nova sessão', relatorios: 'Relatórios', relatorio: 'Relatório', periodo: 'Por período', modelos: 'Modelos', ajuda: 'Ajuda', admin: 'Administração', config: 'Configurações', portal: 'Portal' };
+    const TELAS = { painel: 'Início', pacientes: 'Pacientes', nova: 'Nova sessão', relatorios: 'Relatórios', relatorio: 'Relatório', periodo: 'Por período', modelos: 'Modelos', administrativo: 'Administrativo', financeiro: 'Financeiro', mais: 'Mais', ajuda: 'Ajuda', admin: 'Administração', config: 'Configurações', portal: 'Portal' };
     const tela = TELAS[path.split('/')[1]];
     if (tela) document.title = `${tela} · ${document.title}`; // document.title já traz a marca (applyBrand)
     await hit[1](hit[0], new URLSearchParams(query));

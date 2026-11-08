@@ -115,3 +115,33 @@ export const exportWord = (args) => toWord(buildHtml(args), args.report.title);
 export const exportPdf = (args) => toPdf(buildHtml(args));
 export const exportDossierWord = (args) => toWord(buildDossier(args), `Prontuario ${args.patient.name}`);
 export const exportDossierPdf = (args) => toPdf(buildDossier(args));
+
+/* ---------- Administrativo: folha de frequência ---------- */
+export const ATT_STATUS = { agendado: 'Agendado', realizado: 'Realizado', falta: 'Falta', falta_justificada: 'Falta justificada', cancelado: 'Cancelado' };
+/** { professional, patientName, approach, insurer, period, rows:[{date,time,status}], minRows } */
+function buildAttendance({ professional, patientName, approach, insurer, period, rows, minRows = 10 }) {
+  const h = header(professional);
+  const reg = professional.council_registry ? ` (${professional.council_registry})` : '';
+  const lines = [...rows];
+  while (lines.length < minRows) lines.push(null);
+  const td = 'border:1px solid #777;padding:7px 6px;font-size:10.5pt';
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Frequência — ${esc(patientName)}</title><style>${css(h.b.color, h.b)}</style></head><body>
+  ${h.html}
+  <h1 style="text-align:center">FREQUÊNCIA DE ATENDIMENTO${professional.specialty ? ' – ' + esc(professional.specialty.toUpperCase()) : ''}</h1>
+  <table class="meta">
+    <tr><td class="lab">Paciente:</td><td><b>${esc(patientName || '')}</b></td></tr>
+    <tr><td class="lab">Profissional responsável:</td><td>${esc(professional.full_name || '')}${esc(reg)}</td></tr>
+    ${approach ? `<tr><td class="lab">Esp. de atendimento:</td><td>${esc(approach)}</td></tr>` : ''}
+    <tr><td class="lab">Convênio:</td><td>${esc(insurer || 'Particular')}</td></tr>
+    ${period ? `<tr><td class="lab">Período:</td><td>${esc(period)}</td></tr>` : ''}
+  </table>
+  <table style="width:100%;border-collapse:collapse;margin-top:14px">
+    <tr style="background:#f1f4f5">${['#', 'Data', 'Situação', 'Pagamento', 'Responsável', 'Profissional'].map((c, i) => `<th style="${td};text-align:left;${i === 0 ? 'width:28px' : i === 1 ? 'width:120px' : i === 2 ? 'width:95px' : ''}">${c}</th>`).join('')}</tr>
+    ${lines.map((r, i) => `<tr><td style="${td}">${i + 1}</td><td style="${td}">${r ? esc(fmtDate(r.date)) + (r.time ? ' ' + esc(String(r.time).slice(0, 5)) : '') : ''}</td><td style="${td}">${r ? esc(ATT_STATUS[r.status] || '') : ''}</td><td style="${td}"></td><td style="${td}"></td><td style="${td}"></td></tr>`).join('')}
+  </table>
+  ${signature(professional, h.b, h.reg)}
+  ${footer(h.b, false)}
+</body></html>`;
+}
+export const exportAttendancePdf = (args) => toPdf(buildAttendance(args));
+export const exportAttendanceWord = (args) => toWord(buildAttendance(args), `Frequencia ${args.patientName} ${args.period || ''}`);

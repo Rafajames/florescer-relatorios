@@ -638,3 +638,47 @@ begin
   if not public.is_admin() then raise exception 'row-level security: acesso negado'; end if;
   return query select p.id, p.full_name, u.email::text, p.specialty, p.created_at, p.disabled, p.is_admin from public.profiles p join auth.users u on u.id = p.id where p.role = 'professional' and not p.is_admin order by p.created_at desc;
 end $$;
+
+-- ---------------------------------------------------------------------
+-- v6: Administrativo (agenda, frequência e dados administrativos do paciente)
+-- Separado dos dados clínicos. Cada profissional vê só os próprios registros.
+-- ---------------------------------------------------------------------
+create table if not exists public.appointments (
+  id              uuid primary key default gen_random_uuid(),
+  professional_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  patient_id      uuid not null references public.patients(id) on delete cascade,
+  date            date not null,
+  time            time,
+  duration_min    int not null default 50 check (duration_min between 5 and 600),
+  status          text not null default 'agendado' check (status in ('agendado','realizado','falta','falta_justificada','cancelado')),
+  notes           text,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+create index if not exists appointments_prof_date_idx on public.appointments (professional_id, date);
+create index if not exists appointments_patient_idx on public.appointments (patient_id, date);
+
+create table if not exists public.patient_admin (
+  patient_id      uuid primary key references public.patients(id) on delete cascade,
+  professional_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  guardian        text,   -- responsável
+  insurer         text,   -- convênio (vazio = particular)
+  approach        text,   -- especialidade/abordagem de atendimento
+  updated_at      timestamptz not null default now()
+);
+
+alter table public.appointments  enable row level security;
+alter table public.patient_admin enable row level security;
+drop policy if exists appointments_all_own on public.appointments;
+create policy appointments_all_own on public.appointments
+  for all to authenticated
+  using (professional_id = auth.uid() and public.is_professional())
+  with check (professional_id = auth.uid() and public.is_professional()
+    and exists (select 1 from public.patients p where p.id = patient_id and p.professional_id = auth.uid()));
+drop policy if exists patient_admin_all_own on public.patient_admin;
+create policy patient_admin_all_own on public.patient_admin
+  for all to authenticated
+  using (professional_id = auth.uid() and public.is_professional())
+  with check (professional_id = auth.uid() and public.is_professional()
+    and exists (select 1 from public.patients p where p.id = patient_id and p.professional_id = auth.uid()));
+grant select, insert, update, delete on public.appointments, public.patient_admin to authenticated;

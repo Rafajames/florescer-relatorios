@@ -14,7 +14,7 @@ function friendly(error) {
   if (/confirme pelo link/i.test(m)) return 'Confirme pelo link enviado ao seu e-mail e tente de novo.';
   if (/row-level security/i.test(m)) return 'Você não tem permissão para esta ação.';
   if (/profiles_slug_key|duplicate key.*slug/i.test(m)) return 'Este endereço já está em uso por outro profissional. Escolha outro.';
-  if (/(preferences|branding|slug|onboarded|meta|notes|report_versions|brand_by_slug)/i.test(m) && /column|schema cache|does not exist|function/i.test(m)) return 'O banco precisa ser atualizado: rode de novo o arquivo supabase/schema.sql no SQL Editor do Supabase.';
+  if (/(preferences|branding|slug|onboarded|meta|notes|report_versions|brand_by_slug|appointments|patient_admin)/i.test(m) && /column|schema cache|does not exist|function/i.test(m)) return 'O banco precisa ser atualizado: rode de novo o arquivo supabase/schema.sql no SQL Editor do Supabase.';
   if (/released_only_if_reviewed/i.test(m)) return 'Só é possível liberar ao paciente um relatório já revisado.';
   return m;
 }
@@ -146,8 +146,26 @@ export async function exportEverything() {
     sb.from('reports').select('*').then(unwrap),
     sb.from('templates').select('*').not('professional_id', 'is', null).then(unwrap),
   ]);
-  return { exported_at: new Date().toISOString(), patients, consents, reports, templates };
+  const appointments = await sb.from('appointments').select('*').then((r) => (r.error ? [] : r.data));
+  return { exported_at: new Date().toISOString(), patients, consents, reports, templates, appointments };
 }
+
+/* ---------- administrativo: agenda e frequência ---------- */
+export const listAppointments = ({ from, to, patientId } = {}) => {
+  let q = sb.from('appointments').select('*,patients(name)').order('date').order('time', { nullsFirst: true });
+  if (from) q = q.gte('date', from);
+  if (to) q = q.lte('date', to);
+  if (patientId) q = q.eq('patient_id', patientId);
+  return q.then(unwrap);
+};
+export const saveAppointments = (rows) => sb.from('appointments').insert(rows).select().then(unwrap);
+export const updateAppointment = (id, patch) =>
+  sb.from('appointments').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select().single().then(unwrap);
+export const deleteAppointment = (id) => sb.from('appointments').delete().eq('id', id).then(unwrap);
+export const getPatientAdmin = (patientId) =>
+  sb.from('patient_admin').select('*').eq('patient_id', patientId).maybeSingle().then(unwrap);
+export const savePatientAdmin = (row) =>
+  sb.from('patient_admin').upsert({ ...row, updated_at: new Date().toISOString() }).select().single().then(unwrap);
 
 /* ---------- portal do paciente ---------- */
 export const portalReports = () => sb.rpc('portal_list_reports').then(unwrap);

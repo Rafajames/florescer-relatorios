@@ -97,6 +97,8 @@ const NAV = [
   ['relatorios', '#/relatorios', 'file', 'Relatórios'],
   ['periodo', '#/periodo', 'calendar', 'Por período'],
   ['modelos', '#/modelos', 'layout', 'Modelos'],
+  ['administrativo', '#/administrativo', 'clipboard', 'Administrativo'],
+  ['financeiro', '#/financeiro', 'wallet', 'Financeiro'],
   ['config', '#/config', 'sliders', 'Configurações'],
   ['ajuda', '#/ajuda', 'info', 'Ajuda'],
 ];
@@ -106,8 +108,10 @@ const TAB = [
   ['pacientes', '#/pacientes', 'users', 'Pacientes'],
   ['nova', '#/nova', 'plus', 'Novo', true],
   ['relatorios', '#/relatorios', 'file', 'Relatórios'],
-  ['config', '#/config', 'sliders', 'Ajustes'],
+  ['mais', '#/mais', 'more', 'Mais'],
 ];
+// itens que ficam no botão "Mais" do celular
+export const NAV_MORE = NAV.filter(([k]) => !['painel', 'pacientes', 'relatorios'].includes(k));
 
 const TAB_ADMIN = [['admin', '#/admin', 'home', 'Início'], ['config', '#/config?aba=seguranca', 'shield', 'Segurança'], ['sair', '#', 'logout', 'Sair']];
 
@@ -142,7 +146,7 @@ export function shell(active) {
         <main id="main" class="page"></main>
       </div>
       ${isPatient ? '' : `<nav class="tabbar" aria-label="Atalhos" ${isAdm ? 'style="grid-template-columns:repeat(3,1fr)"' : ''}>
-        ${(isAdm ? TAB_ADMIN : TAB).map(([k, h, ic, l, cta]) => `<a href="${h}" ${cta ? 'data-new' : ''} ${k === 'sair' ? 'data-logout' : ''} class="${k === active ? 'on' : ''} ${cta ? 'cta' : ''}">${cta ? `<span class="circle">${icon(ic)}</span>` : icon(ic)}${l}</a>`).join('')}
+        ${(isAdm ? TAB_ADMIN : TAB).map(([k, h, ic, l, cta]) => `<a href="${h}" ${cta ? 'data-new' : ''} ${k === 'sair' ? 'data-logout' : ''} class="${k === active || (k === 'mais' && NAV_MORE.some(([m]) => m === active)) ? 'on' : ''} ${cta ? 'cta' : ''}">${cta ? `<span class="circle">${icon(ic)}</span>` : icon(ic)}${l}</a>`).join('')}
       </nav>`}
     </div>`;
   const s = $('#open-search');
