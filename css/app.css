@@ -591,3 +591,16 @@ h1{font-size:34px;line-height:1.12} h2{font-size:22px;line-height:1.2} h3{font-w
 .adm-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
 
 .adm-tabs{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:4px}.adm-tabs .btn{flex:none}
+.adm-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+.adm-stats .stat{padding:14px}.adm-stats .stat b{font-size:26px}.adm-stats .stat span{font-size:13px;color:var(--ink-2)}
+@media (max-width:760px){
+  .adm-stats{grid-template-columns:1fr 1fr;gap:10px}
+  #adm .panel{padding:16px 14px}
+  #adm .li{flex-wrap:wrap;gap:8px}
+  #adm .li .grow{flex:1 1 100%;min-width:0;overflow-wrap:anywhere}
+  #adm .li .btn{flex:1 1 auto}
+  #adm .grid2{grid-template-columns:1fr}
+  #adm .row{flex-wrap:wrap}
+  #adm .row .btn{flex:1 1 140px}
+  #adm textarea,#adm input{max-width:none!important;width:100%}
+}

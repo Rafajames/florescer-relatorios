@@ -143,7 +143,7 @@ const VIEWS = {
     const s = await api.adminStats();
     const card = (n, l) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`;
     box.innerHTML = `<section class="panel"><h2>Uso do sistema</h2><p class="muted small">Só totais. Nenhum conteúdo de paciente ou relatório aparece aqui.</p>
-      <div class="grid3">${card(s.professionals, 'profissionais')}${card(s.new_professionals_30d, 'novos nos últimos 30 dias')}${card(s.patient_accounts, 'pacientes com acesso ao portal')}
+      <div class="adm-stats">${card(s.professionals, 'profissionais')}${card(s.new_professionals_30d, 'novos nos últimos 30 dias')}${card(s.patient_accounts, 'pacientes com acesso ao portal')}
       ${card(s.patients, 'pacientes cadastrados')}${card(s.reports, 'relatórios')}${card(s.reports_7d, 'relatórios nos últimos 7 dias')}${card(s.released, 'liberados a pacientes')}${card(s.with_mfa, 'contas com autenticador')}</div></section>`;
   },
 
