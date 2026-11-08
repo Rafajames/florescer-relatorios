@@ -1,7 +1,7 @@
 // Cobrança de um paciente: escolha da chave PIX, mensagem editável, copiar, baixar (.txt/PDF/Word) e WhatsApp.
 import { $, esc, fmtDate, toast, openModal, callout } from './ui.js';
 import { pixCode, cobrancaTexto, waLink, chavesPix } from './cobranca.js';
-import { brl, exportCobrancaPdf, exportCobrancaWord } from './export.js';
+import { brl, exportCobrancaPdf } from './export.js';
 
 const slug = (s) => String(s || 'paciente').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '') || 'paciente';
 
@@ -45,7 +45,6 @@ export function abrirCobranca({ profile, patient, items }) {
       <button type="button" class="btn quiet" id="cb-pixcopy">Copiar PIX</button>
       <button type="button" class="btn quiet" id="cb-txt">Baixar mensagem (.txt)</button>
       <button type="button" class="btn quiet" id="cb-pdf">Baixar cobrança (PDF)</button>
-      <button type="button" class="btn quiet" id="cb-doc">Cobrança em Word</button>
     </div>
     <div class="row" style="margin-top:12px">${waUrl(mensagem)
       ? '<a class="btn" id="cb-wa" target="_blank" rel="noopener" href="#">Enviar pelo WhatsApp</a>'
@@ -81,6 +80,5 @@ export function abrirCobranca({ profile, patient, items }) {
     $('#cb-txt', d).onclick = () => { baixarTexto(`cobranca_${slug(patient.name)}.txt`, msgEl.value); toast('Mensagem baixada.'); };
     const docArgs = () => ({ professional: profile, patientName: patient.name, items, payment: { ...pay, pix: keyEl.value.trim() }, pixCode: pix });
     $('#cb-pdf', d).onclick = () => exportCobrancaPdf(docArgs());
-    $('#cb-doc', d).onclick = () => exportCobrancaWord(docArgs());
   } });
 }

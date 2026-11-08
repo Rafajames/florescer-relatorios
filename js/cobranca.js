@@ -53,11 +53,10 @@ export function chavesPix(pay = {}) {
 
 export function cobrancaTexto({ patient, professional, items, pix, pixKey }) {
   const total = items.reduce((s, i) => s + Number(i.amount || 0), 0);
-  const linhas = items.map((i) => `• ${dmy(i.date)}${i.time ? ' (' + hm(i.time) + ')' : ''}: ${brl(i.amount)}`).join('\n');
   const pag = pix
     ? `Chave PIX: ${pixKey || ''}\n\nPagamento por PIX (copia e cola):\n${pix}\n\nDepois do pagamento, pode me enviar o comprovante.`
     : 'Me avise a forma de pagamento de sua preferência e envio os dados.';
-  return `Olá, ${patient}! Tudo bem?\n\nSegue o resumo das sessões pendentes de pagamento:\n${linhas}\n\nTotal: ${brl(total)}\n\n${pag}\n\nObrigada(o)!\n${professional}`;
+  return `Olá, ${patient}! Tudo bem?\n\nSegue o resumo das sessões pendentes de pagamento:\nQuantidade de sessões: ${items.length}\nTotal: ${brl(total)}\n\n${pag}\n\nObrigada(o)!\n${professional}`;
 }
 
 /** Valor por extenso em reais (ex.: "cento e cinquenta reais e vinte centavos"). */

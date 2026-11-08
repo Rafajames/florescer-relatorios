@@ -284,19 +284,16 @@ export function buildAuditoria({ patient, professional, reports, versions, audit
 }
 export const exportAuditoriaPdf = (args) => toPdf(buildAuditoria(args));
 
-/** Documento de cobrança: sessões em aberto, total, dados de pagamento e código PIX. */
+/** Documento de cobrança: quantidade de sessões em aberto, total, dados de pagamento e código PIX. */
 export function buildCobranca({ professional, patientName, items, payment, pixCode }) {
   const total = items.reduce((s, i) => s + Number(i.amount || 0), 0);
-  const cell = 'style="border:1px solid #777;padding:6px"';
   const body = `<p style="margin-top:14px;text-align:justify">Segue a cobrança referente às sessões realizadas de <b>${esc(patientName)}</b> que ainda não foram pagas.</p>
   <table style="width:100%;border-collapse:collapse;margin-top:12px">
-    <tr style="background:#f1f4f5">${['Data', 'Horário', 'Valor'].map((c) => `<th style="border:1px solid #777;padding:6px;text-align:left">${c}</th>`).join('')}</tr>
-    ${items.map((i) => `<tr><td ${cell}>${esc(fmtDate(i.date))}</td><td ${cell}>${esc(String(i.time || '').slice(0, 5))}</td><td ${cell}>${brl(i.amount)}</td></tr>`).join('')}
-    <tr><td ${cell} colspan="2"><b>Total</b></td><td ${cell}><b>${brl(total)}</b></td></tr>
+    <tr><td style="border:1px solid #777;padding:6px">Quantidade de sessões</td><td style="border:1px solid #777;padding:6px">${items.length}</td></tr>
+    <tr><td style="border:1px solid #777;padding:6px"><b>Total</b></td><td style="border:1px solid #777;padding:6px"><b>${brl(total)}</b></td></tr>
   </table>
   ${payBlock(payment)}
   ${pixCode ? `<h2>Pagamento por PIX (copia e cola)</h2><p style="word-break:break-all;font-family:monospace;font-size:9pt">${esc(pixCode)}</p>` : ''}`;
   return docPage('COBRANÇA', professional, body).replace(/<body>/, `<body><div style="text-align:right;font-size:10pt">Emitido em ${esc(fmtDate(new Date().toISOString()))}</div>`);
 }
 export const exportCobrancaPdf = (a) => toPdf(buildCobranca(a));
-export const exportCobrancaWord = (a) => toWord(buildCobranca(a), `Cobranca ${a.patientName}`);
