@@ -99,7 +99,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.addEventListener('click', async (e) => {
-  if (!e.target.closest('#logout')) return;
+  if (!e.target.closest('#logout, [data-logout]')) return;
   await api.signOut(); state.profile = null; state.user = null; location.hash = '';
 });
 
