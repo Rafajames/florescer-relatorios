@@ -4,6 +4,7 @@ import { exportWord, exportPdf, previewHtml } from './export.js';
 import { state } from './state.js';
 import { getPrefs } from './prefs.js';
 import { brandOf } from './brand.js';
+import { sanitize, textToHtml, toolbarHtml, runCmd } from './richtext.js';
 import { KIND_LABEL } from './export.js';
 import {
   $, $$, esc, fmtDate, fmtDateTime, fmtTime, toast, openModal, confirmBox, busy, autosize, debounce, wordCount,
@@ -138,7 +139,7 @@ export async function renderReport(id) {
     if (s.type === 'marcar') return `<select data-f="text" class="fld" ${label}>${['', 'Sim', 'Não', 'Não abordado.'].map((o) => `<option ${o === (s.text || '') ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
     if (s.type === 'escolha') { const opts = ['', ...(s.options || [])]; if (s.text && !opts.includes(s.text)) opts.push(s.text); return `<select data-f="text" class="fld" ${label}>${opts.map((o) => `<option ${o === (s.text || '') ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`; }
     if (s.type === 'curto' || s.type === 'data') return `<input data-f="text" class="fld" ${label} value="${esc(s.text)}" ${s.type === 'data' ? 'placeholder="DD/MM/AAAA"' : ''}>`;
-    return `<textarea data-f="text" rows="2" ${label}>${esc(s.text)}</textarea>`;
+    return `<div class="rt-wrap">${toolbarHtml()}<div class="rt fld" contenteditable="true" role="textbox" aria-multiline="true" data-f="html" ${label}>${s.html ? sanitize(s.html) : textToHtml(s.text)}</div></div>`;
   };
 
   const drawSheet = () => {
@@ -157,6 +158,7 @@ export async function renderReport(id) {
     const secs = $('#secs');
     secs.addEventListener('input', (e) => {
       const card = e.target.closest('.sec'); if (!card) return;
+      if (e.target.dataset.f === 'html') { const sec = sections[+card.dataset.i]; sec.html = sanitize(e.target.innerHTML); sec.text = e.target.innerText.trim(); markDirty(); return; }
       sections[+card.dataset.i][e.target.dataset.f] = e.target.value;
       if (e.target.tagName === 'TEXTAREA') autosize(e.target);
       markDirty();
@@ -165,7 +167,10 @@ export async function renderReport(id) {
       const card = e.target.closest('.sec'); if (!card || e.target.tagName !== 'SELECT') return;
       sections[+card.dataset.i][e.target.dataset.f] = e.target.value; markDirty();
     });
+    secs.addEventListener('mousedown', (e) => { if (e.target.closest('.rt-b')) e.preventDefault(); });
+    secs.addEventListener('paste', (e) => { if (!e.target.closest('.rt')) return; e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain')); });
     secs.addEventListener('click', async (e) => {
+      const rb = e.target.closest('.rt-b'); if (rb) { runCmd(rb.dataset.cmd); const ed = rb.closest('.rt-wrap').querySelector('.rt'); ed.dispatchEvent(new Event('input', { bubbles: true })); return; }
       const btn = e.target.closest('[data-act]'); if (!btn) return;
       const i = +btn.closest('.sec').dataset.i, act = btn.dataset.act;
       if (act === 'open') {
@@ -207,7 +212,7 @@ export async function renderReport(id) {
       },
       onOk: (d) => { result = $('#out', d).value.trim(); if (!result) throw new Error('Gere a nova versão antes de confirmar.'); },
     });
-    if (result) { sections[i].text = result; drawSheet(); markDirty(); }
+    if (result) { sections[i].text = result; delete sections[i].html; drawSheet(); markDirty(); }
   };
 
   const drawTranscript = () => {

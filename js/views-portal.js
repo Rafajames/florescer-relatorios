@@ -3,6 +3,7 @@ import { exportPdf } from './export.js';
 import { $, esc, fmtDate, shell, loading, pageHeader, backLink, meta, callout, icon } from './ui.js';
 import { state } from './state.js';
 import { registryText } from './credentials.js';
+import { bodyHtml } from './richtext.js';
 
 const asProfessional = (r) => ({
   full_name: r.professional_name, specialty: r.professional_specialty,
@@ -41,7 +42,7 @@ export async function renderPortalReport(id) {
     (r.ai_generated ? callout('<p>Documento elaborado com apoio de ferramenta de inteligência artificial e revisado pelo(a) profissional responsável.</p>') : '') + `
     <article class="sheet">
       <div class="sheet-head"><b>${esc(r.clinic_name || r.professional_name || '')}</b><span>${esc(r.professional_name || '')}${r.professional_specialty ? ', ' + esc(r.professional_specialty) : ''}</span></div>
-      ${r.sections.map((s) => `<div class="sec"><div class="sec-side"><div class="sec-title" style="border:0;font-weight:600;color:var(--petrol)">${esc(s.title)}</div></div><p class="pre" style="font:17px/1.65 var(--serif)">${esc(s.text)}</p></div>`).join('')}
+      ${r.sections.map((s) => `<div class="sec"><div class="sec-side"><div class="sec-title" style="border:0;font-weight:600;color:var(--petrol)">${esc(s.title)}</div></div><div class="rt-view" style="font:17px/1.65 var(--serif)">${bodyHtml(s)}</div></div>`).join('')}
     </article>`;
   $('#pdf').onclick = () => exportPdf({
     report: r, patientName: state.profile?.full_name || '', professional: asProfessional(r), sections: r.sections,

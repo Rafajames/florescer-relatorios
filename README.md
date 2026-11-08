@@ -89,3 +89,6 @@ Não exige mudança no banco.
 
 ## Registro profissional e redes (versão 4.1)
 Em Configurações → Perfil: conselho, número, UF, categoria e links (Instagram, site, outra rede). O paciente vê isso no portal. Não há verificação automática. **Rode o `supabase/schema.sql` de novo** (cria a coluna `credentials` e atualiza a função do portal).
+
+## Texto com formatação (versão 4.2)
+Campos longos do relatório têm barra de formatação (negrito, itálico, sublinhado, listas, título, alinhamento). Vale no editor, no portal e nas exportações. Sem mudança no banco.

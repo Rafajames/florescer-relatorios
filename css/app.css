@@ -536,3 +536,14 @@ h1{font-size:34px;line-height:1.12} h2{font-size:22px;line-height:1.2} h3{font-w
 .wd{border:0;border-radius:10px;background:transparent;border-bottom:1px solid var(--line-2)}
 .wd.today{border:0;background:var(--petrol-tint);box-shadow:none}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 16px}@media (max-width:760px){.grid3{grid-template-columns:1fr}}
+
+/* ---------- texto com formatação ---------- */
+.rt-wrap{position:relative;min-width:0}
+.rt-bar{display:none;gap:2px;flex-wrap:wrap;padding:4px;margin:-2px 0 6px -8px;background:var(--paper);border:1px solid var(--line);border-radius:8px;width:fit-content;position:sticky;top:70px;z-index:3}
+.rt-wrap:focus-within .rt-bar{display:flex}
+.rt-b{appearance:none;border:0;background:transparent;color:var(--ink);min-width:30px;height:28px;border-radius:6px;font:600 13px var(--sans);cursor:pointer}
+.rt-b:hover{background:var(--petrol-tint)}
+.sec .rt{font:17px/1.65 var(--serif);border:1px solid transparent;border-radius:6px;padding:2px 8px;margin:-2px 0 0 -8px;min-height:1.65em;width:calc(100% + 8px);outline:none;overflow-wrap:anywhere}
+.sec .rt:hover{background:var(--hover)} .sec .rt:focus{background:var(--field);border-color:var(--line)}
+.rt p,.rt-view p{margin:0 0 .6em}.rt ul,.rt ol,.rt-view ul,.rt-view ol{margin:0 0 .6em 1.2em;padding:0}.rt h3,.rt-view h3{font:600 17px var(--serif);margin:.5em 0 .2em}
+.sec.collapsed .rt-wrap{display:none}

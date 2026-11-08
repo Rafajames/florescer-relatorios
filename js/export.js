@@ -1,5 +1,6 @@
 import { esc, fmtDate } from './ui.js';
 import { brandOf, darken } from './brand.js';
+import { bodyHtml } from './richtext.js';
 
 const slug = (s) => String(s || 'relatorio').normalize('NFD').replace(/[̀-ͯ]/g, '')
   .replace(/[^a-zA-Z0-9\- ]/g, '').trim().replace(/\s+/g, '_').slice(0, 60) || 'relatorio';
@@ -26,7 +27,7 @@ const css = (c, st = {}) => `
   h3 { font-size: 12pt; color: ${darken(c, 0.1)}; margin: 22px 0 4px; }
   table.meta td { padding: 2px 14px 2px 0; font-size: 10.5pt; }
   .lab { color: #4a554d; }
-  p { margin: 0 0 6px; }
+  p { margin: 0 0 6px; } .rt h3 { font-size: 12pt; margin: 8px 0 3px; } .rt ul, .rt ol { margin: 0 0 6px 20px; padding: 0; }
   .sign { margin-top: 40px; width: 300px; font-size: 10.5pt; }
   .sign img { max-height: 70px; max-width: 240px; display: block; }
   .sign .line { border-top: 1px solid #333; padding-top: 4px; }
@@ -63,7 +64,7 @@ function buildHtml({ report, patientName, professional, sections }) {
     <tr><td class="lab">Paciente:</td><td><b>${esc(patientName || '')}</b></td></tr>
     <tr><td class="lab">${report.kind === 'periodo' ? 'Período:' : 'Data:'}</td><td>${esc(whenOf(report))}</td></tr>
   </table>
-  ${sections.map((s) => `<h2>${esc(s.title)}</h2><p>${para(s.text)}</p>`).join('\n')}
+  ${sections.map((s) => `<h2>${esc(s.title)}</h2><div class="rt">${bodyHtml(s)}</div>`).join('\n')}
   ${signature(professional, h.b, h.reg)}
   ${footer(h.b, report.ai_generated)}
 </body></html>`;
@@ -82,7 +83,7 @@ function buildDossier({ patient, professional, reports, only }) {
   <tr><td class="lab">Emitido em:</td><td>${esc(fmtDate(new Date().toISOString()))}</td></tr>
   <tr><td class="lab">Registros:</td><td>${list.length}</td></tr></table>
   ${list.map((r, i) => `<h3 ${i ? 'class="brk"' : ''}>${esc(KIND_LABEL[r.kind] || 'Registro')} — ${esc(r.title)} (${esc(whenOf(r))})</h3>
-    ${(only ? (r.sections || []).filter((s) => s.patient_visible !== false) : (r.sections || [])).map((s) => `<h2>${esc(s.title)}</h2><p>${para(s.text)}</p>`).join('\n')}`).join('\n')}
+    ${(only ? (r.sections || []).filter((s) => s.patient_visible !== false) : (r.sections || [])).map((s) => `<h2>${esc(s.title)}</h2><div class="rt">${bodyHtml(s)}</div>`).join('\n')}`).join('\n')}
   ${signature(professional, h.b, h.reg)}
   ${footer(h.b, list.some((r) => r.ai_generated))}
 </body></html>`;
