@@ -6,7 +6,7 @@ const KEY = 'florescer.keys.v1';
 export const PROVIDERS = {
   gemini: {
     label: 'Google Gemini', free: true, text: true, vision: true, stt: false,
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.8-flash',
     keyUrl: 'https://aistudio.google.com/apikey',
     steps: 'Entre com sua conta Google, toque em “Create API key” e copie a chave.',
     privacy: 'No plano gratuito, o Google pode usar o conteúdo enviado para melhorar seus produtos. Para dados de pacientes, prefira um plano pago ou outro provedor.',
@@ -124,13 +124,14 @@ async function ask(system, user, opts = {}) {
 /** Testa uma chave com uma chamada mínima. Lança erro se falhar. */
 async function fetchFirst(urls, init) {
   let r;
-  for (const u of urls) { r = await fetch(u, init); if (r.ok || ![401, 403, 404].includes(r.status)) return r; }
+  for (const u of urls) { r = await fetch(u, init); if (r.ok || ![401, 403, 404, 503].includes(r.status)) return r; }
   return r;
 }
 
 /** AI Studio hoje emite chaves "AIza…" e "AQ.…", ambas na API Gemini. Chaves "AQ." do Vertex usam o 2º endereço. */
 export const geminiUrls = (key, model) => [
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent`,
   ...(String(key).startsWith('AQ.') ? [`https://aiplatform.googleapis.com/v1/publishers/google/models/${model}:generateContent`] : []),
 ];
 
