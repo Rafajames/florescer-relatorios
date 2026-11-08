@@ -651,3 +651,23 @@ h1{font-size:34px;line-height:1.12} h2{font-size:22px;line-height:1.2} h3{font-w
   .adm-sel-wrap{display:block;margin-bottom:14px}
   .ht-group>summary{padding:14px}
 }
+
+/* ===== Administração: harmonia no celular (revisão) ===== */
+#adm .panel > h2{font-size:22px;line-height:1.25;margin:0 0 6px}
+#adm .panel > .row:has(> h2){display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:4px}
+#adm .panel > .row:has(> h2) > h2{flex:1 1 100%!important;margin:0}
+#adm .panel > .row:has(> h2) > .btn{flex:1 1 100%}
+#adm .check input[type=checkbox]{width:18px;height:18px;flex:none;margin:2px 0 0}
+.adm-tabs{scrollbar-width:none}
+.adm-tabs::-webkit-scrollbar{display:none}
+@media (max-width:760px){
+  #adm .panel > h2{font-size:20px}
+  #adm .panel > p.muted{margin-bottom:12px}
+  #adm input:not([type=checkbox]):not([type=radio]),#adm select,#adm textarea{width:100%!important;max-width:none!important}
+  #adm .check{align-items:center}
+  #adm .row > .btn{flex:1 1 100%}
+  #adm .row{gap:10px}
+  #adm .ht-group > summary{font-size:15px}
+  #adm .ht-item textarea{font-size:15px}
+}
+#adm .btn.danger{color:var(--danger)!important;border-color:color-mix(in srgb,var(--danger) 45%,transparent)!important}
