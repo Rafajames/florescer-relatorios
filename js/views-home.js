@@ -45,55 +45,131 @@ export async function renderDashboard() {
   const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const perDay = (d) => reports.filter((r) => r.session_date === iso(d)).length;
 
+  // agenda: hoje e os próximos dias (se a tabela de agenda não existir, segue sem ela)
+  const today = todayISO();
+  const ahead = new Date(); ahead.setDate(ahead.getDate() + 14);
+  let aps = [];
+  try { aps = await api.listAppointments({ from: today, to: iso(ahead) }); } catch { aps = []; }
+  const valid = aps.filter((a) => a.status !== 'cancelado');
+  const todayAps = valid.filter((a) => a.date === today);
+  const doneAps = todayAps.filter((a) => a.status === 'realizado').length;
+  const missAps = todayAps.filter((a) => a.status === 'falta' || a.status === 'falta_justificada').length;
+  const leftAps = todayAps.length - doneAps - missAps;
+  const nextAp = todayAps.find((a) => a.status === 'agendado');
+  const hh = (t) => (t || '').slice(0, 5);
+  const days = [...new Set(valid.map((a) => a.date))].filter((d) => d > today).slice(0, 4);
+  const dayPill = (d, on) => { const dt = new Date(d + 'T12:00:00'); const n = valid.filter((a) => a.date === d).length;
+    return `<a class="dp ${on ? 'on' : ''}" href="#/administrativo"><small>${on ? 'Hoje' : dt.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</small>${dt.getDate()}<i>${'•'.repeat(Math.min(n, 6))}</i></a>`; };
+  const weekAps = valid.filter((a) => { const d = new Date(a.date + 'T12:00:00'); return (d - new Date(today + 'T12:00:00')) / 864e5 < 7; }).length;
+
+  // relatórios do mês
+  const month = today.slice(0, 7);
+  const monthR = reports.filter((r) => (r.session_date || '').startsWith(month));
+  const mRel = monthR.filter((r) => r.released_to_patient).length;
+  const mRev = monthR.filter((r) => r.status === 'revisado' && !r.released_to_patient).length;
+  const mDraft = monthR.filter((r) => r.status === 'rascunho').length;
+  const pct = (n, t) => (t ? Math.round((n / t) * 100) : 0);
+
+  // últimos 7 dias x 7 dias anteriores
+  const counts = week.map(perDay);
+  const total7 = counts.reduce((a, b) => a + b, 0);
+  const prev7 = [...Array(7)].reduce((acc, _, i) => { const d = new Date(); d.setDate(d.getDate() - 7 - i); return acc + perDay(d); }, 0);
+  const diff = prev7 ? Math.round(((total7 - prev7) / prev7) * 100) : 0;
+  const maxC = Math.max(1, ...counts);
+
+  const attention = [
+    ...drafts.slice(0, 3).map((r) => ({ c: 'c-blo', t: `Rascunho · ${esc(r.patients?.name || r.title)}`, s: `${esc(r.title)} · ${fmtDate(r.session_date)}`, h: `#/relatorio/${r.id}`, b: 'Revisar' })),
+    ...(ready.length ? [{ c: 'c-pet', t: `${ready.length} ${ready.length === 1 ? 'relatório pronto' : 'relatórios prontos'}`, s: 'revisados, ainda não liberados ao paciente', h: '#/relatorios', b: 'Liberar' }] : []),
+    ...noConsent.slice(0, 3).map((x) => ({ c: 'c-warn', t: `Consentimento · ${esc(x.name)}`, s: 'registre antes de gravar a sessão', h: `#/pacientes/${x.id}`, b: 'Abrir' })),
+  ];
+
   main.innerHTML = pageHeader(`${greeting()}, ${esc(first)}`, esc(longDate())) + `
-    <section class="now">
-      ${patients.length ? `
-        <div><h2>Quem você vai atender agora?</h2><p>Escolha o paciente e comece. A gravação só libera com o consentimento registrado.</p></div>
-        <div class="pick">
-          <select id="who" aria-label="Paciente"><option value="">Selecione o paciente</option>
-            ${patients.map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select>
-          <button class="btn bloom lg" id="go-now">${icon('mic')}Iniciar sessão</button>
-        </div>` : `
-        <div><h2>Comece cadastrando um paciente</h2><p>Depois registre o consentimento dele e inicie a primeira sessão.</p></div>
-        <div class="pick"><a class="btn bloom lg" href="#/pacientes">${icon('plus')}Cadastrar paciente</a></div>`}
-    </section>
-
-    <section class="stats" aria-label="Resumo">
-      <a class="stat" href="#/pacientes"><b>${patients.length}</b><span>${patients.length === 1 ? 'paciente' : 'pacientes'}</span></a>
-      <a class="stat ${drafts.length ? 'warn' : ''}" href="#/relatorios?status=rascunho"><b>${drafts.length}</b><span>${drafts.length === 1 ? 'rascunho para revisar' : 'rascunhos para revisar'}</span></a>
-      <a class="stat ok" href="#/relatorios"><b>${released}</b><span>${released === 1 ? 'liberado ao paciente' : 'liberados aos pacientes'}</span></a>
-      <a class="stat ${noConsent.length ? 'warn' : ''}" href="#/pacientes"><b>${noConsent.length}</b><span>sem consentimento</span></a>
-    </section>
-    <section class="panel"><div class="panel-head"><h2>Últimos 7 dias</h2><span class="muted small">registros por dia</span></div>
-      <div class="week">${week.map((d) => { const n = perDay(d); return `<div class="wd ${iso(d) === todayISO() ? 'today' : ''} ${n ? '' : 'zero'}"><small>${d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</small><b>${d.getDate()}</b><i>${n}</i></div>`; }).join('')}</div></section>
-
-    <div class="cols">
-      <div class="queue">
-        <h2>O que precisa da sua atenção</h2>
-        ${!drafts.length && !noConsent.length && !ready.length
-          ? emptyState('Tudo em dia', 'Nenhum rascunho para revisar e nenhum paciente sem consentimento.') : ''}
-        ${drafts.length ? `<h3>${drafts.length} ${drafts.length === 1 ? 'relatório' : 'relatórios'} para revisar</h3>
-          <div class="list">${drafts.slice(0, 5).map(reportLine).join('')}</div>
-          ${drafts.length > 5 ? '<p style="margin-top:8px"><a href="#/relatorios?status=rascunho">Ver todos os rascunhos</a></p>' : ''}` : ''}
-        ${ready.length ? `<h3>${ready.length} revisado(s) ainda não liberado(s) ao paciente</h3>
-          <div class="list">${ready.slice(0, 4).map(reportLine).join('')}</div>` : ''}
-        ${noConsent.length ? `<h3>${noConsent.length} ${noConsent.length === 1 ? 'paciente' : 'pacientes'} sem consentimento</h3>
-          <div class="list">${noConsent.slice(0, 5).map((x) => `<a class="li" href="#/pacientes/${x.id}"><div class="grow t">${esc(x.name)}</div>${chip('Sem consentimento', 'warn')}${icon('right', 'go')}</a>`).join('')}</div>` : ''}
-        <h3 style="margin-top:28px">Últimos registros</h3>
-        ${reports.length ? `<div class="list">${reports.slice(0, 6).map(reportLine).join('')}</div>` : '<p class="muted">Ainda não há relatórios.</p>'}
+  <div class="dash">
+    <section class="dcard wide" aria-label="Atendimentos de hoje">
+      <h3>Atendimentos de hoje</h3><span class="ill">${ART.clip}</span>
+      <div class="hero-row">
+        <div class="bignum">${todayAps.length}<small>${todayAps.length === 1 ? 'sessão' : 'sessões'}</small></div>
+        <div class="side">${nextAp ? `<div class="trend">Próxima: ${esc(nextAp.patients?.name || '')} às ${hh(nextAp.time) || '—'}</div>` : `<div class="trend down">${todayAps.length ? 'Nenhuma sessão pendente hoje' : 'Nada agendado para hoje'}</div>`}
+          <div>${weekAps} ${weekAps === 1 ? 'sessão agendada' : 'sessões agendadas'} nos próximos 7 dias</div></div>
       </div>
+      <div class="segbar" role="img" aria-label="${doneAps} realizadas, ${leftAps} a fazer, ${missAps} faltas">
+        ${todayAps.length ? `<i class="c-ok" style="width:${pct(doneAps, todayAps.length)}%"></i><i class="c-pet3" style="width:${pct(leftAps, todayAps.length)}%"></i><i class="c-blo" style="width:${pct(missAps, todayAps.length)}%"></i>` : ''}
+      </div>
+      <div class="legend-row">
+        <div class="lg"><span class="k"><span class="dot c-ok"></span>Realizadas</span><b>${doneAps}</b></div>
+        <div class="lg"><span class="k"><span class="dot c-pet3"></span>A fazer</span><b>${leftAps}</b></div>
+        <div class="lg"><span class="k"><span class="dot c-blo"></span>Faltas</span><b>${missAps}</b></div>
+        <a class="lg" href="#/pacientes" style="color:inherit;text-decoration:none"><span class="k">Pacientes</span><b>${patients.length}</b></a>
+        <a class="lg" href="#/relatorios?status=rascunho" style="color:inherit;text-decoration:none"><span class="k">Rascunhos para revisar</span><b>${drafts.length}</b></a>
+      </div>
+      <div class="quick">
+        ${patients.length ? `<select id="who" aria-label="Paciente"><option value="">Quem você vai atender agora?</option>
+          ${patients.map((x) => `<option value="${x.id}" ${nextAp && nextAp.patient_id === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
+          <button class="btn bloom lg" id="go-now">${icon('mic')}Iniciar sessão</button>`
+        : `<span class="muted grow" style="align-self:center">Comece cadastrando um paciente. Depois registre o consentimento e inicie a primeira sessão.</span><a class="btn bloom lg" href="#/pacientes">${icon('plus')}Cadastrar paciente</a>`}
+      </div>
+    </section>
 
-      ${doneN < todo.length ? `<aside class="panel">
-        <h3>Deixe o sistema pronto</h3>
-        <div class="progress" role="progressbar" aria-valuenow="${doneN}" aria-valuemax="${todo.length}"><i style="width:${(doneN / todo.length) * 100}%"></i></div>
-        <p class="muted small">${doneN} de ${todo.length} passos</p>
-        ${todo.map(([l, ok, href]) => `<div class="todo ${ok ? 'done' : ''}"><span class="box">${ok ? icon('check') : ''}</span>${ok ? `<span class="l">${esc(l)}</span>` : `<a href="${href}">${esc(l)}</a>`}</div>`).join('')}
-      </aside>` : ''}
-    </div>`;
+    <section class="dcard tall" aria-label="Agenda">
+      <h3>Agenda <small>• ${esc(new Date().toLocaleDateString('pt-BR', { month: 'long' }))}</small></h3><span class="ill">${ART.cal}</span>
+      <div class="midnum" style="margin-top:16px">${todayAps.length}<small>hoje</small></div>
+      <div class="muted small" style="margin-top:4px">${doneAps} de ${todayAps.length} ${todayAps.length === 1 ? 'feita' : 'feitas'}</div>
+      <div class="daypills">${dayPill(today, true)}${days.map((d) => dayPill(d, false)).join('')}</div>
+      <div class="agl">${todayAps.length ? todayAps.map((a) => `<a class="agi" href="${a.status === 'realizado' ? `#/nova?paciente=${a.patient_id}` : '#/administrativo'}">
+          <span class="ck ${a.status === 'realizado' ? 'ok' : a.status.startsWith('falta') ? 'no' : ''}"></span><span class="tm">${hh(a.time) || '—'}</span>
+          <span class="nm"><b>${esc(a.patients?.name || 'Paciente')}</b><span>${esc(ATT_STATUS[a.status] || '')}${a.duration_min ? ` · ${a.duration_min} min` : ''}</span></span>
+          ${a === nextAp ? chip('Próxima', 'petrol') : a.status === 'realizado' ? chip('Feita', 'ok') : ''}</a>`).join('')
+        : '<p class="empty-mini">Nenhuma sessão agendada para hoje.</p>'}</div>
+      <div class="foot"><a class="btn quiet" href="#/administrativo">Ver agenda</a><a class="btn" href="#/administrativo">${icon('plus')}Agendar</a></div>
+    </section>
+
+    <section class="dcard" aria-label="Relatórios">
+      <h3>Relatórios</h3><span class="ill">${ART.chart}</span>
+      <div class="lbl">Neste mês</div>
+      <div class="midnum">${monthR.length}<small>${monthR.length === 1 ? 'relatório' : 'relatórios'}</small></div>
+      <div class="legend-row" style="margin-top:16px"><span class="lg"><span class="k"><span class="dot c-pet"></span>Liberados</span><b>${mRel}</b></span><span class="lg"><span class="k"><span class="dot c-light"></span>Revisados</span><b>${mRev}</b></span><span class="lg"><span class="k"><span class="dot c-blo"></span>Rascunhos</span><b>${mDraft}</b></span></div>
+      <div class="segbar thick">${monthR.length ? `<i class="c-pet" style="width:${pct(mRel, monthR.length)}%">${pct(mRel, monthR.length) >= 12 ? pct(mRel, monthR.length) + '%' : ''}</i><i class="c-light" style="width:${pct(mRev, monthR.length)}%"></i><i class="c-blo" style="width:${pct(mDraft, monthR.length)}%"></i>` : ''}</div>
+      <h3 style="margin-top:24px">O que precisa da sua atenção</h3>
+      <div class="att">${attention.length ? attention.map((x) => `<a href="${x.h}"><span class="dot ${x.c}"></span><span class="t"><b>${x.t}</b><span>${x.s}</span></span><span class="go2">${x.b}</span></a>`).join('')
+        : '<p class="empty-mini">Tudo em dia: nenhum rascunho e nenhum paciente sem consentimento.</p>'}</div>
+    </section>
+
+    <section class="dcard" aria-label="Últimos 7 dias">
+      <h3>Últimos 7 dias</h3>
+      <div class="lbl">Registros feitos</div>
+      <div class="midnum">${total7}<small>${total7 === 1 ? 'registro' : 'registros'}</small></div>
+      ${prev7 ? `<div class="trend ${diff < 0 ? 'down' : ''}" style="margin-top:6px">${diff >= 0 ? '↗' : '↘'} ${Math.abs(diff)}% vs. semana anterior</div>` : '<div class="muted small" style="margin-top:6px">registros por dia</div>'}
+      <div class="wk">${week.map((d, i) => `<div class="${iso(d) === today ? 'today' : ''}"><div class="bar"><i style="height:${(counts[i] / maxC) * 100}%"></i></div><b>${counts[i]}</b><span>${d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')} ${d.getDate()}</span></div>`).join('')}</div>
+    </section>
+
+    <section class="dcard wide" aria-label="Últimos registros">
+      <h3>Últimos registros</h3>
+      ${reports.length ? `<div class="list" style="margin-top:8px">${reports.slice(0, 6).map(reportLine).join('')}</div>` : '<p class="empty-mini">Ainda não há relatórios.</p>'}
+    </section>
+
+    ${doneN < todo.length ? `<aside class="dcard" aria-label="Deixe o sistema pronto">
+      <h3>Deixe o sistema pronto</h3>
+      <div class="progress" role="progressbar" aria-valuenow="${doneN}" aria-valuemax="${todo.length}" style="margin-top:14px"><i style="width:${(doneN / todo.length) * 100}%"></i></div>
+      <p class="muted small">${doneN} de ${todo.length} passos</p>
+      ${todo.map(([l, ok, href]) => `<div class="todo ${ok ? 'done' : ''}"><span class="box">${ok ? icon('check') : ''}</span>${ok ? `<span class="l">${esc(l)}</span>` : `<a href="${href}">${esc(l)}</a>`}</div>`).join('')}
+    </aside>` : ''}
+  </div>`;
 
   const go = $('#go-now');
   if (go) go.onclick = () => { const v = $('#who').value; goto(v ? `#/nova?paciente=${v}` : '#/nova'); };
 }
+
+/* ilustrações dos cartões (vetor com gradiente; ids próprios para não colidir) */
+const GR = `<defs><linearGradient id="hp" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3FA3C4"/><stop offset="1" stop-color="#0E5670"/></linearGradient>
+<linearGradient id="hb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F27AA9"/><stop offset="1" stop-color="#B32F64"/></linearGradient>
+<linearGradient id="hw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#DCE6EA"/></linearGradient>
+<filter id="hs" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#0B2A36" flood-opacity=".25"/></filter></defs>`;
+const ART = {
+  clip: `<svg width="104" height="104" viewBox="0 0 120 120" aria-hidden="true">${GR}<g filter="url(#hs)" transform="rotate(-8 60 60)"><rect x="26" y="16" width="64" height="86" rx="10" fill="url(#hp)"/><rect x="32" y="26" width="52" height="70" rx="5" fill="url(#hw)"/><rect x="44" y="10" width="28" height="14" rx="5" fill="#C9D6DB"/><rect x="40" y="40" width="34" height="5" rx="2.5" fill="#B8C8CE"/><rect x="40" y="52" width="26" height="5" rx="2.5" fill="#B8C8CE"/><rect x="40" y="64" width="30" height="5" rx="2.5" fill="#B8C8CE"/><path d="M77 84c-6-4-10-7-10-11a4.5 4.5 0 0 1 10-2 4.5 4.5 0 0 1 10 2c0 4-4 7-10 11z" fill="url(#hb)" transform="translate(-6 -4) scale(1.15)"/></g></svg>`,
+  cal: `<svg width="84" height="84" viewBox="0 0 120 120" aria-hidden="true"><g filter="url(#hs)" transform="rotate(6 60 60)"><rect x="18" y="26" width="84" height="74" rx="12" fill="url(#hw)"/><path d="M18 38a12 12 0 0 1 12-12h60a12 12 0 0 1 12 12v8H18z" fill="url(#hp)"/><rect x="36" y="16" width="8" height="20" rx="4" fill="#9AB0B8"/><rect x="76" y="16" width="8" height="20" rx="4" fill="#9AB0B8"/><g fill="#C3D3D9"><rect x="30" y="56" width="12" height="10" rx="3"/><rect x="48" y="56" width="12" height="10" rx="3"/><rect x="66" y="56" width="12" height="10" rx="3" fill="url(#hb)"/><rect x="84" y="56" width="8" height="10" rx="3"/><rect x="30" y="74" width="12" height="10" rx="3"/><rect x="48" y="74" width="12" height="10" rx="3"/><rect x="66" y="74" width="12" height="10" rx="3"/></g></g></svg>`,
+  chart: `<svg width="84" height="84" viewBox="0 0 120 120" aria-hidden="true"><g filter="url(#hs)"><rect x="18" y="62" width="20" height="38" rx="6" fill="url(#hw)"/><rect x="44" y="42" width="20" height="58" rx="6" fill="url(#hp)"/><rect x="70" y="24" width="20" height="76" rx="6" fill="url(#hb)"/><rect x="12" y="98" width="88" height="8" rx="4" fill="#C9D6DB"/></g></svg>`,
+};
+
 
 /* =====================================================================
    PACIENTES

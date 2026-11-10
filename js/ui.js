@@ -1,6 +1,7 @@
 import { state, settings } from './state.js';
 import { icon } from './icons.js';
 import { brandOf } from './brand.js';
+import { setLook } from './theme.js';
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -102,6 +103,7 @@ const NAV = [
   ['config', '#/config', 'sliders', 'Configurações'],
   ['ajuda', '#/ajuda', 'info', 'Ajuda'],
 ];
+const NAV_SEC = { painel: 'Menu', administrativo: 'Gestão', config: 'Ajustes' };
 const NAV_PATIENT = [['portal', '#/portal', 'file', 'Meus relatórios']];
 const TAB = [
   ['painel', '#/painel', 'home', 'Início'],
@@ -127,8 +129,9 @@ export function shell(active) {
       <aside class="rail">
         <a class="brand" href="${isPatient ? '#/portal' : isAdm ? '#/admin' : '#/painel'}"><span class="mark ${br.logo ? 'has-logo' : ''}">${br.logo ? `<img src="${esc(br.logo)}" alt="">` : icon('flower')}</span><b>${esc(br.org_name || 'Florescer')}</b></a>
         <nav class="nav" aria-label="Principal">
-          ${nav.map(([k, h, ic, l]) => `<a href="${h}" class="${k === active ? 'on' : ''}" ${k === active ? 'aria-current="page"' : ''}>${icon(ic)}${l}</a>`).join('')}
+          ${nav.map(([k, h, ic, l]) => `${NAV_SEC[k] && nav === NAV ? `<span class="nav-sec">${NAV_SEC[k]}</span>` : ''}<a href="${h}" class="${k === active ? 'on' : ''}" ${k === active ? 'aria-current="page"' : ''}>${icon(ic)}${l}</a>`).join('')}
         </nav>
+        <div class="theme-row"><span>${icon('sun')}Tema</span><span class="theme-tog" role="group" aria-label="Tema"><button type="button" data-theme-set="light" title="Claro" aria-label="Tema claro">${icon('sun')}</button><button type="button" data-theme-set="dark" title="Escuro" aria-label="Tema escuro">${icon('moon')}</button></span></div>
         <div class="rail-credit">Feito com Florescer</div>
         <div class="rail-foot">
           <span class="avatar">${esc(initials(p?.full_name || state.user?.email))}</span>
@@ -139,6 +142,7 @@ export function shell(active) {
       <div class="stage">
         <div class="topbar">
           <button class="icon-btn back-btn" id="go-back" title="Voltar" aria-label="Voltar">${icon('left')}</button>
+          <button class="icon-btn theme-btn" data-theme-flip title="Alternar tema claro/escuro" aria-label="Alternar tema">${icon('moon')}</button>
           ${isPatient || isAdm ? '<span class="grow"></span>' : `
           <button class="search-trigger" id="open-search" aria-label="Buscar">${icon('search')}<span>Buscar paciente ou relatório</span><kbd>Ctrl K</kbd></button>
           <button class="icon-btn help-btn" id="open-help" title="Atalhos do teclado (?)" aria-label="Atalhos do teclado">${icon('info')}</button>
@@ -151,6 +155,12 @@ export function shell(active) {
         ${(isAdm ? TAB_ADMIN : TAB).map(([k, h, ic, l, cta]) => `<a href="${h}" ${cta ? 'data-new' : ''} ${k === 'sair' ? 'data-logout' : ''} class="${k === active || (k === 'mais' && NAV_MORE.some(([m]) => m === active)) ? 'on' : ''} ${cta ? 'cta' : ''}">${cta ? `<span class="circle">${icon(ic)}</span>` : icon(ic)}${l}</a>`).join('')}
       </nav>`}
     </div>`;
+  // tema claro/escuro direto no menu
+  const isDark = () => document.documentElement.getAttribute('data-theme') === 'dark' || (!document.documentElement.getAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+  const markTheme = () => { const d = isDark(); $$('[data-theme-set]').forEach((b) => b.classList.toggle('on', (b.dataset.themeSet === 'dark') === d)); };
+  $$('[data-theme-set]').forEach((b) => (b.onclick = () => { setLook({ theme: b.dataset.themeSet }); markTheme(); }));
+  $$('[data-theme-flip]').forEach((b) => (b.onclick = () => { setLook({ theme: isDark() ? 'light' : 'dark' }); markTheme(); }));
+  markTheme();
   const s = $('#open-search');
   if (s) s.onclick = () => import('./search.js').then((m) => m.openSearch());
   // Voltar: usa o histórico do navegador; sem histórico, vai para o início do perfil.
