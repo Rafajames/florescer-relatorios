@@ -44,7 +44,7 @@ export function applyBrand(b) {
   const s = document.documentElement.style;
   s.setProperty('--petrol', c); s.setProperty('--petrol-2', darken(c));
   s.setProperty('--bloom', a); s.setProperty('--bloom-2', darken(a, 0.18));
-  document.title = b?.org_name ? `${b.org_name}` : 'Florescer Relatórios';
+  document.title = b?.org_name ? `${b.org_name}` : 'Potira - relatórios clínicos';
 }
 
 /* ---------- cópia neste navegador (tela de login) ---------- */

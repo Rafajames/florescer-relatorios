@@ -54,7 +54,7 @@ export const addAdminLog = (action, target, old_value, new_value) =>
 
 /* ---------- autenticador (MFA) ---------- */
 export const mfaFactors = async () => ((await sb.auth.mfa.listFactors()).data?.totp || []);
-export const mfaEnroll = () => sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Florescer ' + Date.now() }).then(unwrap);
+export const mfaEnroll = () => sb.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Potira ' + Date.now() }).then(unwrap);
 export const mfaVerify = async (factorId, code) => {
   const ch = unwrap(await sb.auth.mfa.challenge({ factorId }));
   unwrap(await sb.auth.mfa.verify({ factorId, challengeId: ch.id, code: String(code).replace(/\s/g, '') }));

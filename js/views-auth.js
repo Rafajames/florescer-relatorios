@@ -8,17 +8,17 @@ const logoTile = (b) => (b && b.logo
   ? `<span class="mark has-logo"><img src="${esc(b.logo)}" alt=""></span>`
   : `<span class="mark">${icon('flower')}</span>`);
 
-// brand: marca do profissional (logo, nome, frase); sem marca, aparece o Florescer
+// brand: marca do profissional (logo, nome, frase); sem marca, aparece a Potira
 const hero = (b) => {
   const own = Boolean(b && (b.logo || b.org_name));
   return `
   <div class="auth-hero">
-    <a class="brand" href="#/">${logoTile(b)}<b>${esc(own ? (b.org_name || '') : 'Florescer')}</b></a>
+    <a class="brand" href="#/">${logoTile(b)}<b>${esc(own ? (b.org_name || '') : 'Potira')}</b></a>
     <div>
       <h1>${own ? esc(b.tagline || 'Acesse sua área.') : 'Menos tempo escrevendo, mais tempo com o paciente.'}</h1>
       ${own ? '' : '<p style="margin-top:14px">Registre a sessão, revise o esboço e entregue o relatório. Você decide o que o paciente vê.</p>'}
     </div>
-    ${own ? `<p class="credit">Plataforma Florescer Relatórios</p>` : `<ul>
+    ${own ? `<p class="credit">Plataforma Potira - relatórios clínicos</p>` : `<ul>
       <li>${icon('shield')}Cada profissional vê só os próprios pacientes</li>
       <li>${icon('mic')}O áudio é descartado; só o texto fica para conferência</li>
       <li>${icon('check')}A IA é opcional: escreve rascunhos e você revisa e assina</li>
@@ -26,7 +26,7 @@ const hero = (b) => {
   </div>`;
 };
 // no celular o painel lateral some; a marca aparece no topo do cartão
-const mobileBrand = (b) => `<div class="auth-mobile-brand">${logoTile(b)}<b>${esc((b && b.org_name) || 'Florescer')}</b></div>`;
+const mobileBrand = (b) => `<div class="auth-mobile-brand">${logoTile(b)}<b>${esc((b && b.org_name) || 'Potira')}</b></div>`;
 
 export function renderSetup() {
   $('#app').innerHTML = `
@@ -44,7 +44,7 @@ export function renderAuth(brand = null) {
   const draw = () => {
     $('#app').innerHTML = `
     <div class="auth-wrap">${hero(brand)}<div class="auth-side"><div class="auth-card">${mobileBrand(brand)}
-      <h2 style="margin-bottom:14px">${mode === 'login' ? (brand && brand.org_name ? 'Entrar em ' + esc(brand.org_name) : 'Entrar no Florescer') : 'Criar conta'}</h2>
+      <h2 style="margin-bottom:14px">${mode === 'login' ? (brand && brand.org_name ? 'Entrar em ' + esc(brand.org_name) : 'Entrar na Potira') : 'Criar conta'}</h2>
       <div class="tabs">
         <button class="tab ${mode === 'login' ? 'on' : ''}" data-mode="login">Entrar</button>
         <button class="tab ${mode === 'signup' ? 'on' : ''}" data-mode="signup">Criar conta</button>
@@ -72,7 +72,7 @@ export function renderAuth(brand = null) {
         ${mode === 'login' ? '<button type="button" class="link" id="forgot">Esqueci minha senha</button>' : ''}
         ${mode === 'signup' ? '<p class="muted small">Pacientes: use o mesmo e-mail que seu profissional cadastrou para você. Você verá somente os relatórios que ele liberar.</p>' : ''}
       </form>
-      <p class="auth-credit">${mode === 'signup' ? 'Ao criar a conta, você concorda com os <a href="termos.html">Termos de Uso</a> e a <a href="privacidade.html">Política de Privacidade</a>.<br>' : ''}Feito com Florescer Relatórios · <a href="privacidade.html">Privacidade</a> · <a href="termos.html">Termos</a></p>
+      <p class="auth-credit">${mode === 'signup' ? 'Ao criar a conta, você concorda com os <a href="termos.html">Termos de Uso</a> e a <a href="privacidade.html">Política de Privacidade</a>.<br>' : ''}Feito com Potira - relatórios clínicos · <a href="privacidade.html">Privacidade</a> · <a href="termos.html">Termos</a></p>
     </div></div></div>`;
 
     document.querySelectorAll('.auth-card .tab').forEach((b) => (b.onclick = () => { mode = b.dataset.mode; draw(); }));

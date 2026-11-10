@@ -151,7 +151,7 @@ export async function renderSettings(params) {
       </section>
       <section class="panel"><h2>Prévia</h2>
         <div class="brand-preview" id="prev"></div>
-        <div class="row" style="margin-top:14px"><button class="btn" type="submit">Salvar aparência</button><button type="button" class="link" id="brand-reset">Voltar ao padrão do Florescer</button></div>
+        <div class="row" style="margin-top:14px"><button class="btn" type="submit">Salvar aparência</button><button type="button" class="link" id="brand-reset">Voltar ao padrão da Potira</button></div>
       </section></form>`;
     $$('input[name=theme],input[name=size]', pane).forEach((i) => (i.onchange = () => setLook({ [i.name]: i.value })));
     $('#hc').onchange = (e) => setLook({ contrast: e.target.checked ? 'high' : 'normal' });

@@ -127,12 +127,12 @@ export function shell(active) {
   $('#app').innerHTML = `
     <div class="app">
       <aside class="rail">
-        <a class="brand" href="${isPatient ? '#/portal' : isAdm ? '#/admin' : '#/painel'}"><span class="mark ${br.logo ? 'has-logo' : ''}">${br.logo ? `<img src="${esc(br.logo)}" alt="">` : icon('flower')}</span><b>${esc(br.org_name || 'Florescer')}</b></a>
+        <a class="brand" href="${isPatient ? '#/portal' : isAdm ? '#/admin' : '#/painel'}"><span class="mark ${br.logo ? 'has-logo' : ''}">${br.logo ? `<img src="${esc(br.logo)}" alt="">` : icon('flower')}</span><b>${esc(br.org_name || 'Potira')}</b></a>
         <nav class="nav" aria-label="Principal">
           ${nav.map(([k, h, ic, l]) => `${NAV_SEC[k] && nav === NAV ? `<span class="nav-sec">${NAV_SEC[k]}</span>` : ''}<a href="${h}" class="${k === active ? 'on' : ''}" ${k === active ? 'aria-current="page"' : ''}>${icon(ic)}${l}</a>`).join('')}
         </nav>
         <div class="theme-row"><span>${icon('sun')}Tema</span><span class="theme-tog" role="group" aria-label="Tema"><button type="button" data-theme-set="light" title="Claro" aria-label="Tema claro">${icon('sun')}</button><button type="button" data-theme-set="dark" title="Escuro" aria-label="Tema escuro">${icon('moon')}</button></span></div>
-        <div class="rail-credit">Feito com Florescer</div>
+        <div class="rail-credit">Feito com a Potira</div>
         <div class="rail-foot">
           <span class="avatar">${esc(initials(p?.full_name || state.user?.email))}</span>
           <div class="who"><b>${esc(p?.full_name || state.user?.email || '')}</b><span>${esc(isPatient ? 'Paciente' : isAdm ? 'Administrador' : (p?.specialty || 'Profissional'))}</span></div>
