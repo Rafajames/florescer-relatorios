@@ -63,7 +63,7 @@ export function renderAuth(brand = null) {
             <details class="signup-ai"><summary>Conectar minha IA agora (opcional)</summary>
               <label class="field">Provedor<select name="ai_provider">${['gemini', 'groq', 'anthropic', 'openai'].map((id) => `<option value="${id}">${esc(ai.PROVIDERS[id].label)}${ai.PROVIDERS[id].free ? ' (gratuito)' : ''}</option>`).join('')}</select></label>
               <label class="field">Chave de acesso<input type="password" name="ai_key" autocomplete="off" placeholder="Cole a chave aqui"></label>
-              <p class="muted small">Gemini e Groq têm plano gratuito: <a href="${ai.PROVIDERS.gemini.keyUrl}" target="_blank" rel="noopener">criar chave Gemini</a> e <a href="${ai.PROVIDERS.groq.keyUrl}" target="_blank" rel="noopener">criar chave Groq</a>. A chave fica só neste navegador. Dá para pular e conectar depois.</p>
+              <p class="muted small">Gemini e Groq têm plano gratuito: <a href="${ai.PROVIDERS.gemini.keyUrl}" target="_blank" rel="noopener">criar chave Gemini</a> e <a href="${ai.PROVIDERS.groq.keyUrl}" target="_blank" rel="noopener">criar chave Groq</a>. <a href="tutoriais/" target="_blank" rel="noopener">Veja os tutoriais passo a passo</a>. A chave fica só neste navegador. Dá para pular e conectar depois.</p>
             </details>
           </div>` : ''}
         <label class="field">E-mail<input type="email" name="email" required autocomplete="email"></label>

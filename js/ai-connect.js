@@ -32,6 +32,7 @@ export function bindConnector(root, { onSaved } = {}) {
     $$('.prov', root).forEach((l) => l.classList.toggle('on', l.querySelector('input').value === id));
     $('#prov-help', root).innerHTML = `
       <p><a href="${p.keyUrl}" target="_blank" rel="noopener">Abrir a página para criar a chave</a>. ${esc(p.steps)}</p>
+      <p><a href="tutoriais/tutorial-${id}.html" target="_blank" rel="noopener">Ver o tutorial passo a passo com imagens</a> (também em PDF).</p>
       <p class="muted small">${esc(p.privacy)}</p>
       <p class="muted small">A chave fica só neste navegador. O sistema nunca envia o nome do paciente para a IA.</p>`;
     const list = [...new Set([p.model, ...(p.models || [])])], cur = ai.modelOf(id);
