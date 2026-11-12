@@ -1187,3 +1187,190 @@ alter table public.expenses add column if not exists fixed boolean not null defa
 alter table public.expenses add column if not exists paid boolean not null default true;   -- false = a pagar
 alter table public.appointments add column if not exists payment_note text;                -- ex.: pagador lido do comprovante
 alter table public.charges add column if not exists payment_note text;
+
+-- ---------------------------------------------------------------------
+-- v15 (ATENÇÃO: em 12/11/2026 ainda NÃO estava aplicada no Supabase; a migração
+-- pede confirmação do dono do projeto. As telas que dependem dela não existem ainda.)
+-- v15: acesso de secretária (só agenda e financeiro de um profissional),
+-- página pública do profissional e portal do paciente com próximas sessões
+-- ---------------------------------------------------------------------
+alter table public.profiles drop constraint if exists profiles_role_check;
+alter table public.profiles add constraint profiles_role_check check (role in ('professional','patient','secretary'));
+
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_role text := coalesce(new.raw_user_meta_data->>'role', 'professional');
+  v_code text;
+begin
+  if v_role not in ('professional','patient','secretary') then v_role := 'professional'; end if;
+  if v_role = 'professional' and coalesce((select value = 'true'::jsonb from public.app_settings where key = 'invite_required'), false) then
+    v_code := upper(trim(coalesce(new.raw_user_meta_data->>'invite_code', '')));
+    update public.invites set active = false, used_by = new.id, used_at = now()
+      where code = v_code and active and used_by is null;
+    if not found then raise exception 'Código de convite inválido ou já usado.'; end if;
+  end if;
+  insert into public.profiles (id, role, full_name, specialty, council_registry)
+  values (new.id, v_role, coalesce(new.raw_user_meta_data->>'full_name', ''),
+    nullif(new.raw_user_meta_data->>'specialty', ''), nullif(new.raw_user_meta_data->>'council_registry', ''))
+  on conflict (id) do nothing;
+  return new;
+end $$;
+
+-- Quem o profissional autorizou como secretária(o), pelo e-mail.
+create table if not exists public.staff (
+  id uuid primary key default gen_random_uuid(),
+  professional_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  email text not null, name text, active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists staff_prof_email_idx on public.staff (professional_id, lower(email));
+alter table public.staff enable row level security;
+drop policy if exists staff_all_own on public.staff;
+create policy staff_all_own on public.staff for all to authenticated
+  using (professional_id = auth.uid() and public.is_professional())
+  with check (professional_id = auth.uid() and public.is_professional());
+grant select, insert, update, delete on public.staff to authenticated;
+
+-- Profissional para quem a pessoa logada trabalha como secretária (ou null).
+create or replace function public.staff_of()
+returns uuid language sql stable security definer set search_path = public as $$
+  select s.professional_id from public.staff s
+  join public.profiles me on me.id = auth.uid() and me.role = 'secretary' and not me.disabled
+  join public.profiles pr on pr.id = s.professional_id and pr.role = 'professional' and not pr.disabled
+  where s.active and lower(s.email) = lower(auth.jwt() ->> 'email')
+  order by s.created_at limit 1;
+$$;
+-- Dono dos dados ou secretária autorizada: vale só para agenda e financeiro.
+create or replace function public.can_manage(pid uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select (pid = auth.uid() and public.is_professional()) or pid = public.staff_of();
+$$;
+revoke all on function public.staff_of() from public, anon;
+revoke all on function public.can_manage(uuid) from public, anon;
+grant execute on function public.staff_of() to authenticated;
+grant execute on function public.can_manage(uuid) to authenticated;
+
+-- Agenda e financeiro: profissional ou secretária. Registros clínicos continuam só do profissional.
+drop policy if exists appointments_all_own on public.appointments;
+create policy appointments_all_own on public.appointments for all to authenticated
+  using (public.can_manage(professional_id))
+  with check (public.can_manage(professional_id)
+    and exists (select 1 from public.patients p where p.id = patient_id and p.professional_id = appointments.professional_id));
+drop policy if exists patient_admin_all_own on public.patient_admin;
+create policy patient_admin_all_own on public.patient_admin for all to authenticated
+  using (public.can_manage(professional_id))
+  with check (public.can_manage(professional_id)
+    and exists (select 1 from public.patients p where p.id = patient_id and p.professional_id = patient_admin.professional_id));
+drop policy if exists expenses_all_own on public.expenses;
+create policy expenses_all_own on public.expenses for all to authenticated
+  using (public.can_manage(professional_id)) with check (public.can_manage(professional_id));
+drop policy if exists charges_all_own on public.charges;
+create policy charges_all_own on public.charges for all to authenticated
+  using (public.can_manage(professional_id)) with check (public.can_manage(professional_id));
+drop policy if exists agenda_blocks_all_own on public.agenda_blocks;
+create policy agenda_blocks_all_own on public.agenda_blocks for all to authenticated
+  using (public.can_manage(professional_id)) with check (public.can_manage(professional_id));
+drop policy if exists waitlist_all_own on public.waitlist;
+create policy waitlist_all_own on public.waitlist for all to authenticated
+  using (public.can_manage(professional_id)) with check (public.can_manage(professional_id));
+drop policy if exists receipts_all_own on public.receipts;
+create policy receipts_all_own on public.receipts for all to authenticated
+  using (public.can_manage(professional_id)) with check (public.can_manage(professional_id));
+-- secretária cria e lê só os links de confirmação de presença (dos lembretes)
+drop policy if exists share_links_staff on public.share_links;
+create policy share_links_staff on public.share_links for all to authenticated
+  using (kind = 'confirmacao' and professional_id = public.staff_of())
+  with check (kind = 'confirmacao' and professional_id = public.staff_of());
+
+-- O que a secretária precisa saber do profissional (nome, marca e dados de pagamento para cobrar).
+create or replace function public.staff_context()
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object('professional_id', p.id, 'full_name', p.full_name, 'specialty', p.specialty,
+    'council_registry', p.council_registry, 'clinic_name', p.clinic_name, 'branding', coalesce(p.branding, '{}'::jsonb))
+  from public.profiles p where p.id = public.staff_of();
+$$;
+-- Pacientes sem nada clínico: só o necessário para agendar e cobrar.
+create or replace function public.staff_list_patients()
+returns table (id uuid, name text, phone text, email text, archived boolean)
+language sql stable security definer set search_path = public as $$
+  select p.id, p.name, p.phone, p.email, p.archived from public.patients p
+  where p.professional_id = public.staff_of() order by p.name;
+$$;
+create or replace function public.staff_save_patient(p_name text, p_phone text, p_email text)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare v_prof uuid := public.staff_of(); v_id uuid;
+begin
+  if v_prof is null then raise exception 'sem_permissao'; end if;
+  if coalesce(length(trim(p_name)), 0) = 0 then raise exception 'nome_obrigatorio'; end if;
+  insert into public.patients (professional_id, name, phone, email)
+  values (v_prof, left(trim(p_name), 160), nullif(trim(coalesce(p_phone, '')), ''), nullif(lower(trim(coalesce(p_email, ''))), ''))
+  returning id into v_id;
+  return v_id;
+end $$;
+-- Próximo número de recibo (a sequência fica no perfil do profissional).
+create or replace function public.next_receipt_number()
+returns int language plpgsql security definer set search_path = public as $$
+declare v_prof uuid := coalesce(public.staff_of(), case when public.is_professional() then auth.uid() end); v_n int;
+begin
+  if v_prof is null then raise exception 'sem_permissao'; end if;
+  update public.profiles set branding = jsonb_set(coalesce(branding, '{}'::jsonb), '{recibo_seq}',
+    to_jsonb(coalesce((branding->>'recibo_seq')::int, 0) + 1)) where id = v_prof
+  returning (branding->>'recibo_seq')::int into v_n;
+  return v_n;
+end $$;
+revoke all on function public.staff_context() from public, anon;
+revoke all on function public.staff_list_patients() from public, anon;
+revoke all on function public.staff_save_patient(text, text, text) from public, anon;
+revoke all on function public.next_receipt_number() from public, anon;
+grant execute on function public.staff_context() to authenticated;
+grant execute on function public.staff_list_patients() to authenticated;
+grant execute on function public.staff_save_patient(text, text, text) to authenticated;
+grant execute on function public.next_receipt_number() to authenticated;
+
+-- Página pública do profissional (só quando ele liga em Configurações): apresentação e contato.
+create or replace function public.public_profile(p_slug text)
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object('name', coalesce(nullif(branding->>'org_name',''), nullif(clinic_name,''), full_name),
+    'full_name', full_name, 'specialty', specialty, 'council_registry', council_registry,
+    'logo', branding->>'logo', 'color', branding->>'color', 'accent', branding->>'accent', 'tagline', branding->>'tagline',
+    'page', branding->'public')
+  from public.profiles
+  where role = 'professional' and not disabled and slug is not null and lower(slug) = lower(p_slug)
+    and coalesce((branding->'public'->>'on')::boolean, false)
+  limit 1;
+$$;
+revoke all on function public.public_profile(text) from public;
+grant execute on function public.public_profile(text) to anon, authenticated;
+
+-- Portal do paciente: próximas sessões e recibos (pelo e-mail do paciente logado).
+create or replace function public.portal_overview()
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'appointments', coalesce((select jsonb_agg(x order by x.date, x.time) from (
+        select a.id, a.date, a.time, a.duration_min, a.confirm_status, pr.full_name as professional_name
+        from public.appointments a join public.patients p on p.id = a.patient_id join public.profiles pr on pr.id = a.professional_id
+        where a.status = 'agendado' and a.date >= current_date and p.email is not null and lower(p.email) = lower(auth.jwt() ->> 'email')
+        order by a.date, a.time limit 20) x), '[]'::jsonb),
+    'receipts', coalesce((select jsonb_agg(y order by y.issued_on desc) from (
+        select r.numero, r.issued_on, r.total, pr.full_name as professional_name
+        from public.receipts r join public.patients p on p.id = r.patient_id join public.profiles pr on pr.id = r.professional_id
+        where p.email is not null and lower(p.email) = lower(auth.jwt() ->> 'email')
+        order by r.issued_on desc limit 24) y), '[]'::jsonb))
+  where exists (select 1 from public.profiles me where me.id = auth.uid() and me.role = 'patient');
+$$;
+create or replace function public.portal_confirm(p_appointment uuid, p_answer text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if p_answer not in ('confirmado','remarcar') then raise exception 'resposta_invalida'; end if;
+  if not exists (select 1 from public.profiles me where me.id = auth.uid() and me.role = 'patient') then raise exception 'sem_permissao'; end if;
+  update public.appointments a set confirm_status = p_answer, confirmed_at = now()
+  from public.patients p
+  where a.id = p_appointment and p.id = a.patient_id and a.status = 'agendado'
+    and p.email is not null and lower(p.email) = lower(auth.jwt() ->> 'email');
+  if not found then raise exception 'link_invalido'; end if;
+end $$;
+revoke all on function public.portal_overview() from public, anon;
+revoke all on function public.portal_confirm(uuid, text) from public, anon;
+grant execute on function public.portal_overview() to authenticated;
+grant execute on function public.portal_confirm(uuid, text) to authenticated;

@@ -42,11 +42,15 @@ export function applyBrand(b) {
   const c = HEX.test(b?.color) ? b.color : DEFAULT_BRAND.color;
   const a = HEX.test(b?.accent) ? b.accent : DEFAULT_BRAND.accent;
   const s = document.documentElement.style;
-  s.setProperty('--petrol', c); s.setProperty('--petrol-2', darken(c));
+  // Cor clara demais não serve para texto e botões: a interface usa uma versão mais escura; o menu fica com a cor escolhida.
+  const lum = (h) => { const [r, g, bl] = hexToRgb(h); return 0.299 * r + 0.587 * g + 0.114 * bl; };
+  let ui = c;
+  for (let i = 0; i < 12 && lum(ui) > 120; i++) ui = darken(ui, 0.12);
+  s.setProperty('--petrol', ui); s.setProperty('--petrol-2', darken(ui));
+  s.setProperty('--rail-bg', c); s.setProperty('--rail-bg-2', darken(c));
   s.setProperty('--bloom', a); s.setProperty('--bloom-2', darken(a, 0.18));
   // Menu colorido: texto claro sobre cor escura e texto escuro sobre cor clara.
-  const [r, g, bl] = hexToRgb(c);
-  s.setProperty('--rail-ink', (0.299 * r + 0.587 * g + 0.114 * bl) > 165 ? '#10252d' : '#ffffff');
+  s.setProperty('--rail-ink', lum(c) > 165 ? '#10252d' : '#ffffff');
   document.title = b?.org_name ? `${b.org_name}` : 'Potira - relatórios clínicos';
 }
 

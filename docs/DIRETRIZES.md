@@ -56,6 +56,12 @@ Regras que valem para qualquer mudança, feita por pessoa ou por IA. O objetivo 
 - A mensagem de cobrança mostra a **chave PIX como foi cadastrada** e o código copia-e-cola. O profissional pode ter várias chaves e escolher ou editar na hora; a edição vale só para aquela cobrança.
 - Pagamento por comprovante: o sistema lê e propõe; **nada é marcado como pago sem o profissional confirmar**.
 - Cobrança agendada (dia fixo ou data avulsa) **não envia sozinha**: deixa pronta e avisa.
+- **Não se guardam arquivos de comprovante.** Guardam-se só as informações do pagamento: valor, data, forma e quem pagou.
+- Formas de cobrança por paciente: **por sessão**, **mensalidade** (cobrança do mês criada sozinha, sessões entram quitadas) ou **pacote** (saldo de sessões que diminui a cada sessão realizada e volta se a sessão deixar de ser realizada).
+- O que não é sessão (mensalidade, pacote, avulsa) fica na tabela `charges` e aparece junto em "Em aberto".
+- Convênio que paga é separado do paciente; não se envia cobrança de convênio ao paciente.
+- Gastos: "pago" entra no saldo; "a pagar" não. Gasto fixo é copiado para o mês seguinte como "a pagar".
+- Lembrete de sessão leva o link de confirmação. A resposta do paciente não muda a situação da sessão; só informa o profissional.
 
 **Documentos**
 - Modelo enviado em Word preserva logo, marca d'água, cabeçalho e rodapé do documento, e vira o modelo padrão ao salvar.
@@ -72,7 +78,7 @@ Regras que valem para qualquer mudança, feita por pessoa ou por IA. O objetivo 
 - Menus suspensos fecham ao clicar fora ou apertar Esc.
 - Existe botão **Voltar** na barra superior em todas as telas.
 - O **menu é colorido** com a cor do tema do profissional (`--petrol`), no computador e no celular, com versão para tema escuro. Não voltar ao menu branco.
-- Animações são discretas e respeitam `prefers-reduced-motion`.
+- Animações são discretas e respeitam `prefers-reduced-motion`. Animação de entrada usa `backwards` (nunca `both`/`forwards`), para não cobrir os menus suspensos.
 - Toda tela precisa funcionar no **celular (390 px)** sem rolagem horizontal.
 - Ações destrutivas pedem confirmação. Não usar `alert()`/`confirm()` do navegador; usar `openModal` e `confirmBox`.
 - Depois de salvar, mostrar aviso curto (`toast`).

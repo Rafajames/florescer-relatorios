@@ -4,6 +4,43 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 12/11/2026 — Agenda, plano terapêutico, financeiro completo e apresentação
+
+Banco: schemas **v13** e **v14** (aplicados). O schema **v15** está escrito mas **não aplicado** (ver pendências).
+
+**Início e agenda**
+- Início: "Sessões de hoje" com botões Iniciar, Falta e Evolução; botão "Lembretes de amanhã"; aniversariantes do mês com mensagem pronta.
+- Lembretes em lote pelo WhatsApp. Cada mensagem leva um link para o paciente **confirmar a presença ou pedir para remarcar**; a resposta aparece na agenda e no Início.
+- Reagendar com um toque (mesmo paciente, horário e duração, uma semana depois). Excluir uma sessão ou a série inteira que se repete.
+- Bloqueio de dia ou horário (feriado, folga), com aviso ao agendar por cima.
+- Lista de espera, com botão para chamar pelo WhatsApp.
+- Exportar as sessões dos próximos 90 dias para o calendário do celular (.ics).
+- Pesquisa de satisfação anônima por link (nota de 0 a 10 e comentário), com resumo em Administrativo → Pesquisa.
+
+**Clínico**
+- Plano terapêutico: metas por paciente, com prazo e situação. A evolução marca as metas trabalhadas e a ficha mostra em quantas sessões cada meta apareceu.
+- Escalas criadas pelo profissional, aplicadas por paciente, com gráfico da pontuação.
+- Orientações para casa por link, com registro de quando o link foi aberto.
+
+**Financeiro**
+- Cada paciente paga **por sessão, mensalidade ou pacote**. Mensalidade: a cobrança do mês nasce sozinha e as sessões entram quitadas. Pacote: vende-se o pacote, o saldo de sessões diminui a cada sessão realizada.
+- Cobrança avulsa (avaliação, material, taxa).
+- Convênio que paga fica separado do paciente em "Em aberto".
+- **Gastos** (antes Despesas): editar, gasto fixo que se repete todo mês, pago ou a pagar, totais por categoria.
+- **Resumo:** entradas e saídas dos últimos 6 meses com gráfico, por forma de pagamento e por categoria, e planilha para o contador.
+- Recibos emitidos ficam guardados, com segunda via no mesmo número.
+- Registrar pagamento guarda quem pagou, lido do comprovante. O arquivo do comprovante não é guardado.
+
+**Produto**
+- Tour de primeiro acesso em cinco passos (pode ser revisto na Ajuda).
+- Página de apresentação da Potira: `apresentacao.html`.
+- Contraste automático: tema de cor clara usa uma versão mais escura em botões e links; o menu mantém a cor escolhida.
+
+**Correções**
+- A animação de entrada das telas deixava o conteúdo por cima dos menus suspensos; alguns itens não recebiam o clique.
+- Plural "sessões" em contadores.
+- "Atendimentos de hoje" virou "Sessões de hoje".
+
 ## 12/11/2026 — Documentação, menu colorido e animações
 
 - Documentação do projeto no repositório: README (Sobre), diretrizes, atualizações, pendências e `CLAUDE.md`.

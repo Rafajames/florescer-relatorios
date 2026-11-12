@@ -23,11 +23,13 @@ Plataforma web de registro clínico, agenda e cobrança para profissionais de sa
 - `js/views-home.js` Início, Pacientes e ficha do paciente · `js/views-session.js` nova sessão · `js/views-report.js` editor do relatório
 - `js/views-administrativo.js` agenda, frequência, declarações, convênios · `js/views-financeiro.js` cobranças, valores, despesas, documentos, dados de pagamento
 - `js/cobranca.js` PIX, WhatsApp, textos e regras de cobrança · `js/cobrar.js` janelas de cobrar, registrar pagamento e agendar cobrança
+- `js/views-clinico.js` metas e escalas · `js/tour.js` tour de primeiro acesso · `apresentacao.html` página de apresentação
 - `js/export.js` PDF e Word de todos os documentos · `js/import-template.js` leitura de Word/PDF/foto para virar modelo
 - `js/views-public.js` páginas públicas por link · `js/brand.js` e `js/theme.js` marca e tema · `css/app.css` estilos
 
 ## Não fazer
 
 - Não adicionar framework, build ou serviço pago.
-- Não implementar uso offline, cobrança enviada sozinha nem correções de segurança do Supabase sem o James pedir (ver pendências).
+- Não implementar uso offline, instalar como aplicativo, clínicas, cobrança enviada sozinha nem correções de segurança do Supabase sem o James pedir (ver pendências).
+- Não guardar arquivos de comprovante: só as informações do pagamento.
 - Não trocar "sessão" por "atendimento", não voltar o menu para branco, não recriar a cobrança em Word.

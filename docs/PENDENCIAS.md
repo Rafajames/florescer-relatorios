@@ -20,6 +20,16 @@ Estes itens foram testados só no ambiente de teste (dados simulados). O que se 
 | Página pública com a marca | Abrir um link de anamnese e um de relatório num celular sem login e ver logo, nome e cor do profissional. |
 | Cobrar faltas | Ligar a opção, marcar uma falta e ver a cobrança aparecer. |
 | Menu colorido | Trocar a paleta em Configurações → Aparência e marca e ver o menu mudar, no claro e no escuro. |
+| Lembrete com confirmação | Enviar um lembrete para o próprio número, abrir o link, confirmar e pedir para remarcar; ver a resposta na agenda. |
+| Mensalidade | Definir mensalidade para um paciente, abrir Financeiro → Cobranças no mês e ver a cobrança criada; realizar uma sessão e ver "Da mensalidade". |
+| Pacote | Vender um pacote, realizar sessões e ver o saldo cair; voltar uma sessão para "Agendado" e ver o saldo voltar. |
+| Convênio que paga | Marcar em Valores → Alterar e ver as sessões irem para o grupo do convênio. |
+| Gastos fixos | Criar um gasto fixo num mês e ver se entra sozinho, como "a pagar", no mês seguinte. |
+| Resumo e planilha | Conferir entradas e saídas com os lançamentos e abrir o CSV no Excel. |
+| Metas, escalas e orientações | Criar meta, marcar na evolução, aplicar escala duas vezes (gráfico) e enviar orientações por link. |
+| Bloqueio, série e reagendar | Bloquear um dia, tentar agendar por cima, excluir uma série e reagendar uma falta. |
+| Pesquisa de satisfação | Responder pelo celular e ver a nota em Administrativo → Pesquisa. |
+| Calendário (.ics) | Abrir o arquivo no celular (Android e iPhone) e conferir horários. |
 
 ## 2. Proposto e ainda não implementado
 
@@ -30,10 +40,7 @@ Hoje a cobrança agendada fica pronta e o profissional envia. Enviar sem ningué
 O James perguntou se era possível; a resposta foi dada e ele ainda não decidiu. **Não implementar sem ele escolher o caminho.**
 
 **Comprovante guardado**
-Hoje o comprovante é lido e descartado. Guardar o arquivo exige o armazenamento de arquivos do Supabase e regras de acesso. Não foi pedido; ficou como possibilidade.
-
-**Agenda em grade semanal**
-A agenda continua em lista (com dias vazios compactos). A grade com colunas por dia não coube bem com os controles de cada sessão. Esperado: uma visão de semana em colunas no computador, mantendo a lista no celular.
+Decidido pelo James em 12/11/2026: **não guardar o arquivo**. Guardam-se só as informações do pagamento (valor, data, forma e quem pagou).
 
 **Uso sem internet (offline)**
 O James pediu para deixar de fora. Não implementar sem novo pedido.
@@ -44,65 +51,54 @@ O James quer emissão de nota fiscal no futuro. Fica para depois.
 ## 3. Achados da revisão que ainda não foram tratados
 
 **Financeiro**
-- O número do recibo avança mesmo se o profissional cancelar a impressão, e o recibo emitido não fica guardado (reemitir gera outro número).
-- Despesas não têm edição nem repetição mensal (aluguel, por exemplo).
-- Pacientes de convênio são cobrados como particulares; não há controle do que o convênio deve.
-- Não há resumo mensal para o contador (recebido, despesas, por forma de pagamento) nem exportação em planilha.
+- O número do recibo avança mesmo se o profissional cancelar a impressão (o recibo agora fica guardado, com segunda via).
+- Controle de convênio é simples: separa o que o convênio deve, sem guias nem faturamento por lote.
 - O recibo considera as sessões pagas pelo mês da sessão, não pelo mês do pagamento.
 - Editar um valor na tabela de sessões recarrega a tela inteira.
 - Pagamento parcial de uma sessão não existe: a sessão é paga inteira ou fica em aberto.
 
 **Administrativo**
-- Excluir uma série de sessões repetidas é uma por uma.
-- Ao marcar "Falta", o sistema não oferece reagendar.
 - Não há visão de mês nem de dia.
 - A evolução é ligada à sessão só por paciente e data; duas sessões no mesmo dia confundem.
 
 **Design**
-- O painel do Início não foi revisado nesta rodada.
-- Uma cor de tema muito clara deixa links e botões principais com pouco contraste fora do menu (o menu já se ajusta).
 - O campo de data da página pública segue o idioma do navegador de quem abre.
 
 **Desempenho**
 - A lista de modelos carrega as imagens do timbre de todos os modelos a cada tela que usa modelos. Com muitos modelos importados pode ficar lento.
 
-## 3A. Novas ideias (levantadas em 12/11/2026, nenhuma aprovada ainda)
+## 3A. Bloco aguardando o banco (schema v15 escrito, não aplicado)
 
-Nenhuma destas existe hoje na plataforma. **Só implementar as que o James escolher.** O que se espera em cada uma está descrito para quem for fazer.
+A migração **v15** está no fim de `supabase/schema.sql`, mas o Supabase pediu a confirmação do James e ela não foi aplicada. **Primeiro passo de quem retomar:** aplicar a v15 com a aprovação dele. Depois, construir as telas abaixo (nenhuma existe ainda):
 
-**Rotina do consultório**
-1. **Tela "Hoje" no Início:** sessões do dia em ordem, com botões de lembrete, registrar evolução e marcar falta; cobranças do dia; rascunhos para revisar. Substitui o painel atual, que não foi revisado.
-2. **Lembretes de amanhã em lote:** uma lista das sessões do dia seguinte com um botão de WhatsApp por paciente, para enviar todos em sequência.
-3. **Confirmação de presença por link:** o paciente toca em "Confirmo" ou "Preciso remarcar" e a agenda mostra a resposta. Usa o mesmo mecanismo dos links públicos.
-4. **Reagendar com um toque:** ao marcar falta ou cancelar, oferecer nova data já preenchida. Excluir ou mover uma série inteira de sessões repetidas.
-5. **Bloqueios e feriados:** marcar dias e horários sem atendimento, que entram no aviso de conflito.
-6. **Lista de espera:** nomes aguardando vaga, com dias e horários preferidos.
-7. **Agenda no calendário do celular:** exportar as sessões em arquivo .ics.
+1. **Acesso de secretária(o).** Decidido pelo James: fazer.
+   - O profissional autoriza um e-mail em Configurações → Equipe (tabela `staff`).
+   - A pessoa cria a conta como "Sou secretária(o)" (papel `secretary`) e vê só **Administrativo e Financeiro** daquele profissional. Nada clínico: sem relatórios, sem ficha do paciente, sem observações.
+   - No banco já previsto: `staff_of()`, `can_manage()`, políticas de agenda e financeiro, `staff_context()`, `staff_list_patients()` (só nome, telefone, e-mail), `staff_save_patient()` e `next_receipt_number()`.
+   - No site falta: opção no cadastro; rotas e menu reduzidos; `js/api.js` enviar `professional_id` nos cadastros e montar os nomes dos pacientes sem o `patients(name)`; esconder Dados de pagamento, Convênios e "Cobrar faltas"; aba Equipe em Configurações.
+2. **Página pública do profissional** em `#/p/<link-próprio>`: apresentação, áreas de atuação e botão de WhatsApp. Ligada e editada em Configurações → Aparência e marca (`branding.public`). Função `public_profile()` prevista.
+3. **Portal do paciente mais completo:** próximas sessões com confirmar/remarcar e lista de recibos. Funções `portal_overview()` e `portal_confirm()` previstas.
 
-**Clínico**
-8. **Plano terapêutico com metas:** objetivos por paciente, com prazo e situação. A evolução marca em quais metas trabalhou e o relatório por período resume o progresso de cada uma.
-9. **Escalas próprias com gráfico:** o profissional cria uma escala simples (itens com nota) e acompanha a pontuação ao longo do tempo. Não incluir instrumentos protegidos por direito autoral.
-10. **Orientações para casa:** texto enviado por link para a família, com registro de que foi aberto.
-11. **Anexos do paciente:** laudos e exames guardados na ficha. Exige o armazenamento de arquivos do Supabase (o plano gratuito tem limite de espaço).
+## 3B. Clínicas (só mapeado; o James pediu para NÃO implementar ainda)
 
-**Financeiro**
-12. **Pacotes e mensalidade:** pacote de sessões pago adiantado, com saldo de sessões, ou valor fixo mensal no lugar da cobrança por sessão.
-13. **Resumo para o contador:** recebido por mês e por forma de pagamento, despesas por categoria, em planilha. Recibos guardados com segunda via.
-14. **Controle de convênio:** o que cada convênio deve, separado do que o paciente deve.
-15. **Gráfico de 6 meses:** recebido e despesas mês a mês.
+Ideias para quando ele decidir:
+- **Conta da clínica** com várias profissionais. Cada profissional continua dona dos próprios registros clínicos; a clínica não lê prontuário.
+- **Papéis:** dono(a) da clínica, profissional, secretária(o) da clínica (agenda e financeiro de todas), financeiro.
+- **Agenda única** com filtro por profissional e por sala; bloqueio de sala.
+- **Financeiro da clínica:** repasse por profissional (percentual ou valor fixo por sessão), fechamento mensal, gastos da clínica separados dos gastos de cada profissional.
+- **Marca da clínica** nos documentos, com o nome e o registro de quem assina.
+- **Paciente da clínica** atendido por mais de uma profissional, com compartilhamento de registro só com consentimento.
+- **Lista de espera e pesquisa de satisfação** da clínica.
+- **Convênios da clínica**, com guias e faturamento por lote.
+- **Impacto técnico:** hoje tudo é por `professional_id`. Clínica exige uma tabela de organização, vínculo profissional–clínica e revisão de todas as regras de acesso. O acesso de secretária (3A) deve ser pensado para caber nesse desenho.
 
-**Relacionamento**
-16. **Aniversariantes do mês**, com mensagem pronta para o WhatsApp.
-17. **Pesquisa de satisfação por link**, anônima, com resumo para o profissional.
-18. **Portal do paciente mais completo:** próximas sessões, confirmação de presença e recibos.
+## 3C. Ideias ainda não feitas
 
-**Produto**
-19. **Instalar como aplicativo:** ícone na tela inicial do celular, abrindo em tela cheia. Não é uso offline.
-20. **Página de apresentação da Potira**, para mostrar a possíveis clientes.
-21. **Página pública do profissional:** apresentação, áreas de atuação e botão de WhatsApp, no link próprio que já existe.
-22. **Equipe:** clínica com várias profissionais e secretária com acesso só à agenda e ao financeiro. Mudança grande nas regras de acesso.
-23. **Tour guiado no primeiro acesso**, mostrando o caminho paciente → sessão → relatório → cobrança.
-24. **Contraste automático:** quando o tema escolhido for claro, escurecer botões e links para continuarem legíveis.
+- **Instalar como aplicativo** (ícone na tela do celular). O James pediu para **não fazer ainda**.
+- **Anexos do paciente** (laudos, exames). O James decidiu **não guardar arquivos de comprovante**, só as informações do pagamento. Para anexos de laudos e exames ele ainda não decidiu. A tabela `attachments` e a pasta privada `anexos` existem no banco, vazias e sem tela. Perguntar antes de usar.
+- **Relatório por período com o progresso das metas.** Hoje as metas aparecem na ficha e na evolução, não no relatório por período.
+- **Agenda em grade semanal.**
+- **Cobrança enviada sozinha** (por e-mail), ver seção 2.
 
 ## 4. Segurança (adiado pelo James por estar em fase de testes)
 

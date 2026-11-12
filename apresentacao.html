@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Potira · registro clínico, agenda e cobrança para profissionais de saúde</title>
+<meta name="description" content="A Potira reúne anamnese, evolução, relatórios, agenda e cobrança do consultório em um só lugar. Em fase de testes, sem custo.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌱%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--petrol:#134B5F;--petrol-2:#0E3847;--bloom:#B83D6F;--ink:#10252d;--ink-2:#4b5f68;--mist:#ECF1F3;--paper:#fff;--line:#d8e2e6;--tint:#E2EEF1}
+  @media (prefers-color-scheme:dark){:root{--ink:#EAF2F4;--ink-2:#A9BEC6;--mist:#0C1418;--paper:#131D22;--line:#24343c;--tint:#16303A}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--mist);color:var(--ink);font:400 17px/1.6 'Instrument Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  h1,h2,h3{font-family:'Bricolage Grotesque','Instrument Sans',sans-serif;letter-spacing:-.02em;line-height:1.12;margin:0;text-wrap:balance}
+  a{color:inherit}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 0}
+  .marca{display:flex;align-items:center;gap:10px;font:700 21px 'Bricolage Grotesque',sans-serif;text-decoration:none}
+  .marca i{width:34px;height:34px;border-radius:11px;background:linear-gradient(140deg,#2A7F99,var(--petrol));display:grid;place-items:center;color:#fff;font-style:normal;font-size:18px}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:12px;font-weight:600;text-decoration:none;border:1px solid var(--line);background:var(--paper);transition:transform .16s ease,box-shadow .2s ease}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 12px 24px -14px rgba(10,40,50,.5)}
+  .btn.pri{background:var(--bloom);border-color:var(--bloom);color:#fff}
+  .hero{background:linear-gradient(165deg,var(--petrol),var(--petrol-2));color:#fff;border-radius:26px;padding:64px 48px;margin:6px 0 26px;position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;right:-90px;top:-90px;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(184,61,111,.55),transparent 68%)}
+  .hero h1{font-size:clamp(34px,5.4vw,58px);max-width:15ch;position:relative;z-index:1}
+  .hero p{max-width:54ch;color:#D5E6EB;font-size:19px;margin:18px 0 26px;position:relative;z-index:1}
+  .hero .row{display:flex;gap:12px;flex-wrap:wrap;position:relative;z-index:1}
+  .hero .btn:not(.pri){background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);color:#fff}
+  .selo{display:inline-block;padding:5px 12px;border-radius:99px;background:rgba(255,255,255,.14);font-size:13.5px;font-weight:600;margin-bottom:18px;position:relative;z-index:1}
+  section{margin:0 0 26px}
+  h2{font-size:clamp(26px,3.4vw,36px);margin:44px 0 6px}
+  .sub{color:var(--ink-2);max-width:60ch;margin:0 0 22px}
+  .grade{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  .cartao{background:var(--paper);border-radius:18px;padding:24px}
+  .cartao h3{font-size:19px;margin-bottom:8px}
+  .cartao p{margin:0;color:var(--ink-2);font-size:15.5px}
+  .cartao .ic{width:42px;height:42px;border-radius:12px;background:var(--tint);display:grid;place-items:center;font-size:20px;margin-bottom:14px}
+  .faixa{background:var(--paper);border-radius:22px;padding:34px;display:grid;grid-template-columns:1.1fr 1fr;gap:30px;align-items:center}
+  .faixa ul{margin:0;padding-left:20px;color:var(--ink-2)} .faixa li{margin:6px 0}
+  .passos{counter-reset:p;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+  .passos div{background:var(--paper);border-radius:18px;padding:22px;font-size:15.5px;color:var(--ink-2)}
+  .passos div::before{counter-increment:p;content:counter(p);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--bloom);color:#fff;font-weight:700;margin-bottom:12px}
+  .passos b{display:block;color:var(--ink);font-size:17px;margin-bottom:4px}
+  .fim{text-align:center;background:linear-gradient(165deg,var(--petrol),var(--petrol-2));color:#fff;border-radius:26px;padding:48px 24px}
+  .fim p{color:#D5E6EB;max-width:52ch;margin:12px auto 22px}
+  footer{color:var(--ink-2);font-size:14px;padding:22px 0 40px;display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between}
+  @keyframes sobe{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .hero>*,.cartao,.passos div{animation:sobe .5s cubic-bezier(.2,.7,.2,1) backwards}
+  .cartao:nth-child(2),.passos div:nth-child(2){animation-delay:.06s}.cartao:nth-child(3),.passos div:nth-child(3){animation-delay:.12s}
+  .cartao:nth-child(n+4),.passos div:nth-child(4){animation-delay:.18s}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  @media (max-width:860px){.grade{grid-template-columns:1fr 1fr}.passos{grid-template-columns:1fr 1fr}.faixa{grid-template-columns:1fr}.hero{padding:44px 26px;border-radius:20px}}
+  @media (max-width:560px){.grade,.passos{grid-template-columns:1fr}body{font-size:16px}.wrap{padding:0 16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="marca" href="./"><i>✣</i>Potira</a>
+    <a class="btn" href="./">Entrar</a>
+  </header>
+
+  <div class="hero">
+    <span class="selo">Em fase de testes · sem custo</span>
+    <h1>O consultório inteiro em um só lugar.</h1>
+    <p>Anamnese, evolução de cada sessão, relatórios, agenda e cobrança. Feita para profissionais de saúde que querem escrever menos, organizar melhor e entregar documentos com a própria marca.</p>
+    <div class="row"><a class="btn pri" href="./">Criar minha conta</a><a class="btn" href="#como">Ver como funciona</a></div>
+  </div>
+
+  <section>
+    <h2>O que a Potira faz</h2>
+    <p class="sub">Cada parte funciona sozinha, e todas conversam entre si: registrar a sessão já prepara a cobrança.</p>
+    <div class="grade">
+      <div class="cartao"><div class="ic">📝</div><h3>Registro clínico</h3><p>Anamnese, evolução, relatório por período e documento livre, com modelos por área ou a partir do seu próprio Word.</p></div>
+      <div class="cartao"><div class="ic">🎯</div><h3>Plano terapêutico</h3><p>Metas por paciente, marcadas em cada evolução, e escalas criadas por você com gráfico da pontuação.</p></div>
+      <div class="cartao"><div class="ic">📅</div><h3>Agenda</h3><p>Sessões que se repetem, lembretes pelo WhatsApp com confirmação de presença, bloqueios e lista de espera.</p></div>
+      <div class="cartao"><div class="ic">💳</div><h3>Cobrança</h3><p>Por sessão, mensalidade ou pacote. Mensagem com PIX pronto, cobrança agendada e pagamento conferido pelo comprovante.</p></div>
+      <div class="cartao"><div class="ic">📊</div><h3>Entradas e gastos</h3><p>Controle dos gastos do consultório, resumo dos últimos meses e planilha para o contador.</p></div>
+      <div class="cartao"><div class="ic">🔗</div><h3>Entrega ao paciente</h3><p>Portal do paciente e links com validade para anamnese, relatório e orientações para casa.</p></div>
+    </div>
+  </section>
+
+  <section class="faixa">
+    <div><h2 style="margin-top:0">A inteligência artificial é opcional</h2>
+      <p class="sub" style="margin-bottom:0">Tudo funciona sem IA. Se você conectar a sua, ela transcreve o áudio e escreve um rascunho. Quem revisa e assina é sempre você.</p></div>
+    <ul>
+      <li>O áudio da sessão nunca é guardado.</li>
+      <li>Cada profissional vê só os próprios pacientes.</li>
+      <li>O paciente só vê o que foi revisado e liberado.</li>
+      <li>Consentimento registrado por paciente, conforme a LGPD.</li>
+      <li>Documentos com a sua logo, as suas cores e o seu timbre.</li>
+    </ul>
+  </section>
+
+  <section id="como">
+    <h2>Como funciona no dia a dia</h2>
+    <p class="sub">Do cadastro à cobrança, em quatro passos.</p>
+    <div class="passos">
+      <div><b>Cadastre</b>O paciente, o consentimento e, se quiser, a anamnese por link para a família responder.</div>
+      <div><b>Agende</b>As sessões da semana. O lembrete vai com o link para confirmar ou remarcar.</div>
+      <div><b>Registre</b>A evolução da sessão, digitando ou gravando. Marque as metas trabalhadas.</div>
+      <div><b>Entregue e cobre</b>Relatório revisado em PDF ou por link, e a cobrança com o PIX já calculado.</div>
+    </div>
+  </section>
+
+  <section class="fim">
+    <h2 style="margin:0">Quer testar com os seus pacientes?</h2>
+    <p>A Potira está em fase de testes com profissionais convidados. Crie a sua conta, use o paciente de teste e conte o que precisa melhorar.</p>
+    <a class="btn pri" href="./">Começar agora</a>
+  </section>
+
+  <footer><span>Potira · relatórios clínicos</span><span><a href="termos.html">Termos de uso</a> · <a href="privacidade.html">Privacidade</a></span></footer>
+</div>
+</body>
+</html>

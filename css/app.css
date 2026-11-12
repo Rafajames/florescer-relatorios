@@ -954,38 +954,38 @@ details.menu[open]>summary{background:var(--petrol-tint,#e2eef1)}
 .head>.grow{min-width:min(100%,300px)}.head>.row{flex-wrap:wrap}
 
 /* ---- menu colorido: usa a cor do tema escolhido pelo profissional (Configurações → Aparência e marca) ---- */
-.rail{background:linear-gradient(172deg,var(--petrol) 0%,var(--petrol-2) 100%);color:var(--rail-ink,#fff)}
+.rail{background:linear-gradient(172deg,var(--rail-bg,var(--petrol)) 0%,var(--rail-bg-2,var(--petrol-2)) 100%);color:var(--rail-ink,#fff)}
 .rail .brand,.rail .brand b{color:var(--rail-ink,#fff)}
 .rail .brand .mark{background:color-mix(in srgb,var(--rail-ink,#fff) 18%,transparent);color:var(--rail-ink,#fff)}
 .rail .brand .mark.has-logo{background:#fff}
 .rail .nav-sec{color:color-mix(in srgb,var(--rail-ink,#fff) 60%,transparent)}
 .rail .nav a{color:color-mix(in srgb,var(--rail-ink,#fff) 86%,transparent)}
 .rail .nav a:hover{background:color-mix(in srgb,var(--rail-ink,#fff) 13%,transparent);color:var(--rail-ink,#fff)}
-.rail .nav a.on,:root[data-theme=dark] .rail .nav a.on{background:var(--rail-ink,#fff);color:var(--petrol);font-weight:600;box-shadow:0 6px 16px -8px rgba(0,0,0,.45)}
+.rail .nav a.on,:root[data-theme=dark] .rail .nav a.on{background:var(--rail-ink,#fff);color:var(--rail-bg,var(--petrol));font-weight:600;box-shadow:0 6px 16px -8px rgba(0,0,0,.45)}
 .rail .theme-row{color:color-mix(in srgb,var(--rail-ink,#fff) 86%,transparent)}
 .rail .theme-tog{background:color-mix(in srgb,var(--rail-ink,#fff) 16%,transparent)}
 .rail .theme-tog button{color:color-mix(in srgb,var(--rail-ink,#fff) 70%,transparent)}
-.rail .theme-tog button.on{background:var(--rail-ink,#fff);color:var(--petrol)}
+.rail .theme-tog button.on{background:var(--rail-ink,#fff);color:var(--rail-bg,var(--petrol))}
 .rail .rail-credit{color:color-mix(in srgb,var(--rail-ink,#fff) 55%,transparent)}
 .rail .rail-foot{border-top-color:color-mix(in srgb,var(--rail-ink,#fff) 22%,transparent)}
 .rail .rail-foot .who b{color:var(--rail-ink,#fff)}
 .rail .rail-foot .who span,.rail .rail-foot .icon-btn{color:color-mix(in srgb,var(--rail-ink,#fff) 74%,transparent)}
 .rail .rail-foot .icon-btn:hover{background:color-mix(in srgb,var(--rail-ink,#fff) 14%,transparent)}
 /* tema escuro: a mesma cor, mais fechada, sempre com texto claro */
-:root[data-theme=dark] .rail{--rail-ink:#fff;background:linear-gradient(172deg,color-mix(in srgb,var(--petrol) 62%,#000) 0%,color-mix(in srgb,var(--petrol) 32%,#000) 100%)}
+:root[data-theme=dark] .rail{--rail-ink:#fff;background:linear-gradient(172deg,color-mix(in srgb,var(--rail-bg,var(--petrol)) 62%,#000) 0%,color-mix(in srgb,var(--rail-bg,var(--petrol)) 32%,#000) 100%)}
 :root[data-theme=dark] .rail .nav a.on{background:rgba(255,255,255,.16);color:#fff;box-shadow:none}
 @media (prefers-color-scheme:dark){
-  :root:not([data-theme=light]) .rail{--rail-ink:#fff;background:linear-gradient(172deg,color-mix(in srgb,var(--petrol) 62%,#000) 0%,color-mix(in srgb,var(--petrol) 32%,#000) 100%)}
+  :root:not([data-theme=light]) .rail{--rail-ink:#fff;background:linear-gradient(172deg,color-mix(in srgb,var(--rail-bg,var(--petrol)) 62%,#000) 0%,color-mix(in srgb,var(--rail-bg,var(--petrol)) 32%,#000) 100%)}
   :root:not([data-theme=light]) .rail .nav a.on{background:rgba(255,255,255,.16);color:#fff;box-shadow:none}
 }
 /* menu do celular (barra de baixo) na mesma cor */
 @media (max-width:760px){
-  .tabbar{background:linear-gradient(172deg,var(--petrol),var(--petrol-2));backdrop-filter:none}
+  .tabbar{background:linear-gradient(172deg,var(--rail-bg,var(--petrol)),var(--rail-bg-2,var(--petrol-2)));backdrop-filter:none}
   .tabbar a{color:color-mix(in srgb,var(--rail-ink,#fff) 72%,transparent)}
   .tabbar a.on{color:var(--rail-ink,#fff)}
-  :root[data-theme=dark] .tabbar{--rail-ink:#fff;background:linear-gradient(172deg,color-mix(in srgb,var(--petrol) 62%,#000),color-mix(in srgb,var(--petrol) 32%,#000))}
+  :root[data-theme=dark] .tabbar{--rail-ink:#fff;background:linear-gradient(172deg,color-mix(in srgb,var(--rail-bg,var(--petrol)) 62%,#000),color-mix(in srgb,var(--rail-bg,var(--petrol)) 32%,#000))}
 }
-@media (max-width:760px) and (prefers-color-scheme:dark){:root:not([data-theme=light]) .tabbar{--rail-ink:#fff;background:linear-gradient(172deg,color-mix(in srgb,var(--petrol) 62%,#000),color-mix(in srgb,var(--petrol) 32%,#000))}}
+@media (max-width:760px) and (prefers-color-scheme:dark){:root:not([data-theme=light]) .tabbar{--rail-ink:#fff;background:linear-gradient(172deg,color-mix(in srgb,var(--rail-bg,var(--petrol)) 62%,#000),color-mix(in srgb,var(--rail-bg,var(--petrol)) 32%,#000))}}
 
 /* ---- animações discretas (desligadas para quem pede menos movimento no sistema) ---- */
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -1032,3 +1032,6 @@ a.stat:hover,a.dcard:hover,.tline .card:hover{transform:translateY(-2px);box-sha
 .g6-b i.ent,.g6-leg.ent{background:var(--petrol)}.g6-b i.sai,.g6-leg.sai{background:var(--bloom)}
 .g6-leg{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
 @media (max-width:760px){.cat-bar{grid-template-columns:100px 1fr 90px}.cols-res{grid-template-columns:1.2fr 1fr 1fr 1fr;font-size:13px}}
+.niver{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--line)}.niver:last-child{border-bottom:0}
+.tour-steps{display:flex;gap:6px;margin:0 0 12px}.tour-steps i{flex:1;height:4px;border-radius:99px;background:var(--line)}.tour-steps i.on{background:var(--bloom)}
+.hoje-it{flex-wrap:wrap}

@@ -86,6 +86,16 @@ export async function renderDashboard() {
     ...noConsent.slice(0, 3).map((x) => ({ c: 'c-warn', t: `Consentimento · ${esc(x.name)}`, s: 'registre antes de gravar a sessão', h: `#/pacientes/${x.id}`, b: 'Abrir' })),
   ];
 
+  // Aniversariantes do mês (pacientes ativos com data de nascimento), do dia mais próximo para o mais distante.
+  const mesHoje = today.slice(5, 7), diaHoje = Number(today.slice(8, 10));
+  const niver = patients.filter((x) => !x.archived && x.birth_date && x.birth_date.slice(5, 7) === mesHoje)
+    .map((x) => ({ ...x, dia: Number(x.birth_date.slice(8, 10)), idade: Number(today.slice(0, 4)) - Number(x.birth_date.slice(0, 4)) }))
+    .sort((a, b) => a.dia - b.dia);
+  const niverHtml = niver.length ? `<section class="panel" style="margin-bottom:16px"><div class="panel-head"><h3>Aniversariantes de ${esc(new Date().toLocaleDateString('pt-BR', { month: 'long' }))}</h3></div>
+    ${niver.map((x) => { const wa = waLink(x.phone, `Olá! Hoje é um dia especial: parabéns, ${x.name.split(' ')[0]}! Muita saúde e alegria. Um abraço de ${p.full_name}.`);
+      return `<div class="niver"><span class="grow"><a href="#/pacientes/${x.id}" style="color:inherit"><b>${esc(x.name)}</b></a><small class="muted"> · dia ${x.dia} · faz ${x.idade} ano${x.idade === 1 ? '' : 's'}</small></span>
+        ${x.dia === diaHoje ? chip('É hoje', 'bloom') : x.dia < diaHoje ? chip('Já passou') : ''}${wa ? `<a class="btn quiet sm" target="_blank" rel="noopener" href="${esc(wa)}">Dar parabéns</a>` : ''}</div>`; }).join('')}</section>` : '';
+
   // Cobranças agendadas que vencem hoje (dia fixo do mês ou data avulsa) e ainda têm sessões em aberto.
   let cobHoje = 0;
   try {
@@ -93,7 +103,7 @@ export async function renderDashboard() {
     const comAberto = new Set(abertas.filter((a) => cobravel(a, p)).map((a) => a.patient_id));
     cobHoje = admins.filter((a) => comAberto.has(a.patient_id) && cobrancaVencida(a, todayISO())).length;
   } catch { cobHoje = 0; }
-  main.innerHTML = pageHeader(`${greeting()}, ${esc(first)}`, esc(longDate())) + (cobHoje ? callout(`<p><b>${cobHoje} cobrança${cobHoje === 1 ? '' : 's'} agendada${cobHoje === 1 ? '' : 's'} para hoje.</b> A mensagem e o PIX já estão prontos; é só conferir e enviar.</p>`, '', '<a class="btn sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a>') : '') + `
+  main.innerHTML = pageHeader(`${greeting()}, ${esc(first)}`, esc(longDate())) + (cobHoje ? callout(`<p><b>${cobHoje} cobrança${cobHoje === 1 ? '' : 's'} agendada${cobHoje === 1 ? '' : 's'} para hoje.</b> A mensagem e o PIX já estão prontos; é só conferir e enviar.</p>`, '', '<a class="btn sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a>') : '') + niverHtml + `
   <div class="dash">
     <section class="dcard wide" aria-label="Sessões de hoje">
       <h3>Sessões de hoje</h3><span class="ill">${ART.clip}</span>
@@ -166,6 +176,7 @@ export async function renderDashboard() {
     </aside>` : ''}
   </div>`;
 
+  if (!p.is_admin) import('./tour.js').then((m) => m.maybeTour()).catch(() => {});
   if ($('#h-lembretes')) $('#h-lembretes').onclick = () => lembretesModal({ aps: amanhaAps, patients, title: `Lembretes de amanhã (${fmtDate(amanhaISO)})` });
   $$('[data-hfalta]').forEach((b) => (b.onclick = async () => {
     const a = todayAps.find((x) => x.id === b.dataset.hfalta);
