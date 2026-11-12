@@ -1,49 +1,45 @@
-# Florescer Relatórios
+# Potira — relatórios clínicos
 
-Sistema web para profissionais de saúde (psicologia, fonoaudiologia, fisioterapia, nutrição, terapia ocupacional e outras) registrarem sessões e gerarem relatórios com apoio de IA.
+> Antes chamada **Florescer Relatórios**. O repositório e o endereço do site mantêm o nome antigo.
 
-- **Login para profissionais e pacientes** — cada profissional vê só os próprios pacientes e relatórios
-- **Gravação ou envio de áudio** → transcrição (Whisper). O áudio nunca é guardado, só o texto (registro para auditoria)
-- **Esboço do relatório com IA (Claude)**, sempre editável e marcado como rascunho até a revisão do profissional
-- **Modelos por área** (Evolução clínica, SOAP, Fono, Fisio, Nutrição, TO, Acompanhamento) e modelos próprios
-- **Relatório por período** de um paciente
-- **Consentimento (LGPD)** registrado por paciente; gravação bloqueada sem consentimento
-- **Portal do paciente**: o paciente vê somente os relatórios revisados e liberados (nunca a transcrição)
-- **Exportação** em Word (.doc) e PDF com timbre do profissional
-- **Trilha de auditoria** (quem criou/alterou/liberou), sem guardar conteúdo clínico no log
+**Site:** https://rafajames.github.io/florescer-relatorios/
+
+## Sobre
+
+A Potira é uma plataforma web para profissionais de saúde (terapia ocupacional, psicologia, fonoaudiologia, fisioterapia, nutrição e outras áreas) cuidarem do registro clínico e da rotina do consultório em um só lugar:
+
+- **Registro clínico:** anamnese, evolução de cada sessão, relatório por período e documento livre, com modelos por área e modelos próprios.
+- **IA opcional:** o sistema funciona sem IA. Com IA conectada (cada profissional usa a própria chave), ela transcreve o áudio e escreve um rascunho, que o profissional sempre revisa.
+- **Paciente:** portal do paciente (só vê o que foi revisado e liberado), anamnese por link para responder no celular e relatório por link com validade e senha.
+- **Administrativo:** agenda semanal, folha de frequência, declarações e convênios.
+- **Financeiro:** cobranças por sessão, PIX copia-e-cola, cobrança agendada, registro de pagamento com leitura do comprovante, despesas, orçamento e recibo.
+- **Marca própria:** logo, cores, timbre, rodapé e assinatura; o menu e os documentos seguem o tema do profissional.
+- **LGPD:** consentimento por paciente, áudio nunca guardado, trilha de auditoria e isolamento por profissional.
+
+A plataforma está em **fase de testes** com profissionais convidados. Usa apenas planos gratuitos (GitHub Pages e Supabase).
+
+## Documentação
+
+| Arquivo | Para que serve |
+| --- | --- |
+| [docs/DIRETRIZES.md](docs/DIRETRIZES.md) | Regras que toda mudança deve seguir para não descaracterizar o projeto. **Leia antes de alterar qualquer coisa.** |
+| [docs/ATUALIZACOES.md](docs/ATUALIZACOES.md) | Histórico do que já foi feito, da versão mais nova para a mais antiga. |
+| [docs/PENDENCIAS.md](docs/PENDENCIAS.md) | O que foi proposto e ainda não foi feito, e o que foi feito mas ainda precisa de revisão ou teste. |
+| [CLAUDE.md](CLAUDE.md) | Resumo para uma nova conversa com o Claude começar já sabendo o que se espera. |
+| [tutoriais/](tutoriais/) | Passo a passo para conectar as chaves de IA (Gemini, Groq, Claude, OpenAI). |
 
 ## Estrutura
 
 ```
-index.html          site (GitHub Pages)
-css/  js/           front-end em JavaScript puro (sem build)
-supabase/schema.sql banco de dados + regras de segurança (PostgreSQL)
-local/              versão antiga de arquivo único (dados só no navegador, sem login)
+index.html            site (GitHub Pages)
+css/app.css           estilos (um arquivo só)
+js/                   front-end em JavaScript puro, em módulos, sem build
+supabase/schema.sql   banco de dados e regras de segurança (PostgreSQL); pode ser rodado de novo sem risco
+tools/stamp.py        carimba a versão no index.html (rodar antes de cada commit)
+docs/                 documentação do projeto
+tutoriais/            tutoriais das chaves de IA
+local/                versão antiga de arquivo único (sem login); não é mais mantida
 ```
-
-## Novidades da versão 3
-
-- **IA opcional.** O sistema funciona sem nenhuma IA (você grava ou digita e escreve o relatório no editor). Com IA, escolha o provedor: **Google Gemini** e **Groq** têm plano gratuito; **Claude** e **OpenAI** são pagos. A conexão pode ser feita no cadastro, no primeiro acesso ou em Configurações → Chaves de IA, com botão de testar. Atenção à LGPD: em planos gratuitos o provedor pode usar o conteúdo enviado; o sistema nunca envia o nome do paciente.
-- **Anamnese e Evolução.** Cada paciente tem anamnese (entrevista inicial, com modelos por área) e evoluções por sessão, além dos relatórios por período, que podem incluir a anamnese como contexto.
-- **Edição a qualquer momento.** O relatório pode ser aberto durante a sessão (com bloco de anotações) e continua editável depois de revisado ou liberado. Alterações em relatório liberado pedem confirmação, e as versões anteriores ficam no Histórico, com botão de restaurar.
-- **Modelos a partir dos seus documentos.** Envie .docx, PDF ou foto (foto exige IA com visão: Gemini, Claude ou OpenAI). O sistema monta um modelo de campos (texto, data, sim/não, escolha) que você ajusta. Ele reproduz a **estrutura** do documento, não o layout visual exato.
-- **Marca própria.** Em Configurações → Aparência: logo, cores, nome, frase de login, rodapé e assinatura. A tela de login mostra a sua marca, pelo link próprio `…/#/c/seu-nome` ou pela última marca usada no navegador.
-- **Áudio melhor.** Ganho ajustável com compressor, medidor de volume, escolha de microfone, teste de 5 segundos com reprodução e captação opcional do áudio da aba (teleconsulta).
-- **Prontuário completo** em PDF ou Word, por paciente.
-
-> Depois de atualizar, rode de novo `supabase/schema.sql` no SQL Editor (é seguro repetir).
-
-## O que há de novo na versão 2 (interface redesenhada)
-
-- **Início orientado à ação**: escolha o paciente e inicie a sessão; fila de "o que precisa da sua atenção" (rascunhos, relatórios revisados não liberados, pacientes sem consentimento) e checklist de configuração.
-- **Busca rápida (Ctrl+K)** por páginas, pacientes e relatórios.
-- **Nova sessão em 3 passos**: paciente e modelo, captação (gravar ou enviar áudio, transcrição editável), opções da IA (nível de detalhe, marcar trechos `[verificar]`, instruções extras).
-- **Editor de relatório com controle por seção**: reordenar, ocultar do paciente (ícone de olho), reescrever uma seção com IA, remover; salvamento automático; fluxo Rascunho → Revisado → Liberado; prévia do portal; exportar só o que o paciente vê.
-- **Lista de relatórios com filtros e ações em lote** (revisar, liberar, retirar, excluir).
-- **Preferências**: detalhamento padrão da IA, instruções permanentes, modelo padrão, padrão de título, salvamento automático.
-- **Dados**: backup completo em JSON, planilha CSV de pacientes e registro de atividades.
-
-> **Atualizando de uma versão anterior?** Execute novamente `supabase/schema.sql` no SQL Editor (é seguro repetir). Ele adiciona a coluna `preferences` e atualiza o portal para respeitar a visibilidade por seção.
 
 ## Como colocar no ar
 
@@ -78,29 +74,10 @@ Dados de saúde são **dados pessoais sensíveis** (LGPD, art. 11). Este projeto
 - O paciente é identificado pelo e-mail cadastrado pelo profissional: se o e-mail estiver errado, o paciente não vê nada (ou outra pessoa com aquele e-mail verá). Confira o e-mail antes de liberar.
 - Não há recuperação de relatórios excluídos nem edição simultânea por vários dispositivos.
 
-## Novidades da versão 4 (design)
-- Tema claro, escuro ou automático; tamanho da letra (normal, grande, extra) e alto contraste, em Configurações → Aparência e marca (vale por aparelho).
-- Carregamento com esqueletos, telas vazias com orientação, áreas de arrastar arquivo (logo, assinatura, áudio, documento-modelo).
-- Início com números e últimos 7 dias; ficha do paciente com linha do tempo única.
-- Editor: transcrição ao lado do texto; no celular, uma seção aberta por vez; botão de gravar fixo na sessão.
-- Atalhos: Ctrl K, Ctrl S, Alt N, Alt H e `?` para ajuda.
-- Estilo dos documentos (letra, margem, cabeçalho) e prévia do PDF antes de imprimir.
-Não exige mudança no banco.
+## Limitações conhecidas
 
-## Registro profissional e redes (versão 4.1)
-Em Configurações → Perfil: conselho, número, UF, categoria e links (Instagram, site, outra rede). O paciente vê isso no portal. Não há verificação automática. **Rode o `supabase/schema.sql` de novo** (cria a coluna `credentials` e atualiza a função do portal).
-
-## Texto com formatação (versão 4.2)
-Campos longos do relatório têm barra de formatação (negrito, itálico, sublinhado, listas, título, alinhamento). Vale no editor, no portal e nas exportações. Sem mudança no banco.
-
-## Documento livre (versão 4.3)
-Na ficha do paciente, "Novo documento": página livre com formatação e tabelas. O paciente só vê depois de revisado e liberado. Exige a atualização do `reports_kind_check` (já em `supabase/schema.sql`).
-
-## Versão sem cache
-`python3 tools/stamp.py` carimba a versão em `index.html` (mapa de módulos). Roda sozinho antes de cada commit; assim o navegador não mostra uma versão antiga.
-
-## v5 — Administração
-Painel `#/admin` (só para quem tem `is_admin`): modelos do sistema, textos padrão (consentimento, rodapé, áreas), nomes dos modelos de IA, aviso geral, lista de profissionais (ativar/desativar) e tópicos extras da Ajuda. O administrador não acessa pacientes, relatórios nem transcrições. SQL em `supabase/admin.sql`. Para conceder o acesso: `update public.profiles set is_admin = true where id = (select id from auth.users where email = 'SEU@EMAIL');`
-
-### v5.1
-Admin: uso (só totais), convites (exigência opcional, desligada por padrão), registro de ações com "Desfazer", resetar autenticador, serviços de IA extras (compatíveis com OpenAI) e lista de modelos por serviço. Autenticador (TOTP) opcional em Configurações → Segurança, desligado por padrão; quem perde o aparelho usa "Perdi meu autenticador" (link por e-mail) ou pede reset ao admin. SQL em `supabase/admin2.sql`.
+- A exportação "Word" gera um `.doc` em HTML (abre e edita no Word); não é `.docx` nativo, e não leva a marca d'água.
+- O paciente do portal é identificado pelo e-mail cadastrado pelo profissional. Confira o e-mail antes de liberar.
+- Não há recuperação de relatórios excluídos nem edição simultânea em vários aparelhos.
+- A cobrança não é enviada sozinha: o sistema deixa a mensagem pronta e o profissional envia.
+- Não funciona sem internet.

@@ -44,6 +44,9 @@ export function applyBrand(b) {
   const s = document.documentElement.style;
   s.setProperty('--petrol', c); s.setProperty('--petrol-2', darken(c));
   s.setProperty('--bloom', a); s.setProperty('--bloom-2', darken(a, 0.18));
+  // Menu colorido: texto claro sobre cor escura e texto escuro sobre cor clara.
+  const [r, g, bl] = hexToRgb(c);
+  s.setProperty('--rail-ink', (0.299 * r + 0.587 * g + 0.114 * bl) > 165 ? '#10252d' : '#ffffff');
   document.title = b?.org_name ? `${b.org_name}` : 'Potira - relatórios clínicos';
 }
 

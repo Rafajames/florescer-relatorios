@@ -98,7 +98,13 @@ export async function renderHelp() {
     <div id="topics">${H.TOPICS.map((tp) => `<details class="panel help-topic" open><summary><h2>${esc(tp.t)}</h2><a class="btn quiet sm" href="${tp.link}">${icon('right')}${esc(tp.where)}</a></summary>
       <dl class="help-list">${tp.items.map(([k, v]) => `<div class="help-item"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></details>`).join('')}</div>
     ${extra.map((x) => `<details class="panel help-topic" open><summary><h2>${esc(x.t)}</h2></summary><dl class="help-list"><div class="help-item"><dd style="white-space:pre-wrap">${esc(x.text)}</dd></div></dl></details>`).join('')}
-    <p id="hnone" class="muted hide">Nada encontrado. Tente outra palavra.</p>`;
+    <p id="hnone" class="muted hide">Nada encontrado. Tente outra palavra.</p>
+    <section class="panel" id="sobre"><h2>Sobre a Potira</h2>
+      <p>A Potira é uma plataforma para profissionais de saúde registrarem sessões, escreverem anamneses, evoluções e relatórios, cuidarem da agenda e das cobranças, e entregarem documentos ao paciente com segurança. A inteligência artificial é opcional: o sistema funciona sem ela.</p>
+      <p class="muted small">Cada profissional vê só os próprios pacientes. O áudio das sessões nunca é guardado. Dados de saúde são tratados conforme a LGPD.</p>
+      <div class="row"><a class="btn quiet sm" target="_blank" rel="noopener" href="https://github.com/Rafajames/florescer-relatorios/blob/main/docs/ATUALIZACOES.md">${icon('file')}Novidades e atualizações</a>
+      <a class="btn quiet sm" href="termos.html" target="_blank" rel="noopener">Termos de uso</a><a class="btn quiet sm" href="privacidade.html" target="_blank" rel="noopener">Privacidade</a></div>
+    </section>`;
   $('#hq').oninput = (e) => {
     const q = e.target.value.trim().toLowerCase(); let any = false;
     $$('.help-topic').forEach((d) => {

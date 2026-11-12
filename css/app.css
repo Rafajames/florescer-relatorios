@@ -952,3 +952,54 @@ details.menu[open]>summary{background:var(--petrol-tint,#e2eef1)}
   .menu-list{position:fixed;left:14px;right:14px;top:auto;bottom:calc(96px + env(safe-area-inset-bottom));min-width:0}
 }
 .head>.grow{min-width:min(100%,300px)}.head>.row{flex-wrap:wrap}
+
+/* ---- menu colorido: usa a cor do tema escolhido pelo profissional (Configurações → Aparência e marca) ---- */
+.rail{background:linear-gradient(172deg,var(--petrol) 0%,var(--petrol-2) 100%);color:var(--rail-ink,#fff)}
+.rail .brand,.rail .brand b{color:var(--rail-ink,#fff)}
+.rail .brand .mark{background:color-mix(in srgb,var(--rail-ink,#fff) 18%,transparent);color:var(--rail-ink,#fff)}
+.rail .brand .mark.has-logo{background:#fff}
+.rail .nav-sec{color:color-mix(in srgb,var(--rail-ink,#fff) 60%,transparent)}
+.rail .nav a{color:color-mix(in srgb,var(--rail-ink,#fff) 86%,transparent)}
+.rail .nav a:hover{background:color-mix(in srgb,var(--rail-ink,#fff) 13%,transparent);color:var(--rail-ink,#fff)}
+.rail .nav a.on,:root[data-theme=dark] .rail .nav a.on{background:var(--rail-ink,#fff);color:var(--petrol);font-weight:600;box-shadow:0 6px 16px -8px rgba(0,0,0,.45)}
+.rail .theme-row{color:color-mix(in srgb,var(--rail-ink,#fff) 86%,transparent)}
+.rail .theme-tog{background:color-mix(in srgb,var(--rail-ink,#fff) 16%,transparent)}
+.rail .theme-tog button{color:color-mix(in srgb,var(--rail-ink,#fff) 70%,transparent)}
+.rail .theme-tog button.on{background:var(--rail-ink,#fff);color:var(--petrol)}
+.rail .rail-credit{color:color-mix(in srgb,var(--rail-ink,#fff) 55%,transparent)}
+.rail .rail-foot{border-top-color:color-mix(in srgb,var(--rail-ink,#fff) 22%,transparent)}
+.rail .rail-foot .who b{color:var(--rail-ink,#fff)}
+.rail .rail-foot .who span,.rail .rail-foot .icon-btn{color:color-mix(in srgb,var(--rail-ink,#fff) 74%,transparent)}
+.rail .rail-foot .icon-btn:hover{background:color-mix(in srgb,var(--rail-ink,#fff) 14%,transparent)}
+/* tema escuro: a mesma cor, mais fechada, sempre com texto claro */
+:root[data-theme=dark] .rail{--rail-ink:#fff;background:linear-gradient(172deg,color-mix(in srgb,var(--petrol) 62%,#000) 0%,color-mix(in srgb,var(--petrol) 32%,#000) 100%)}
+:root[data-theme=dark] .rail .nav a.on{background:rgba(255,255,255,.16);color:#fff;box-shadow:none}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme=light]) .rail{--rail-ink:#fff;background:linear-gradient(172deg,color-mix(in srgb,var(--petrol) 62%,#000) 0%,color-mix(in srgb,var(--petrol) 32%,#000) 100%)}
+  :root:not([data-theme=light]) .rail .nav a.on{background:rgba(255,255,255,.16);color:#fff;box-shadow:none}
+}
+/* menu do celular (barra de baixo) na mesma cor */
+@media (max-width:760px){
+  .tabbar{background:linear-gradient(172deg,var(--petrol),var(--petrol-2));backdrop-filter:none}
+  .tabbar a{color:color-mix(in srgb,var(--rail-ink,#fff) 72%,transparent)}
+  .tabbar a.on{color:var(--rail-ink,#fff)}
+  :root[data-theme=dark] .tabbar{--rail-ink:#fff;background:linear-gradient(172deg,color-mix(in srgb,var(--petrol) 62%,#000),color-mix(in srgb,var(--petrol) 32%,#000))}
+}
+@media (max-width:760px) and (prefers-color-scheme:dark){:root:not([data-theme=light]) .tabbar{--rail-ink:#fff;background:linear-gradient(172deg,color-mix(in srgb,var(--petrol) 62%,#000),color-mix(in srgb,var(--petrol) 32%,#000))}}
+
+/* ---- animações discretas (desligadas para quem pede menos movimento no sistema) ---- */
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.page>*{animation:rise .34s cubic-bezier(.2,.7,.2,1) both}
+.page>*:nth-child(2){animation-delay:.04s}.page>*:nth-child(3){animation-delay:.08s}.page>*:nth-child(4){animation-delay:.12s}.page>*:nth-child(n+5){animation-delay:.16s}
+dialog.modal[open]{animation:pop .2s cubic-bezier(.2,.8,.2,1) both}
+dialog.modal[open]::backdrop,dialog.cmd[open]::backdrop{animation:fade .2s ease both}
+details.menu[open]>.menu-list{animation:pop .16s ease both}
+.rail .nav a,.tabbar a,.tab,.btn,.icon-btn,.tr,.stat,.dcard,.panel,.modal-x{transition:background-color .16s ease,color .16s ease,transform .16s ease,box-shadow .2s ease,border-color .16s ease}
+.rail .nav a:hover{transform:translateX(3px)}
+.rail .nav a svg{transition:transform .2s ease}.rail .nav a:hover svg,.rail .nav a.on svg{transform:scale(1.12)}
+.btn:active{transform:scale(.97)}
+a.stat:hover,a.dcard:hover,.tline .card:hover{transform:translateY(-2px);box-shadow:0 12px 26px -16px rgba(10,40,50,.45)}
+.tabbar a.cta .circle{transition:transform .18s ease}.tabbar a.cta:active .circle{transform:scale(.92)}
+.chip{animation:fade .3s ease both}
