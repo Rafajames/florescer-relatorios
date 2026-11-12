@@ -171,13 +171,31 @@ export const updateAppointment = (id, patch) =>
 export const deleteAppointment = (id) => sb.from('appointments').delete().eq('id', id).then(unwrap);
 /** Ao registrar a evolução de uma sessão, marca como realizada a sessão agendada do paciente naquele dia (a primeira do horário). Retorna a sessão marcada ou null. */
 export const markSessionRealized = async (patientId, date) => {
-  const { data, error } = await sb.from('appointments').select('id').eq('patient_id', patientId).eq('date', date).eq('status', 'agendado')
+  const { data, error } = await sb.from('appointments').select('id,patient_id,amount').eq('patient_id', patientId).eq('date', date).eq('status', 'agendado')
     .order('time', { nullsFirst: true }).limit(1);
   if (error) throw error;
   const a = data && data[0];
   if (!a) return null;
-  return updateAppointment(a.id, { status: 'realizado' });
+  return setAppointmentStatus(a, 'realizado');
 };
+/**
+ * Muda a situação da sessão. Ao virar "realizado", grava o valor da sessão (preço do paciente naquele
+ * momento), para que mudanças futuras de preço não alterem cobranças antigas.
+ */
+export const setAppointmentStatus = async (a, status) => {
+  const patch = { status };
+  if (status === 'realizado' && a.amount == null) {
+    const adm = await getPatientAdmin(a.patient_id).catch(() => null);
+    if (adm && adm.session_price != null) patch.amount = adm.session_price;
+  }
+  return updateAppointment(a.id, patch);
+};
+/** Tudo o que está em aberto (qualquer data): sessões realizadas ou faltas, ainda não pagas. */
+export const listOpenCharges = () =>
+  sb.from('appointments').select('*,patients(name)').neq('payment_status', 'pago').in('status', ['realizado', 'falta']).order('date').order('time', { nullsFirst: true }).then(unwrap);
+/** Pagamentos recebidos no período, pela data do pagamento (e não pela data da sessão). */
+export const listPaidBetween = (from, to) =>
+  sb.from('appointments').select('*,patients(name)').eq('payment_status', 'pago').gte('paid_on', from).lte('paid_on', to).then(unwrap);
 export const getPatientAdmin = (patientId) =>
   sb.from('patient_admin').select('*').eq('patient_id', patientId).maybeSingle().then(unwrap);
 export const savePatientAdmin = (row) =>

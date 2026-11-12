@@ -917,3 +917,38 @@ dialog.modal h3{padding-right:34px}
 .tpl-lay figure{margin:0;border:1px solid rgba(13,58,74,.15);border-radius:10px;padding:10px;background:#fff;text-align:center}
 .tpl-lay figure img{display:block;max-width:200px;max-height:110px;margin:0 auto 6px}
 .tpl-lay figcaption{font-size:13px;color:#333}
+
+/* ---- revisão: tabelas do financeiro, menus suspensos, abas no celular, agenda compacta ---- */
+.cols-cob{grid-template-columns:120px minmax(0,1.2fr) 140px minmax(0,1.3fr) 215px}
+.cols-val{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) 150px 150px}
+.cols-ex{grid-template-columns:100px minmax(0,1fr) 120px 40px}
+.fin-dev{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap}
+.fin-dev-chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fin-dev-act{display:flex;gap:6px;flex-wrap:wrap}
+.fin-dl{margin:4px 0 0;display:grid;gap:6px}
+.fin-dl div{display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-size:14px}
+.fin-dl dt{color:var(--ink-2)}.fin-dl dd{margin:0;font-weight:600;text-align:right}
+.fin-dl div:first-child dd{font-size:20px}
+details.menu{position:relative;display:inline-block}
+details.menu>summary{list-style:none;cursor:pointer;user-select:none}
+details.menu>summary::-webkit-details-marker{display:none}
+details.menu[open]>summary{background:var(--petrol-tint,#e2eef1)}
+.menu-list{position:absolute;z-index:30;top:calc(100% + 6px);left:0;min-width:240px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 14px 34px -12px rgba(10,40,50,.35);display:grid;gap:2px}
+.menu-list a,.menu-list button{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;border-radius:8px;background:none;color:var(--ink);font:500 14.5px var(--sans);text-align:left;text-decoration:none;cursor:pointer}
+.menu-list a:hover,.menu-list button:hover,.menu-list a:focus-visible,.menu-list button:focus-visible{background:var(--petrol-tint,#e2eef1)}
+.tabs{overflow-x:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tab{flex:none;white-space:nowrap}
+.ag-day h3 .ag-livre{font-weight:400;margin-left:2px}
+.ag-day h3 .link{margin-left:auto;font-weight:600}
+.ag-day.vazio{margin-bottom:6px;padding:8px 0;border-bottom:1px solid var(--line)}.ag-day.vazio h3{margin:0;font-weight:500;color:var(--ink-2)}
+@media (max-width:760px){
+  .head{align-items:flex-start}.head>.grow{flex-basis:100%}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stat{padding:14px 14px}.stat b{font-size:22px;white-space:nowrap}
+  .fin-dev>.t{flex:1 1 100%}
+  .cols-cob,.cols-val,.cols-ex{grid-template-columns:1fr 1fr;gap:8px}
+  .cols-cob.th,.cols-val.th{display:none}
+  .cols-cob>:nth-child(2),.cols-cob>:nth-child(4),.cols-ex>:nth-child(2){grid-column:1 / -1}
+  .cols-cob>:nth-child(2){order:-1;font-weight:600}
+  .fin-dev-act{width:100%}.fin-dev-act .btn{flex:1}
+  .menu-list{position:fixed;left:14px;right:14px;top:auto;bottom:calc(96px + env(safe-area-inset-bottom));min-width:0}
+}
+.head>.grow{min-width:min(100%,300px)}.head>.row{flex-wrap:wrap}

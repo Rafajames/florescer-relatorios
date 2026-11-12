@@ -266,6 +266,15 @@ export async function extractTemplateFromImage(image) {
   const out = parseJson(await ask(TEMPLATE_SYSTEM, 'Esta é uma imagem (foto ou digitalização) do documento-modelo. Extraia os campos.', { maxTokens: 3000, json: true, image }));
   return cleanTemplate(out);
 }
+/** Lê um comprovante de pagamento (imagem ou texto) e devolve { amount, date (aaaa-mm-dd), payer }. O profissional confere antes de salvar. */
+const RECEIPT_SYSTEM = `Você lê um comprovante de pagamento brasileiro (PIX, transferência ou depósito) e extrai os dados.
+Responda APENAS com JSON válido: {"amount": <valor pago em reais, número com ponto decimal, ou null>, "date": "<data do pagamento em AAAA-MM-DD, ou null>", "payer": "<nome de quem pagou, ou vazio>"}
+Não invente: se um dado não estiver legível, use null.`;
+export async function readReceipt({ image, text }) {
+  const out = parseJson(await ask(RECEIPT_SYSTEM, image ? 'Esta é a imagem do comprovante.' : `Texto do comprovante:\n"""\n${String(text || '').slice(0, 6000)}\n"""`, { maxTokens: 300, json: true, ...(image ? { image } : {}) }));
+  const amount = Number(out.amount);
+  return { amount: amount > 0 ? amount : null, date: /^\d{4}-\d{2}-\d{2}$/.test(out.date || '') ? out.date : null, payer: String(out.payer || '').trim() };
+}
 function cleanTemplate(o) {
   const types = ['curto', 'longo', 'data', 'marcar', 'escolha'];
   const sections = (Array.isArray(o.sections) ? o.sections : []).map((s) => {

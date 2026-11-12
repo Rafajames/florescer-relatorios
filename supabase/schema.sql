@@ -869,3 +869,48 @@ begin
           (now() at time zone 'America/Sao_Paulo')::date, secs, 'rascunho');
   update public.share_links set responded_at = now(), consent_at = now(), consent_text = p_consent_text where id = l.id;
 end $$;
+
+-- ---------------------------------------------------------------------
+-- v12: cobrança agendada por paciente (dia fixo do mês ou data avulsa),
+-- marca do profissional na anamnese por link e timbre do modelo no
+-- relatório por link
+-- ---------------------------------------------------------------------
+alter table public.patient_admin add column if not exists billing_day smallint;
+alter table public.patient_admin drop constraint if exists patient_admin_billing_day_check;
+alter table public.patient_admin add constraint patient_admin_billing_day_check check (billing_day is null or billing_day between 1 and 28);
+alter table public.patient_admin add column if not exists next_charge_on date;   -- cobrança avulsa agendada
+alter table public.patient_admin add column if not exists last_charged_on date;  -- última cobrança enviada
+
+create or replace function public.public_get_link(p_token text, p_password_hash text default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare l public.share_links; p public.profiles; pat public.patients; t public.templates; r public.reports;
+begin
+  select * into l from public.share_links where token = p_token;
+  if not found or l.expires_at < now() then raise exception 'link_invalido'; end if;
+  select * into p from public.profiles where id = l.professional_id;
+  select * into pat from public.patients where id = l.patient_id;
+  if l.kind = 'anamnese' then
+    if l.fields is null then
+      select * into t from public.templates where id = l.template_id;
+      if not found then raise exception 'link_invalido'; end if;
+    end if;
+    return jsonb_build_object('kind','anamnese','expires_at',l.expires_at,'responded', l.responded_at is not null,
+      'patient_name', pat.name, 'professional_name', p.full_name, 'specialty', p.specialty,
+      'branding', jsonb_build_object('org_name', p.branding->>'org_name', 'logo', p.branding->>'logo', 'color', p.branding->>'color'),
+      'title', coalesce(t.name, 'Anamnese'), 'sections', coalesce(l.fields, t.sections));
+  end if;
+  if l.password_hash is not null and (p_password_hash is null or p_password_hash <> l.password_hash) then
+    return jsonb_build_object('kind','relatorio','needs_password', true, 'expires_at', l.expires_at);
+  end if;
+  select * into r from public.reports where id = l.report_id;
+  if not found or r.status <> 'revisado' then raise exception 'relatorio_indisponivel'; end if;
+  return jsonb_build_object('kind','relatorio','needs_password', false, 'expires_at', l.expires_at,
+    'patient_name', pat.name, 'professional_name', p.full_name, 'specialty', p.specialty, 'council_registry', p.council_registry,
+    'branding', coalesce(p.branding, '{}'::jsonb) - 'payment' - 'insurers' - 'recibo_seq',
+    'layout', (select tp.meta->'layout' from public.templates tp where tp.id = r.template_id
+               and tp.meta ? 'layout' and coalesce((tp.meta->'layout'->>'use')::boolean, true)),
+    'report_kind', r.kind, 'title', r.title, 'session_date', r.session_date, 'period_start', r.period_start, 'period_end', r.period_end,
+    'sections', (select coalesce(jsonb_agg(s), '[]'::jsonb) from jsonb_array_elements(r.sections) s
+                 where coalesce((s->>'patient_visible')::boolean, true)));
+end $$;
+

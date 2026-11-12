@@ -70,6 +70,11 @@ export async function renderReport(id) {
           ${reviewed && !r.patients?.email ? '<p class="small muted" style="margin-top:8px">Cadastre o e-mail do paciente para poder liberar.</p>' : ''}
           <div class="save-state" id="savestate"></div>
         </div>
+        ${r.kind === 'anamnese' ? `<div class="panel">
+          <h3>Cadastro do paciente</h3>
+          <p class="small muted">Leva nascimento, responsáveis e diagnóstico desta anamnese para a ficha do paciente. Você confere antes.</p>
+          <button class="btn quiet" id="to-cad">${icon('users')}Atualizar cadastro</button>
+        </div>` : ''}
         <div class="panel">
           <h3>Entrega</h3>
           <div class="stack-btns" style="margin-top:8px">
@@ -317,6 +322,29 @@ export async function renderReport(id) {
       report: { ...r, title: $('#title').value.trim() || r.title, session_date: $('#date')?.value || r.session_date },
       patientName: r.patients.name, professional: state.profile, sections: secs, layout,
     };
+  };
+  if ($('#to-cad')) $('#to-cad').onclick = async () => {
+    const txt = (re) => { const sec = sections.find((x) => re.test(x.title || '')); return sec ? String(sec.text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : ''; };
+    const dm = txt(/nascimento/i).match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    const nasc = dm ? `${dm[3]}-${dm[2]}-${dm[1]}` : '';
+    const resp = txt(/pais|respons[áa]ve|m[ãa]e/i), diag = txt(/diagn[óo]stico/i);
+    const achados = [nasc && ['nasc', 'Data de nascimento', `${dm[1]}/${dm[2]}/${dm[3]}`], resp && ['resp', 'Responsáveis', resp], diag && ['diag', 'Diagnóstico (vai para as Observações)', diag]].filter(Boolean);
+    if (!achados.length) return toast('Não encontrei nascimento, responsáveis nem diagnóstico preenchidos nesta anamnese.', 'err');
+    const pick = await openModal('Atualizar cadastro do paciente', `<p>Marque o que deve ir para a ficha de <b>${esc(r.patients.name)}</b>. O que já estiver lá é substituído.</p>
+      ${achados.map(([k, l, v]) => `<label class="check" style="align-items:flex-start;margin-bottom:8px"><input type="checkbox" name="${k}" checked><span><b>${l}:</b> ${esc(v)}</span></label>`).join('')}`,
+    { okText: 'Atualizar cadastro', onOk: (d) => Object.fromEntries(achados.map(([k]) => [k, d.querySelector(`[name=${k}]`).checked])) });
+    if (!pick || pick === true) return;
+    try {
+      const pid = r.patients.id;
+      if (pick.nasc || pick.diag) {
+        const atual = await api.getPatient(pid);
+        const linha = `Diagnóstico: ${diag}`;
+        const notes = pick.diag && !String(atual.notes || '').includes(linha) ? [atual.notes, linha].filter(Boolean).join('\n') : atual.notes;
+        await api.savePatient({ id: pid, ...(pick.nasc ? { birth_date: nasc } : {}), notes: notes || null });
+      }
+      if (pick.resp) await api.savePatientAdmin({ patient_id: pid, guardian: resp.slice(0, 200) });
+      toast('Cadastro do paciente atualizado.');
+    } catch (err) { toast(err.message || String(err), 'err'); }
   };
   $('#word').onclick = () => exportWord(exportArgs());
   $('#pdf').onclick = () => {

@@ -104,8 +104,8 @@ const NAV = [
   ['painel', '#/painel', 'home', 'Início'],
   ['pacientes', '#/pacientes', 'users', 'Pacientes'],
   ['relatorios', '#/relatorios', 'file', 'Relatórios'],
-  ['periodo', '#/periodo', 'calendar', 'Por período'],
-  ['modelos', '#/modelos', 'layout', 'Modelos'],
+  ['periodo', '#/periodo', 'calendar', 'Relatório por período'],
+  ['modelos', '#/modelos', 'layout', 'Modelos de documento'],
   ['administrativo', '#/administrativo', 'clipboard', 'Administrativo'],
   ['financeiro', '#/financeiro', 'wallet', 'Financeiro'],
   ['config', '#/config', 'sliders', 'Configurações'],
@@ -222,3 +222,9 @@ export const pageHeader = (title, sub = '', actions = '') =>
   `<header class="head"><div class="grow"><h1>${esc(title)}</h1>${sub ? `<p class="sub">${sub}</p>` : ''}</div><div class="row">${actions}</div></header>`;
 export const backLink = (href, text) => `<a class="back" href="${href}">${icon('left')}${esc(text)}</a>`;
 export { icon };
+
+// Menus suspensos (<details class="menu">): clicar fora ou escolher um item fecha o que estiver aberto.
+document.addEventListener('click', (e) => {
+  document.querySelectorAll('details.menu[open]').forEach((m) => { if (!m.contains(e.target) || e.target.closest('.menu-list a, .menu-list button')) m.removeAttribute('open'); });
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('details.menu[open]').forEach((m) => m.removeAttribute('open')); });

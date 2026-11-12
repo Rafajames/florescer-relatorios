@@ -1,8 +1,9 @@
-// Financeiro: cobranças dos sessões realizados, valores por paciente, despesas,
+// Financeiro: cobranças das sessões realizadas, valores por paciente, despesas,
 // orçamento, recibo e dados de pagamento. Cada profissional vê só os próprios dados.
 import * as api from './api.js';
 import { state } from './state.js';
-import { abrirCobranca } from './cobrar.js';
+import { abrirCobranca, registrarPagamento, agendarCobranca } from './cobrar.js';
+import { cobravel, cobrancaVencida } from './cobranca.js';
 import {
   buildOrcamento, exportOrcamentoPdf, exportOrcamentoWord, exportReciboPdf, exportReciboWord, brl,
 } from './export.js';
@@ -60,49 +61,66 @@ async function loadBase(from, to) {
 
 /* ---------- Cobranças ---------- */
 async function chargesTab(pane, mes, from, to) {
-  const { patients, aps, priceOf, amountOf } = await loadBase(from, to);
-  const real = aps.filter((a) => a.status === 'realizado');
+  const [{ patients, adm, aps, priceOf, amountOf }, abertas, pagasNoMes, expenses] = await Promise.all([
+    loadBase(from, to), api.listOpenCharges(), api.listPaidBetween(from, to), api.listExpenses({ from, to }),
+  ]);
+  const prof = state.profile;
+  const hoje = todayISO();
+  const doMes = aps.filter((a) => cobravel(a, prof));
   const sum = (list) => list.reduce((s, a) => s + amountOf(a), 0);
-  const recebido = sum(real.filter((a) => a.payment_status === 'pago'));
-  const aReceber = sum(real.filter((a) => a.payment_status !== 'pago'));
-  const expenses = await api.listExpenses({ from, to });
+  // Recebido: pela data do pagamento. A receber: tudo em aberto, de qualquer mês.
+  const recebido = sum(pagasNoMes);
+  const emAberto = abertas.filter((a) => cobravel(a, prof));
+  const aReceber = sum(emAberto);
   const despesas = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
 
-  // Inadimplência: sessões realizadas e não pagas, agrupadas por paciente.
+  // Em aberto por paciente (todas as datas), com as cobranças agendadas vencidas primeiro.
   const byPatient = new Map();
-  real.filter((a) => a.payment_status !== 'pago').forEach((a) => {
+  emAberto.forEach((a) => {
     if (!byPatient.has(a.patient_id)) byPatient.set(a.patient_id, { id: a.patient_id, name: a.patients?.name || 'Paciente', items: [] });
-    byPatient.get(a.patient_id).items.push({ date: a.date, time: a.time, amount: amountOf(a) });
+    byPatient.get(a.patient_id).items.push({ id: a.id, date: a.date, time: a.time, amount: amountOf(a) });
   });
-  const devedores = [...byPatient.values()].sort((x, y) => y.items.length - x.items.length);
-  const maisAntiga = (items) => items.map((i) => i.date).sort()[0];
-  const diasEmAberto = (d) => Math.max(0, Math.round((new Date(todayISO()) - new Date(d)) / 864e5));
+  const devedores = [...byPatient.values()].map((d) => ({ ...d, vencida: cobrancaVencida(adm[d.id], hoje) }))
+    .sort((x, y) => (y.vencida - x.vencida) || x.items[0].date.localeCompare(y.items[0].date));
+  const diasEmAberto = (d) => Math.max(0, Math.round((new Date(hoje) - new Date(d)) / 864e5));
+  const agendaTxt = (d) => {
+    const a = adm[d.id] || {};
+    if (d.vencida) return chip('Cobrar hoje', 'bloom');
+    if (a.next_charge_on) return chip(`Agendada para ${fmtDate(a.next_charge_on)}`, 'petrol');
+    if (a.billing_day) return chip(`Todo dia ${a.billing_day}`, 'petrol');
+    return '';
+  };
+  const vencidas = devedores.filter((d) => d.vencida).length;
   const devedoresHtml = devedores.length ? `<section class="panel" style="margin-bottom:16px">
-      <h3>Inadimplência</h3>
-      <p class="muted small">Sessões realizadas e ainda não pagas, por paciente.</p>
+      <h3>Em aberto por paciente</h3>
+      <p class="muted small">Sessões ainda não pagas, de qualquer mês.${vencidas ? ` <b>${vencidas} cobrança(s) agendada(s) para hoje.</b>` : ''}</p>
       <div class="table">${devedores.map((d) => {
         const total = d.items.reduce((s, i) => s + i.amount, 0);
-        const dias = diasEmAberto(maisAntiga(d.items));
-        return `<div class="tr" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <span class="grow t">${esc(d.name)}<small class="muted"> · ${d.items.length} sessão(ões) · mais antiga em ${fmtDate(maisAntiga(d.items))}</small></span>
-          ${chip(dias ? `${dias} dia(s) em aberto` : 'hoje', dias > 14 ? 'warn' : '')}<b>${brl(total)}</b>
-          <button class="btn quiet sm" data-cobrar="${d.id}">Cobrar</button></div>`;
+        const dias = diasEmAberto(d.items[0].date);
+        return `<div class="tr fin-dev">
+          <span class="grow t">${esc(d.name)}<small class="muted"> · ${d.items.length} sessão(ões) · mais antiga em ${fmtDate(d.items[0].date)}</small></span>
+          <span class="fin-dev-chips">${agendaTxt(d)}${chip(dias ? `${dias} dia(s) em aberto` : 'hoje', dias > 30 ? 'warn' : '')}<b>${brl(total)}</b></span>
+          <span class="fin-dev-act"><button class="btn sm" data-cobrar="${d.id}">Cobrar</button>
+          <button class="btn quiet sm" data-pago="${d.id}">Registrar pagamento</button>
+          <button class="btn quiet sm" data-agendar="${d.id}">Agendar</button></span></div>`;
       }).join('')}</div></section>` : '';
   const devById = Object.fromEntries(devedores.map((d) => [d.id, d]));
 
-  pane.innerHTML = `${devedoresHtml}
+  pane.innerHTML = `
     <div class="stats">
-      <div class="stat ok"><b>${brl(recebido)}</b><span>Recebido no mês</span></div>
-      <div class="stat warn"><b>${brl(aReceber)}</b><span>A receber</span></div>
-      <div class="stat"><b>${brl(despesas)}</b><span>Despesas</span></div>
-      <div class="stat"><b>${brl(recebido - despesas)}</b><span>Saldo</span></div>
+      <div class="stat ok"><b>${brl(recebido)}</b><span>Recebido em ${esc(monthLabel(mes))}</span></div>
+      <div class="stat warn"><b>${brl(aReceber)}</b><span>A receber (total em aberto)</span></div>
+      <div class="stat"><b>${brl(despesas)}</b><span>Despesas do mês</span></div>
+      <div class="stat"><b>${brl(recebido - despesas)}</b><span>Saldo do mês</span></div>
     </div>
-    ${real.length ? `<div class="table cols-cob" id="cob">
+    ${devedoresHtml}
+    <h3 style="margin:18px 0 10px">Sessões de ${esc(monthLabel(mes))}</h3>
+    ${doMes.length ? `<div class="table cols-cob" id="cob">
       <div class="tr th cols-cob"><span>Sessão</span><span>Paciente</span><span>Valor</span><span>Situação</span><span>Forma</span></div>
-      ${real.map((a) => {
+      ${doMes.map((a) => {
         const sem = a.amount == null && !priceOf(a.patient_id);
         return `<div class="tr cols-cob" data-id="${a.id}">
-          <span>${fmtDate(a.date)} <small class="muted">${esc(hhmm(a.time))}</small></span>
+          <span>${fmtDate(a.date)} <small class="muted">${esc(hhmm(a.time))}</small>${a.status === 'falta' ? ' ' + chip('Falta', 'warn') : ''}</span>
           <span class="ellip">${esc(a.patients?.name || '')}</span>
           <span><input type="number" step="0.01" min="0" class="cob-val" value="${amountOf(a) || ''}" aria-label="Valor" style="width:110px;margin:0;min-height:0;padding:5px 8px">${sem ? chip('sem valor', 'warn') : ''}</span>
           <span><select class="cob-st" aria-label="Situação" style="width:auto;margin:0;min-height:0;padding:5px 8px">
@@ -113,8 +131,8 @@ async function chargesTab(pane, mes, from, to) {
         </div>`;
       }).join('')}
     </div>
-    <p class="muted small" style="margin-top:10px">Cada sessão marcada como <b>realizado</b> no Administrativo vira uma cobrança aqui. O valor vem do preço do paciente, mas você pode alterar caso a caso.</p>`
-      : emptyState('Nenhuma sessão realizada neste mês', 'Marque as sessões como realizadas na agenda do Administrativo. Elas aparecem aqui como cobranças.', '<a class="btn quiet" href="#/administrativo">Ir para a agenda</a>')}`;
+    <p class="muted small" style="margin-top:10px">Cada sessão marcada como <b>realizada</b> vira uma cobrança${prof?.branding?.charge_absence ? ' (faltas sem justificativa também)' : ''}. O valor é gravado quando a sessão é realizada; você pode alterar caso a caso.</p>`
+      : emptyState('Nenhuma sessão para cobrar neste mês', 'Marque as sessões como realizadas na agenda do Administrativo. Elas aparecem aqui como cobranças.', '<a class="btn quiet" href="#/administrativo">Ir para a agenda</a>')}`;
 
   const saveRow = async (row) => {
     const id = row.dataset.id;
@@ -126,12 +144,19 @@ async function chargesTab(pane, mes, from, to) {
       paid_on: st === 'pago' ? (dt.value || todayISO()) : null,
       payment_method: $('.cob-m', row).value || null,
     };
-    dt.style.display = st === 'pago' ? '' : 'none';
-    dt.value = patch.paid_on || '';
     try { await api.updateAppointment(id, patch); toast('Cobrança atualizada.'); refresh(); }
     catch (err) { toast(err.message, 'err'); }
   };
-  $$('[data-cobrar]').forEach((b) => (b.onclick = () => cobrar(devById[b.dataset.cobrar], patients.find((x) => x.id === b.dataset.cobrar))));
+  const pat = (id) => patients.find((x) => x.id === id);
+  $$('[data-cobrar]').forEach((b) => (b.onclick = () => cobrar(devById[b.dataset.cobrar], pat(b.dataset.cobrar))));
+  $$('[data-pago]').forEach((b) => (b.onclick = async () => {
+    const d = devById[b.dataset.pago];
+    if (await registrarPagamento({ patient: { id: d.id, name: d.name }, items: d.items })) refresh();
+  }));
+  $$('[data-agendar]').forEach((b) => (b.onclick = async () => {
+    const d = devById[b.dataset.agendar];
+    if (await agendarCobranca({ patient: { id: d.id, name: d.name }, admin: adm[d.id] })) refresh();
+  }));
   $$('#cob .tr[data-id]').forEach((row) => {
     $$('input,select', row).forEach((el) => (el.onchange = () => saveRow(row)));
   });
@@ -141,26 +166,31 @@ async function chargesTab(pane, mes, from, to) {
 async function pricesTab(pane, mes) {
   const { patients, adm } = await loadBase(...monthRange(mes));
   const list = patients.filter((p) => !p.archived);
-  pane.innerHTML = `<section class="panel"><h2>Valor da sessão por paciente</h2>
-    <p class="muted">Usado nas cobranças e nos orçamentos. Deixe vazio para pacientes sem valor definido.</p>
+  const dias = (cur) => `<option value="">Sem dia fixo</option>${[...Array(28)].map((_, i) => `<option value="${i + 1}" ${cur === i + 1 ? 'selected' : ''}>Dia ${i + 1}</option>`).join('')}`;
+  pane.innerHTML = `<section class="panel"><h2>Valor da sessão e dia de cobrança</h2>
+    <p class="muted">O valor é usado nas cobranças e nos orçamentos. Mudar o valor não altera sessões já realizadas. No dia de cobrança, a cobrança do paciente aparece pronta para enviar.</p>
+    <label class="check" style="margin-bottom:12px"><input type="checkbox" id="pr-faltas" ${state.profile?.branding?.charge_absence ? 'checked' : ''}> Cobrar também as faltas sem justificativa</label>
     ${list.length ? `<div class="table cols-val">
-      <div class="tr th cols-val"><span>Paciente</span><span>Convênio</span><span>Valor da sessão</span></div>
+      <div class="tr th cols-val"><span>Paciente</span><span>Convênio</span><span>Valor da sessão</span><span>Cobrar todo mês</span></div>
       ${list.map((p) => `<div class="tr cols-val" data-pid="${p.id}">
         <span class="ellip t">${esc(p.name)}</span>
         <span class="ellip muted">${esc(adm[p.id]?.insurer || 'Particular')}</span>
         <span><input type="number" step="0.01" min="0" class="pr-val" value="${adm[p.id]?.session_price ?? ''}" placeholder="R$" aria-label="Valor da sessão de ${esc(p.name)}" style="width:130px;margin:0;min-height:0;padding:6px 8px"></span>
+        <span><select class="pr-dia" aria-label="Dia de cobrança de ${esc(p.name)}" style="width:auto;margin:0;min-height:0;padding:6px 8px">${dias(adm[p.id]?.billing_day)}</select></span>
       </div>`).join('')}</div>` : '<p class="muted">Nenhum paciente ativo.</p>'}
   </section>`;
+  $('#pr-faltas').onchange = async (e) => {
+    try { await saveBranding({ charge_absence: e.target.checked }); toast(e.target.checked ? 'Faltas sem justificativa passam a ser cobradas.' : 'Faltas não são cobradas.'); }
+    catch (err) { toast(err.message, 'err'); e.target.checked = !e.target.checked; }
+  };
   $$('[data-pid]').forEach((row) => {
-    $('.pr-val', row).onchange = async (e) => {
-      const pid = row.dataset.pid; const cur = adm[pid] || {};
-      try {
-        await api.savePatientAdmin({ patient_id: pid, session_price: e.target.value === '' ? null : Number(e.target.value),
-          insurer: cur.insurer || null, approach: cur.approach || null, guardian: cur.guardian || null });
-        adm[pid] = { ...cur, patient_id: pid, session_price: e.target.value === '' ? null : Number(e.target.value) };
-        toast('Valor salvo.');
-      } catch (err) { toast(err.message, 'err'); }
+    const pid = row.dataset.pid;
+    const salvar = async (patch, ok) => {
+      try { await api.savePatientAdmin({ patient_id: pid, ...patch }); adm[pid] = { ...(adm[pid] || {}), patient_id: pid, ...patch }; toast(ok); }
+      catch (err) { toast(err.message, 'err'); }
     };
+    $('.pr-val', row).onchange = (e) => salvar({ session_price: e.target.value === '' ? null : Number(e.target.value) }, 'Valor salvo.');
+    $('.pr-dia', row).onchange = (e) => salvar({ billing_day: e.target.value ? Number(e.target.value) : null }, e.target.value ? 'Dia de cobrança salvo.' : 'Dia de cobrança removido.');
   });
 }
 
@@ -203,7 +233,7 @@ async function documentsTab(pane, mes, from, to) {
   const pay = state.profile?.branding?.payment || {};
   pane.innerHTML = `
     <section class="panel"><h2>Orçamento</h2>
-      <p class="muted">Sessões por semana × valor da sessão, com os dados de pagamento no rodapé. Válido por 15 dias.</p>
+      <p class="muted">Sessões no mês × valor da sessão, com os dados de pagamento no rodapé. Válido por 15 dias.</p>
       <div class="grid2">
         <label class="field">Paciente<select id="or-p">${active.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></label>
         <label class="field">Sessões no mês<input type="number" min="1" max="31" id="or-n" value="8"></label>
@@ -225,7 +255,7 @@ async function documentsTab(pane, mes, from, to) {
   syncPrice();
   $('#or-p').onchange = syncPrice;
 
-  const paidFor = (pid) => aps.filter((a) => a.patient_id === pid && a.status === 'realizado' && a.payment_status === 'pago');
+  const paidFor = (pid) => aps.filter((a) => a.patient_id === pid && cobravel(a, state.profile) && a.payment_status === 'pago');
   const refreshRc = () => {
     const items = paidFor($('#rc-p').value);
     const total = items.reduce((s, a) => s + amountOf(a), 0);
@@ -270,7 +300,7 @@ async function paymentTab(pane) {
   const extraRow = (e = {}) => `<div class="grid2 pix-extra-row" style="align-items:end">
       <label class="field">Nome da chave<input name="xl" value="${esc(e.label || '')}" placeholder="Ex.: Outro banco"></label>
       <label class="field">Chave PIX<input name="xk" value="${esc(e.key || '')}" placeholder="CPF, CNPJ, e-mail ou telefone"></label>
-      <button type="button" class="btn ghost small" data-rm-pix>Remover</button></div>`;
+      <button type="button" class="btn quiet sm" data-rm-pix>Remover</button></div>`;
   pane.innerHTML = `
     <form id="pay-f" class="panel"><h2>Dados de pagamento</h2>
       <p class="muted">Aparecem no rodapé do orçamento, na cobrança e no recibo, para o paciente pagar e enviar o comprovante.</p>
@@ -286,7 +316,7 @@ async function paymentTab(pane) {
       <h3 style="margin-top:14px">Outras chaves PIX</h3>
       <p class="muted small">Cadastre outras chaves (ex.: de outro banco). Na hora de cobrar, você escolhe qual usar. Se houver só a principal, ela é usada.</p>
       <div id="pix-extras">${(pay.pix_extra || []).map(extraRow).join('')}</div>
-      <button type="button" class="btn ghost small" id="add-pix" style="margin:8px 0">+ Adicionar chave PIX</button>
+      <button type="button" class="btn quiet sm" id="add-pix" style="margin:8px 0">${icon('plus')}Adicionar chave PIX</button>
       <label class="field">Observação<textarea name="note" rows="2" placeholder="Ex.: enviar o comprovante pelo WhatsApp (83) 98778-2014">${esc(pay.note || '')}</textarea></label>
       <button class="btn" type="submit">Salvar dados de pagamento</button>
     </form>`;
@@ -317,5 +347,5 @@ async function saveBranding(patch) {
 
 /** Cobrança a partir da lista de inadimplência. */
 function cobrar(d, pat) {
-  return abrirCobranca({ profile: state.profile, patient: { name: d.name, phone: pat?.phone }, items: d.items });
+  return abrirCobranca({ profile: state.profile, patient: { id: d.id, name: d.name, phone: pat?.phone }, items: d.items });
 }

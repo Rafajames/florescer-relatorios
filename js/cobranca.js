@@ -15,10 +15,51 @@ const tlv = (id, v) => id + String(v.length).padStart(2, '0') + v;
 const ascii = (s, max) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
   .replace(/[^A-Za-z0-9 .\-]/g, '').toUpperCase().trim().slice(0, max);
 
-/** Código PIX copia-e-cola. key = chave PIX (CPF/CNPJ aceitam pontuação); amount opcional. */
+const cpfValido = (d) => {
+  if (!/^\d{11}$/.test(d) || /^(\d)\1{10}$/.test(d)) return false;
+  const dv = (n) => { let s = 0; for (let i = 0; i < n; i++) s += Number(d[i]) * (n + 1 - i); const r = (s * 10) % 11; return r === 10 ? 0 : r; };
+  return dv(9) === Number(d[9]) && dv(10) === Number(d[10]);
+};
+/**
+ * Deixa a chave no formato que o PIX exige: CPF/CNPJ só com números, telefone como +55DDDNÚMERO,
+ * e-mail em minúsculas. Um número de 11 dígitos é CPF quando os dígitos verificadores conferem;
+ * senão (ou se foi digitado com parênteses ou +), é telefone.
+ */
+export function normalizaChavePix(key) {
+  const k = String(key || '').trim();
+  if (!k) return '';
+  if (k.includes('@')) return k.replace(/\s+/g, '').toLowerCase();
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(k)) return k.toLowerCase(); // chave aleatória
+  if (!/^[\d\s.()\/+\-]+$/.test(k)) return k.replace(/\s+/g, '');
+  const d = k.replace(/\D/g, '');
+  const tel = /[()+]/.test(k);
+  if (/^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(k)) return d; // escrito como CPF
+  if (k.startsWith('+')) return '+' + d;
+  if (d.length === 14) return d; // CNPJ
+  if (d.length === 11 && !tel && cpfValido(d)) return d;
+  if (d.length === 10 || d.length === 11) return '+55' + d;
+  if ((d.length === 12 || d.length === 13) && d.startsWith('55')) return '+' + d;
+  return d;
+}
+
+/** Sessão que gera cobrança: realizada, ou falta sem justificativa quando o profissional cobra faltas. */
+export const cobravel = (a, profile) => a.status === 'realizado' || (a.status === 'falta' && Boolean(profile?.branding?.charge_absence));
+
+/**
+ * Cobrança agendada vencida para o paciente? admin: { billing_day, next_charge_on, last_charged_on }.
+ * Dia fixo: vale a partir do dia do mês, uma vez por mês. Data avulsa: vale a partir da data.
+ */
+export function cobrancaVencida(admin, hojeISO) {
+  if (!admin) return false;
+  if (admin.next_charge_on && admin.next_charge_on <= hojeISO) return true;
+  if (!admin.billing_day) return false;
+  const marco = `${hojeISO.slice(0, 8)}${String(admin.billing_day).padStart(2, '0')}`;
+  return hojeISO >= marco && !(admin.last_charged_on && admin.last_charged_on >= marco);
+}
+
+/** Código PIX copia-e-cola. key = chave PIX (aceita pontuação; telefone vira +55...); amount opcional. */
 export function pixCode({ key, name, city, amount }) {
-  let k = String(key || '').trim().replace(/\s+/g, '');
-  if (/^[\d.\/\-]+$/.test(k)) k = k.replace(/\D/g, '');
+  const k = normalizaChavePix(key);
   let p = tlv('00', '01') + tlv('26', tlv('00', 'br.gov.bcb.pix') + tlv('01', k)) + tlv('52', '0000') + tlv('53', '986');
   if (Number(amount) > 0) p += tlv('54', Number(amount).toFixed(2));
   p += tlv('58', 'BR') + tlv('59', ascii(name, 25) || 'RECEBEDOR') + tlv('60', ascii(city, 15) || 'BRASIL') + tlv('62', tlv('05', '***'));

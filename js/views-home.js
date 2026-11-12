@@ -3,8 +3,8 @@ import * as ai from './ai.js';
 import { state, DEFAULT_CONSENT } from './state.js';
 import { createDemo, removeDemo, isDemo } from './demo.js';
 import { exportDossierWord, exportDossierPdf, exportAuditoriaPdf, KIND_LABEL, brl, ATT_STATUS } from './export.js';
-import { newToken, sha256, waLink } from './cobranca.js';
-import { abrirCobranca } from './cobrar.js';
+import { newToken, sha256, waLink, cobravel, cobrancaVencida } from './cobranca.js';
+import { abrirCobranca, registrarPagamento, agendarCobranca } from './cobrar.js';
 import { appointmentModal } from './views-administrativo.js';
 import {
   $, $$, esc, fmtDate, fmtDateTime, toast, openModal, confirmBox, busy, statusChip, chip, meta, callout,
@@ -83,7 +83,14 @@ export async function renderDashboard() {
     ...noConsent.slice(0, 3).map((x) => ({ c: 'c-warn', t: `Consentimento · ${esc(x.name)}`, s: 'registre antes de gravar a sessão', h: `#/pacientes/${x.id}`, b: 'Abrir' })),
   ];
 
-  main.innerHTML = pageHeader(`${greeting()}, ${esc(first)}`, esc(longDate())) + `
+  // Cobranças agendadas que vencem hoje (dia fixo do mês ou data avulsa) e ainda têm sessões em aberto.
+  let cobHoje = 0;
+  try {
+    const [abertas, admins] = await Promise.all([api.listOpenCharges(), api.listPatientAdmins()]);
+    const comAberto = new Set(abertas.filter((a) => cobravel(a, p)).map((a) => a.patient_id));
+    cobHoje = admins.filter((a) => comAberto.has(a.patient_id) && cobrancaVencida(a, todayISO())).length;
+  } catch { cobHoje = 0; }
+  main.innerHTML = pageHeader(`${greeting()}, ${esc(first)}`, esc(longDate())) + (cobHoje ? callout(`<p><b>${cobHoje} cobrança${cobHoje === 1 ? '' : 's'} agendada${cobHoje === 1 ? '' : 's'} para hoje.</b> A mensagem e o PIX já estão prontos; é só conferir e enviar.</p>`, '', '<a class="btn sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a>') : '') + `
   <div class="dash">
     <section class="dcard wide" aria-label="Atendimentos de hoje">
       <h3>Atendimentos de hoje</h3><span class="ill">${ART.clip}</span>
@@ -384,7 +391,7 @@ async function relatorioLinkModal(p, id, reports) {
 // Soma recebido e a receber das sessões realizadas (valor do atendimento ou valor padrão do paciente).
 const paymentsOf = (apts, admin) => {
   const price = Number(admin?.session_price) || 0;
-  const real = apts.filter((a) => a.status === 'realizado');
+  const real = apts.filter((a) => cobravel(a, state.profile));
   const amt = (a) => (a.amount != null ? Number(a.amount) : price);
   return {
     realizados: real.length,
@@ -399,7 +406,11 @@ export async function renderPatientDetail(id) {
     api.listAppointments({ patientId: id }), api.getPatientAdmin(id), api.listShareLinks(id)]);
   const active = api.hasActiveConsent(consents);
   const payments = paymentsOf(apts, admin);
-  const pendentes = apts.filter((a) => a.status === 'realizado' && a.payment_status !== 'pago');
+  const pendentes = apts.filter((a) => cobravel(a, state.profile) && a.payment_status !== 'pago');
+  const precoPac = Number(admin?.session_price) || 0;
+  const itensPend = pendentes.map((a) => ({ id: a.id, date: a.date, time: a.time, amount: a.amount != null ? Number(a.amount) : precoPac }));
+  const agendaCob = cobrancaVencida(admin, todayISO()) && pendentes.length ? chip('Cobrar hoje', 'bloom')
+    : admin?.next_charge_on ? `Cobrança agendada para <b>${fmtDate(admin.next_charge_on)}</b>` : admin?.billing_day ? `Cobrança todo dia <b>${admin.billing_day}</b>` : 'Sem cobrança agendada';
   const hoje = todayISO();
   const proximas = apts.filter((a) => a.date >= hoje && a.status !== 'cancelado')
     .sort((x, y) => (x.date + (x.time || '')).localeCompare(y.date + (y.time || ''))).slice(0, 8);
@@ -409,9 +420,14 @@ export async function renderPatientDetail(id) {
       <select data-pst="${a.id}" aria-label="Situação da sessão" style="width:auto;margin:0;min-height:0;padding:5px 8px">${Object.entries(ATT_STATUS).map(([k, l]) => `<option value="${k}" ${k === a.status ? 'selected' : ''}>${l}</option>`).join('')}</select>
       </div>`).join('')}</div>` : '<p class="muted small">Nenhuma sessão agendada. Use “Agendar sessão”.</p>'}`;
   const financeiroPanel = `<div class="panel">
-          <div class="panel-head"><h3>Financeiro e agenda</h3></div>
-          <p class="small">Recebido: <b>${brl(payments.paid)}</b><br>A receber: <b>${brl(payments.open)}</b><br>Sessões realizadas: <b>${payments.realizados}</b> · Valor da sessão: <b>${admin?.session_price != null ? brl(admin.session_price) : 'não definido'}</b></p>
-          <div class="row" style="gap:8px;flex-wrap:wrap">${pendentes.length ? `<button class="btn sm" id="cobrar-pac">Cobrar ${brl(payments.open)}</button>` : ''}<a class="btn quiet sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a></div>
+          <div class="panel-head"><h3>Financeiro</h3>${pendentes.length ? chip(`${pendentes.length} em aberto`, 'warn') : payments.realizados ? chip('Em dia', 'ok') : ''}</div>
+          <dl class="fin-dl">
+            <div><dt>A receber</dt><dd>${brl(payments.open)}</dd></div>
+            <div><dt>Recebido</dt><dd>${brl(payments.paid)}</dd></div>
+            <div><dt>Valor da sessão</dt><dd>${admin?.session_price != null ? brl(admin.session_price) : 'não definido'} <button class="link small" id="def-valor">${admin?.session_price != null ? 'Alterar' : 'Definir'}</button></dd></div>
+          </dl>
+          <p class="small muted" style="margin:6px 0 10px">${agendaCob} <button class="link small" id="agendar-cob">${admin?.billing_day || admin?.next_charge_on ? 'Alterar' : 'Agendar cobrança'}</button></p>
+          <div class="row" style="gap:8px;flex-wrap:wrap">${pendentes.length ? `<button class="btn sm" id="cobrar-pac">Cobrar ${brl(payments.open)}</button><button class="btn quiet sm" id="pago-pac">Registrar pagamento</button>` : ''}<a class="btn quiet sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a></div>
         </div>`;
   const anamneses = reports.filter((r) => r.kind === 'anamnese');
   const evolucoes = reports.filter((r) => r.kind === 'sessao');
@@ -425,17 +441,20 @@ export async function renderPatientDetail(id) {
   main.innerHTML = backLink('#/pacientes', 'Pacientes') +
     pageHeader(p.name, '', `
       <a class="btn bloom" href="#/nova?paciente=${p.id}">${icon('mic')}Nova evolução</a>
-      <a class="btn quiet" href="#/nova?paciente=${p.id}&tipo=anamnese">${icon('file')}${anamneses.length ? 'Nova anamnese' : 'Fazer anamnese'}</a>
-      <button class="btn quiet" id="newdoc">${icon('edit')}Novo documento</button>
-      <a class="btn quiet" href="#/periodo?paciente=${p.id}">${icon('calendar')}Por período</a>
       <button class="btn quiet" id="agendar">${icon('calendar')}Agendar sessão</button>
-      <button class="btn quiet" id="dossier">${icon('download')}Prontuário</button>
-      <button class="btn quiet" id="audit">${icon('shield')}Auditoria (PDF)</button>
-      <button class="btn quiet" id="link-anamnese">${icon('file')}Anamnese por link</button>
-      <button class="btn quiet" id="link-rel">${icon('file')}Relatório por link</button>
-      <button class="btn quiet" id="edit">${icon('edit')}Editar</button>`) +
+      <details class="menu"><summary class="btn quiet">${icon('plus')}Registrar</summary><div class="menu-list">
+        <a href="#/nova?paciente=${p.id}&tipo=anamnese">${icon('file')}${anamneses.length ? 'Nova anamnese' : 'Fazer anamnese'}</a>
+        <button type="button" id="newdoc">${icon('edit')}Novo documento</button>
+        <a href="#/periodo?paciente=${p.id}">${icon('calendar')}Relatório por período</a></div></details>
+      <details class="menu"><summary class="btn quiet">${icon('right')}Enviar por link</summary><div class="menu-list">
+        <button type="button" id="link-anamnese">${icon('file')}Anamnese para responder</button>
+        <button type="button" id="link-rel">${icon('file')}Relatório para ler e baixar</button></div></details>
+      <details class="menu"><summary class="btn quiet">${icon('download')}Exportar</summary><div class="menu-list">
+        <button type="button" id="dossier">${icon('download')}Prontuário completo</button>
+        <button type="button" id="audit">${icon('shield')}Auditoria (PDF)</button></div></details>
+      <button class="btn quiet" id="edit">${icon('edit')}Editar cadastro</button>`) +
     (isDemo(p) ? callout('<p><b>Paciente de teste.</b> Dados fictícios para você experimentar. Remova em Pacientes quando não precisar mais.</p>', 'warn') : '') +
-    meta([p.email ? esc(p.email) : 'sem e-mail', p.phone ? esc(p.phone) : '', p.birth_date ? 'nascimento ' + fmtDate(p.birth_date) : '']) +
+    meta([p.email ? esc(p.email) : '', p.phone ? esc(p.phone) : 'sem telefone', p.birth_date ? 'nascimento ' + fmtDate(p.birth_date) : '', admin?.guardian ? 'responsável: ' + esc(admin.guardian) : '']) +
     '<div style="height:20px"></div>' +
     (!active ? callout('<p><b>Falta o consentimento deste paciente.</b> Sem ele, a gravação e o envio de áudio ficam bloqueados.</p>', 'warn', '<button class="btn sm" id="consent-top">Registrar agora</button>') : '') +
     (!p.email ? callout('<p>Sem e-mail cadastrado, não é possível liberar relatórios no portal do paciente.</p>', '', '<button class="btn sm quiet" id="edit-mail">Adicionar e-mail</button>') : '') + `
@@ -484,7 +503,10 @@ export async function renderPatientDetail(id) {
     { okText: 'Gerar prontuário', onOk: (d) => ({ only: d.querySelector('[name=only]').checked, fmt: d.querySelector('[name=fmt]').value }) });
     if (!r || r === true) return;
     const full = await api.listReports({ patientId: id, withSections: true });
-    const args = { patient: p, professional: state.profile, reports: full, only: r.only };
+    const prefs = state.profile.preferences || {};
+    const tplPadrao = (await api.listTemplates().catch(() => [])).find((t) => t.id === prefs.defaultTemplateId);
+    const lay = tplPadrao?.meta?.layout;
+    const args = { patient: p, professional: state.profile, reports: full, only: r.only, layout: lay && lay.use !== false ? lay : null };
     api.logExport('prontuario', id, { registros: full.length, somente_visiveis: r.only });
     (r.fmt === 'word' ? exportDossierWord : exportDossierPdf)(args);
   };
@@ -504,11 +526,18 @@ export async function renderPatientDetail(id) {
   };
   $('#agendar').onclick = async () => { if (await appointmentModal({ patients: [p], date: hoje })) renderPatientDetail(id); };
   $$('[data-pst]').forEach((sel) => (sel.onchange = async () => {
-    try { await api.updateAppointment(sel.dataset.pst, { status: sel.value }); toast('Situação atualizada.'); renderPatientDetail(id); }
+    try { await api.setAppointmentStatus(apts.find((x) => x.id === sel.dataset.pst), sel.value); toast(sel.value === 'realizado' ? 'Sessão realizada: liberada para cobrança.' : 'Situação atualizada.'); renderPatientDetail(id); }
     catch (err) { toast(err.message, 'err'); }
   }));
-  if ($('#cobrar-pac')) $('#cobrar-pac').onclick = () => abrirCobranca({ profile: state.profile, patient: { name: p.name, phone: p.phone },
-    items: pendentes.map((a) => ({ date: a.date, time: a.time, amount: a.amount != null ? Number(a.amount) : Number(admin?.session_price) || 0 })) });
+  if ($('#cobrar-pac')) $('#cobrar-pac').onclick = () => abrirCobranca({ profile: state.profile, patient: { id, name: p.name, phone: p.phone }, items: itensPend });
+  if ($('#pago-pac')) $('#pago-pac').onclick = async () => { if (await registrarPagamento({ patient: { id, name: p.name }, items: itensPend })) renderPatientDetail(id); };
+  $('#agendar-cob').onclick = async () => { if (await agendarCobranca({ patient: { id, name: p.name }, admin })) renderPatientDetail(id); };
+  $('#def-valor').onclick = async () => {
+    const r = await openModal('Valor da sessão', `<label class="field">Valor da sessão de ${esc(p.name)} (R$)<input type="number" step="0.01" min="0" name="v" value="${admin?.session_price ?? ''}"></label>
+      <p class="muted small">Vale para as próximas sessões. Sessões já realizadas mantêm o valor que tinham.</p>`,
+    { okText: 'Salvar', onOk: async (d) => { const v = d.querySelector('[name=v]').value; await api.savePatientAdmin({ patient_id: id, session_price: v === '' ? null : Number(v) }); return true; } });
+    if (r) { toast('Valor salvo.'); renderPatientDetail(id); }
+  };
   $('#link-anamnese').onclick = () => anamneseLinkModal(p, id);
   $('#link-rel').onclick = () => relatorioLinkModal(p, id, reports);
   $$('[data-rlink]').forEach((b) => (b.onclick = async () => {

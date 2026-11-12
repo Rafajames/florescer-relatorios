@@ -25,12 +25,22 @@ export async function renderPublicLink(token) {
   const main = $('#pub-main');
   try {
     const info = await api.getPublicLink(token);
+    marca(info);
     if (info.kind === 'anamnese') return anamnese(main, token, info);
     if (info.needs_password) return senha(main, token);
     return relatorio(main, info);
   } catch (e) {
     main.innerHTML = erro(errorText(e));
   }
+}
+
+/** Topo com a marca de quem enviou o link (logo e nome); sem marca, fica a Potira. */
+function marca(info) {
+  const b = info.branding || {}, h = $('.pub-h');
+  const nome = b.org_name || info.professional_name;
+  if (!h || !nome) return;
+  h.innerHTML = `${b.logo ? `<img src="${esc(b.logo)}" alt="" style="height:28px;max-width:120px;object-fit:contain">` : icon('flower')}<b>${esc(nome)}</b>`;
+  if (/^#[0-9a-f]{6}$/i.test(b.color || '')) h.style.color = b.color;
 }
 
 /* ---------- anamnese ---------- */
@@ -50,7 +60,7 @@ function anamnese(main, token, info) {
   if (info.responded) { main.innerHTML = card('Obrigado!', `<p>Sua anamnese já foi enviada para ${esc(info.professional_name)}.</p>`); return; }
   main.innerHTML = `<section class="panel">
     <h1>${esc(info.title)}</h1>
-    <p class="muted">Olá, ${esc(info.patient_name)}. Responda com as suas palavras. Pode deixar em branco o que não souber. Este link vale até ${esc(fmtDate(info.expires_at))}.</p>
+    <p class="muted">Formulário de <b>${esc(info.patient_name)}</b>, enviado por ${esc(info.professional_name)}${info.specialty ? ' (' + esc(info.specialty) + ')' : ''}. Responda com as suas palavras; se for responsável, responda pelo(a) paciente. Pode deixar em branco o que não souber. Este link vale até ${esc(fmtDate(info.expires_at))}.</p>
     <form id="pf">
       ${info.sections.map((s, i) => campo(s, i)).join('')}
       <label class="check pub-cons"><input type="checkbox" id="pf-cons"> <span>${esc(CONSENT)}</span></label>
@@ -89,6 +99,7 @@ function senha(main, token) {
     const hash = await sha256(`${token}:${$('#sp').value}`);
     try {
       const full = await api.getPublicLink(token, hash);
+      marca(full);
       if (full.needs_password) { $('#sf-err').textContent = 'Senha incorreta. Confira com o(a) profissional.'; return; }
       relatorio(main, full);
     } catch (err) { main.innerHTML = erro(errorText(err)); }
@@ -100,7 +111,7 @@ function relatorio(main, info) {
     report: { title: info.title, kind: info.report_kind || 'sessao', session_date: info.session_date, period_start: info.period_start, period_end: info.period_end },
     patientName: info.patient_name,
     professional: { full_name: info.professional_name, specialty: info.specialty, council_registry: info.council_registry, branding: info.branding || {} },
-    sections: info.sections,
+    sections: info.sections, layout: info.layout || null,
   });
   main.innerHTML = `<section class="panel">
       <h1>${esc(info.title)}</h1>

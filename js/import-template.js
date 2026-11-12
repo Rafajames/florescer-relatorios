@@ -38,7 +38,7 @@ async function docxToText(file) {
   return out.join('\n');
 }
 
-async function pdfToText(file) {
+export async function pdfToText(file) {
   await load(PDFJS, () => window.pdfjsLib);
   window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
   const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
@@ -165,7 +165,7 @@ async function docxLayout(file) {
   return out.header || out.footer || out.logo || out.watermark ? out : null;
 }
 
-const fileToBase64 = (file) => new Promise((resolve, reject) => {
+export const fileToBase64 = (file) => new Promise((resolve, reject) => {
   const r = new FileReader();
   r.onload = () => resolve(String(r.result).split(',')[1]);
   r.onerror = () => reject(new Error('Não consegui ler o arquivo.'));

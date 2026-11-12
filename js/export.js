@@ -95,12 +95,12 @@ function buildHtml({ report, patientName, professional, sections, layout }) {
 }
 
 /** Prontuário completo: anamnese, evoluções e relatórios, em ordem cronológica. */
-function buildDossier({ patient, professional, reports, only }) {
-  const h = header(professional);
+function buildDossier({ patient, professional, reports, only, layout }) {
+  const h = header(professional, layout);
   const order = { anamnese: 0, sessao: 1, periodo: 2, documento: 3 };
   const list = [...reports].sort((a, b) => (order[a.kind] - order[b.kind]) || String(a.session_date).localeCompare(String(b.session_date)));
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Prontuário — ${esc(patient.name)}</title><style>${css(h.b.color, h.b)}</style></head><body>
-  ${h.html}
+  ${watermark(layout)}${h.html}
   <h1>Prontuário</h1>
   <table class="meta"><tr><td class="lab">Paciente:</td><td><b>${esc(patient.name)}</b></td></tr>
   ${patient.birth_date ? `<tr><td class="lab">Nascimento:</td><td>${esc(fmtDate(patient.birth_date))}</td></tr>` : ''}
@@ -109,7 +109,7 @@ function buildDossier({ patient, professional, reports, only }) {
   ${list.map((r, i) => `<h3 ${i ? 'class="brk"' : ''}>${esc(KIND_LABEL[r.kind] || 'Registro')} — ${esc(r.title)} (${esc(whenOf(r))})</h3>
     ${(only ? (r.sections || []).filter((s) => s.patient_visible !== false) : (r.sections || [])).map((s) => `${r.kind === 'documento' ? '' : `<h2>${esc(s.title)}</h2>`}<div class="rt">${bodyHtml(s)}</div>`).join('\n')}`).join('\n')}
   ${signature(professional, h.b, h.reg)}
-  ${footer(h.b, list.some((r) => r.ai_generated))}
+  ${footer(h.b, list.some((r) => r.ai_generated), layout)}
 </body></html>`;
 }
 
@@ -136,7 +136,7 @@ const toPdf = (html) => {
 export const previewHtml = (args) => buildHtml(args);
 export const exportWord = (args) => toWord(buildHtml({ ...args, layout: args.layout && { ...args.layout, watermark: null } }), args.report.title);
 export const exportPdf = (args) => toPdf(buildHtml(args));
-export const exportDossierWord = (args) => toWord(buildDossier(args), `Prontuario ${args.patient.name}`);
+export const exportDossierWord = (args) => toWord(buildDossier({ ...args, layout: args.layout && { ...args.layout, watermark: null } }), `Prontuario ${args.patient.name}`);
 export const exportDossierPdf = (args) => toPdf(buildDossier(args));
 
 /* ---------- Administrativo: folha de frequência ---------- */

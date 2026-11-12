@@ -35,7 +35,7 @@ export async function renderAdministrativo(params) {
   const reload = () => PANES[aba]();
   if ($('#new-ap')) $('#new-ap').onclick = () => {
     if (!patients.length) return toast('Cadastre um paciente primeiro.', 'err');
-    appointmentModal({ patients, date: todayISO() }).then((ok) => ok && reload());
+    appointmentModal({ patients: patients.filter((p) => !p.archived), date: todayISO() }).then((ok) => ok && reload());
   };
   try { await reload(); }
   catch (err) { $('#pane').innerHTML = callout(`<p>${esc(err.message || String(err))}</p>`, 'warn'); }
@@ -71,8 +71,12 @@ async function agenda(params, patients) {
   $('#days').innerHTML = days.map((d) => {
     const list = aps.filter((a) => a.date === d);
     if (!list.length && dt(d).getDay() === 0) return ''; // domingo vazio não aparece
+    if (!list.length) return `<section class="ag-day vazio ${d === today ? 'today' : ''}">
+      <h3>${WD[dt(d).getDay()]}, ${fmtDate(d)}${d === today ? ' ' + chip('Hoje', 'bloom') : ''}<span class="muted small ag-livre">sem sessões</span>
+      <button class="link small" data-novo="${d}">Agendar</button></h3></section>`;
     return `<section class="ag-day ${d === today ? 'today' : ''}">
-      <h3>${WD[dt(d).getDay()]}, ${fmtDate(d)}${d === today ? ' ' + chip('Hoje', 'bloom') : ''}</h3>
+      <h3>${WD[dt(d).getDay()]}, ${fmtDate(d)}${d === today ? ' ' + chip('Hoje', 'bloom') : ''}<span class="muted small ag-livre">${list.length} sessão${list.length === 1 ? '' : 'ões'}</span>
+      <button class="link small" data-novo="${d}">Agendar</button></h3>
       ${list.length ? `<div class="table">${list.map((a) => {
         const rid = evo.get(`${a.patient_id}|${a.date}`);
         const evoLink = rid ? `<a class="small" href="#/relatorio/${rid}">${icon('file')}Evolução</a>`
@@ -81,16 +85,16 @@ async function agenda(params, patients) {
           <span class="t">${esc(hhmm(a.time) || '—')}</span>
           <span class="ellip"><a href="#/pacientes/${a.patient_id}" style="color:inherit">${esc(a.patients?.name || '')}</a><small class="muted"> · ${a.duration_min} min${a.notes ? ' · ' + esc(a.notes) : ''}</small></span>
           <span class="ag-meta"><select class="ag-st st-${a.status}" data-st="${a.id}" aria-label="Situação">${statusOpts(a.status)}</select>${evoLink}</span>
-          <span class="row" style="gap:2px;flex-wrap:nowrap">${a.status === 'agendado' ? `<button class="icon-btn" data-lem="${a.id}" title="Enviar lembrete pelo WhatsApp" aria-label="Enviar lembrete">${icon('calendar')}</button>` : ''}<button class="icon-btn" data-ed="${a.id}" title="Editar" aria-label="Editar">${icon('edit')}</button><button class="icon-btn" data-del="${a.id}" title="Excluir" aria-label="Excluir">${icon('trash')}</button></span>
+          <span class="row" style="gap:2px;flex-wrap:nowrap">${a.status === 'agendado' ? `<button class="btn quiet sm" data-lem="${a.id}" title="Enviar lembrete pelo WhatsApp">Lembrete</button>` : ''}<button class="icon-btn" data-ed="${a.id}" title="Editar" aria-label="Editar">${icon('edit')}</button><button class="icon-btn" data-del="${a.id}" title="Excluir" aria-label="Excluir">${icon('trash')}</button></span>
         </div>`;
-      }).join('')}</div>` : '<p class="muted small" style="margin:0 0 4px">Nenhuma sessão.</p>'}
+      }).join('')}</div>` : ''}
     </section>`;
   }).join('') || '';
   if (!aps.length) $('#days').insertAdjacentHTML('afterbegin', emptyState('Semana sem sessões', 'Use “Nova sessão” para agendar. Dá para repetir toda semana nos dias escolhidos.'));
 
   const again = () => agenda(params, patients);
   $$('[data-st]').forEach((s) => (s.onchange = async () => {
-    try { await api.updateAppointment(s.dataset.st, { status: s.value }); toast('Situação atualizada.'); again(); }
+    try { await api.setAppointmentStatus(aps.find((x) => x.id === s.dataset.st), s.value); toast(s.value === 'realizado' ? 'Sessão realizada: já está em Financeiro para cobrança.' : 'Situação atualizada.'); again(); }
     catch (err) { toast(err.message, 'err'); }
   }));
   $$('[data-ed]').forEach((b) => (b.onclick = () => {
@@ -104,8 +108,14 @@ async function agenda(params, patients) {
     if (!url) return toast('Cadastre o telefone do paciente para enviar o lembrete.', 'err');
     window.open(url, '_blank', 'noopener');
   }));
+  $$('[data-novo]').forEach((b) => (b.onclick = () => {
+    appointmentModal({ patients: patients.filter((p) => !p.archived), date: b.dataset.novo }).then((ok) => ok && again());
+  }));
   $$('[data-del]').forEach((b) => (b.onclick = async () => {
-    if (!(await confirmBox('Excluir esta sessão da agenda?', 'Excluir'))) return;
+    const alvo = aps.find((x) => x.id === b.dataset.del);
+    const aviso = alvo?.payment_status === 'pago' ? 'Esta sessão tem um pagamento registrado. Excluir apaga também o pagamento do Financeiro. Excluir mesmo assim?'
+      : alvo?.status === 'realizado' ? 'Esta sessão já foi realizada e está nas cobranças. Excluir mesmo assim?' : 'Excluir esta sessão da agenda?';
+    if (!(await confirmBox(aviso, 'Excluir'))) return;
     await busy(b, '…', async () => { await api.deleteAppointment(b.dataset.del); toast('Sessão excluída.'); again(); });
   }));
 }
@@ -117,14 +127,14 @@ export function appointmentModal({ patients, appointment: a, date }) {
   const body = `
     <label class="field">Paciente<select name="patient_id" required>${patients.map((p) => `<option value="${p.id}" ${p.id === a?.patient_id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
     <div class="grid2">
-      <label class="field">Data${edit ? '' : ' do primeira sessão'}<input type="date" name="date" value="${d0}" required></label>
+      <label class="field">Data${edit ? '' : ' da primeira sessão'}<input type="date" name="date" value="${d0}" required></label>
       <label class="field">Horário<input type="time" name="time" value="${hhmm(a?.time)}"></label>
       <label class="field">Duração (minutos)<input type="number" name="duration_min" min="5" max="600" value="${a?.duration_min || 50}" required></label>
       <label class="field">Situação<select name="status">${statusOpts(a?.status || 'agendado')}</select></label>
     </div>
     ${edit ? '' : `<div class="field">Repetir nos dias
       <div class="row" style="gap:10px;margin-top:4px">${[1, 2, 3, 4, 5, 6].map((i) => `<label class="check small"><input type="checkbox" name="wd" value="${i}" ${dt(d0).getDay() === i ? 'checked' : ''}>${WD[i]}</label>`).join('')}</div>
-      <small>Deixe só o dia da data para um sessão avulso.</small></div>
+      <small>Deixe só o dia da data para uma sessão avulsa.</small></div>
     <label class="field">Por quantas semanas<input type="number" name="weeks" min="1" max="52" value="1"><small>Ex.: 3 vezes por semana durante 4 semanas = marque 3 dias e coloque 4.</small></label>`}
     <label class="field">Observação (opcional)<input name="notes" value="${esc(a?.notes || '')}" placeholder="Ex.: reposição, horário especial"></label>
     <p class="muted small">Não coloque aqui informações clínicas. Elas ficam na evolução.</p>`;
@@ -133,7 +143,23 @@ export function appointmentModal({ patients, appointment: a, date }) {
     onOk: async (d) => {
       const f = (n) => $(`[name=${n}]`, d).value;
       const base = { patient_id: f('patient_id'), time: f('time') || null, duration_min: Number(f('duration_min')) || 50, status: f('status'), notes: f('notes').trim() || null };
-      if (edit) { await api.updateAppointment(a.id, { ...base, date: f('date') }); toast('Sessão atualizada.'); return true; }
+      // Aviso de conflito: outra sessão (não cancelada) no mesmo dia com horário sobreposto.
+      const conflito = async (dates) => {
+        if (!base.time || ['cancelado', 'falta', 'falta_justificada'].includes(base.status)) return true;
+        const min = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+        const ini = min(base.time), fim = ini + base.duration_min;
+        const outras = await api.listAppointments({ from: dates[0], to: dates[dates.length - 1] });
+        const bate = outras.filter((o) => o.id !== a?.id && dates.includes(o.date) && o.time && o.status !== 'cancelado'
+          && min(o.time) < fim && ini < min(o.time) + (o.duration_min || 50));
+        if (!bate.length) return true;
+        const quem = bate.slice(0, 3).map((o) => `${fmtDate(o.date)} ${hhmm(o.time)} (${o.patients?.name || 'paciente'})`).join(', ');
+        return confirmBox(`Já existe sessão neste horário: ${quem}${bate.length > 3 ? ` e mais ${bate.length - 3}` : ''}. Agendar mesmo assim?`, 'Agendar mesmo assim');
+      };
+      if (edit) {
+        if (!(await conflito([f('date')]))) return false;
+        if (base.status !== a.status) await api.setAppointmentStatus(a, base.status);
+        await api.updateAppointment(a.id, { ...base, date: f('date') }); toast('Sessão atualizada.'); return true;
+      }
       const first = f('date');
       const wds = $$('[name=wd]:checked', d).map((c) => Number(c.value));
       const weeks = Math.min(52, Math.max(1, Number(f('weeks')) || 1));
@@ -148,6 +174,7 @@ export function appointmentModal({ patients, appointment: a, date }) {
         if (!dates.length) dates.push(first);
       }
       dates.sort();
+      if (!(await conflito(dates))) return false;
       await api.saveAppointments(dates.map((date) => ({ ...base, date })));
       toast(dates.length > 1 ? `${dates.length} sessões agendadas.` : 'Sessão agendada.');
       return true;
@@ -311,7 +338,9 @@ async function declaracoes(patients) {
     const m = $('#dc-mes').value || month;
     const [y, mo] = m.split('-').map(Number);
     const label = new Date(y, mo - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-    return { ...base, type: 'comparecimento', periodLabel: label, sessions: await sessionsFor() };
+    const sessions = await sessionsFor();
+    if (!sessions.length) throw new Error(`Não há sessões realizadas de ${base.patientName} em ${label}. Marque as sessões como realizadas na agenda.`);
+    return { ...base, type: 'comparecimento', periodLabel: label, sessions };
   };
   $('#dc-t').onchange = showFields; $('#dc-mes').onchange = showFields;
   showFields();
