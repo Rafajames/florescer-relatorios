@@ -5,6 +5,7 @@ import { state } from './state.js';
 import { registryText } from './credentials.js';
 import { bodyHtml } from './richtext.js';
 
+const alertar = (msg) => import('./ui.js').then((u) => u.toast(msg, 'err'));
 const asProfessional = (r) => ({
   full_name: r.professional_name, specialty: r.professional_specialty,
   council_registry: r.professional_registry, clinic_name: r.clinic_name,
@@ -13,6 +14,19 @@ const asProfessional = (r) => ({
 export async function renderPortal() {
   const main = shell('portal'); loading(main);
   const list = await api.portalReports();
+  let ov = { appointments: [], receipts: [] };
+  try { ov = (await api.portalOverview()) || ov; } catch { /* banco sem a função: o portal segue só com os relatórios */ }
+  const brl = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const quando = (a) => `${new Date(a.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}${a.time ? ' às ' + String(a.time).slice(0, 5) : ''}`;
+  const sessoesHtml = ov.appointments.length ? `<section class="panel"><h2>Próximas sessões</h2>
+    <div class="table">${ov.appointments.map((a) => `<div class="tr" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="grow"><b>${esc(quando(a))}</b><br><small class="muted">com ${esc(a.professional_name || 'profissional')}${a.confirm_status === 'confirmado' ? ' · você confirmou' : a.confirm_status === 'remarcar' ? ' · você pediu para remarcar' : ''}</small></span>
+      <button class="btn sm ${a.confirm_status === 'confirmado' ? 'quiet' : ''}" data-pc="${a.id}" data-r="confirmado">Confirmo</button>
+      <button class="btn quiet sm" data-pc="${a.id}" data-r="remarcar">Preciso remarcar</button></div>`).join('')}</div></section>` : '';
+  const recibosHtml = ov.receipts.length ? `<section class="panel"><h2>Recibos</h2>
+    <div class="table">${ov.receipts.map((r) => `<div class="tr" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <span>Recibo nº ${String(r.numero).padStart(4, '0')} · ${fmtDate(r.issued_on)}<small class="muted"> · ${esc(r.professional_name || '')}</small></span><b>${brl(r.total)}</b></div>`).join('')}</div>
+    <p class="muted small" style="margin:10px 0 0">Para receber o recibo em PDF, peça ao(à) profissional.</p></section>` : '';
   const pros = [...new Map(list.map((r) => [r.professional_name, r])).values()];
   const proCard = (r) => {
     const c = r.professional_credentials || {};
@@ -22,14 +36,19 @@ export async function renderPortal() {
       ${links.length ? `<p class="small" style="margin:8px 0 0">${links.map(([l, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${l}</a>`).join(' · ')}</p>` : ''}</section>`;
   };
   main.innerHTML = pageHeader('Meus relatórios', 'Aqui aparecem os relatórios que seu profissional revisou e liberou para você.') +
-    pros.map(proCard).join('') +
+    pros.map(proCard).join('') + sessoesHtml +
     (list.length ? `<div class="list">${list.map((r) => `
       <a class="li" href="#/portal/${r.id}">
         <div class="grow"><div class="t">${esc(r.title)}</div>
         ${meta([esc(r.professional_name || 'Profissional'), r.kind === 'periodo' ? `Período ${fmtDate(r.period_start)} a ${fmtDate(r.period_end)}` : fmtDate(r.session_date)])}</div>
         ${icon('right', 'go')}</a>`).join('')}</div>`
       : `<div class="empty"><b>Você ainda não tem relatórios liberados</b>
-         Use o mesmo e-mail (${esc(state.user?.email || '')}) que seu profissional cadastrou. Quando ele liberar um relatório, ele aparecerá aqui.</div>`);
+         Use o mesmo e-mail (${esc(state.user?.email || '')}) que seu profissional cadastrou. Quando ele liberar um relatório, ele aparecerá aqui.</div>`) + recibosHtml;
+  main.querySelectorAll('[data-pc]').forEach((b) => (b.onclick = async () => {
+    b.disabled = true;
+    try { await api.portalConfirm(b.dataset.pc, b.dataset.r); renderPortal(); }
+    catch { b.disabled = false; alertar('Não consegui registrar a resposta. Tente de novo.'); }
+  }));
 }
 
 export async function renderPortalReport(id) {

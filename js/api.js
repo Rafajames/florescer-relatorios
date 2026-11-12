@@ -31,8 +31,34 @@ export const resetPassword = (email) =>
 export const setNewPassword = (password) => sb.auth.updateUser({ password }).then(unwrap);
 
 /* ---------- perfil ---------- */
+/* ---------- secretária(o): trabalha na agenda e no financeiro de um profissional ---------- */
+// STAFF = id do profissional para quem a pessoa logada trabalha (ou null). Em modo secretária:
+// os cadastros levam o professional_id dele; os nomes dos pacientes vêm de uma função que não devolve nada clínico.
+let STAFF = null, staffPats = null;
+export const setStaff = (pid) => { STAFF = pid || null; staffPats = null; };
+export const isStaff = () => Boolean(STAFF);
+const own = (row) => (STAFF ? { ...row, professional_id: STAFF } : row);
+const emb = () => (STAFF ? '*' : '*,patients(name)');
+const staffPatients = async () => staffPats || (staffPats = await sb.rpc('staff_list_patients').then(unwrap));
+const named = async (rows) => {
+  if (!STAFF) return rows;
+  const by = Object.fromEntries((await staffPatients()).map((x) => [x.id, x.name]));
+  return rows.map((r) => ({ ...r, patients: { name: by[r.patient_id] || 'Paciente' } }));
+};
+export const staffContext = () => sb.rpc('staff_context').then(unwrap);
+export const staffSavePatient = async ({ name, phone, email }) => { staffPats = null; return sb.rpc('staff_save_patient', { p_name: name, p_phone: phone || '', p_email: email || '' }).then(unwrap); };
+export const nextReceiptNumber = () => sb.rpc('next_receipt_number').then(unwrap);
+export const listStaff = () => sb.from('staff').select('*').order('created_at').then(unwrap);
+export const saveStaff = (row) => sb.from('staff').insert({ email: String(row.email).trim().toLowerCase(), name: row.name || null }).select().single().then(unwrap);
+export const setStaffActive = (id, active) => sb.from('staff').update({ active }).eq('id', id).then(unwrap);
+export const deleteStaff = (id) => sb.from('staff').delete().eq('id', id).then(unwrap);
+export const publicProfile = (slug) => sb.rpc('public_profile', { p_slug: slug }).then(unwrap);
+export const portalOverview = () => sb.rpc('portal_overview').then(unwrap);
+export const portalConfirm = (appointmentId, answer) => sb.rpc('portal_confirm', { p_appointment: appointmentId, p_answer: answer }).then(unwrap);
+
 export const getProfile = () => sb.from('profiles').select('*').single().then(unwrap);
-export const updateProfile = (id, patch) =>
+export const updateProfile = (id, patch) => (STAFF ? Promise.reject(new Error('Só o(a) profissional pode alterar esta configuração.')) : updateProfileRow(id, patch));
+const updateProfileRow = (id, patch) =>
   sb.from('profiles').update(patch).eq('id', id).select().single().then(unwrap);
 
 /* ---------- administração ---------- */
@@ -67,7 +93,8 @@ export const mfaNeedsCode = async () => {
 export const mfaSelfReset = () => sb.rpc('mfa_self_reset').then(unwrap);
 
 /* ---------- pacientes ---------- */
-export const listPatients = (includeArchived = false) => {
+export const listPatients = async (includeArchived = false) => {
+  if (STAFF) return (await staffPatients()).filter((x) => includeArchived || !x.archived).map((x) => ({ ...x, consents: [], reports: [] }));
   let q = sb.from('patients').select('id,name,email,phone,birth_date,archived,created_at,consents(id,revoked_at),reports(session_date,status,kind)').order('name');
   if (!includeArchived) q = q.eq('archived', false);
   return q.then(unwrap);
@@ -110,6 +137,7 @@ export const deleteTemplate = (id) => sb.from('templates').delete().eq('id', id)
 /* ---------- relatórios ---------- */
 const LIST_COLS = 'id,title,kind,session_date,period_start,period_end,status,released_to_patient,ai_generated,patient_id,created_at,goal_ids,patients(name,email)';
 export const listReports = ({ patientId, kind, status, limit, from, to, withSections } = {}) => {
+  if (STAFF) return Promise.resolve([]);
   let q = sb.from('reports').select(withSections ? LIST_COLS + ',sections' : LIST_COLS)
     .order('session_date', { ascending: false }).order('created_at', { ascending: false });
   if (patientId) q = q.eq('patient_id', patientId);
@@ -159,16 +187,16 @@ export async function exportEverything() {
 
 /* ---------- administrativo: agenda e frequência ---------- */
 export const listAppointments = ({ from, to, patientId } = {}) => {
-  let q = sb.from('appointments').select('*,patients(name)').order('date').order('time', { nullsFirst: true });
+  let q = sb.from('appointments').select(emb()).order('date').order('time', { nullsFirst: true });
   if (from) q = q.gte('date', from);
   if (to) q = q.lte('date', to);
   if (patientId) q = q.eq('patient_id', patientId);
-  return q.then(unwrap);
+  return q.then(unwrap).then(named);
 };
 export const saveAppointments = (rows) => {
   // sessões criadas juntas (repetição) ganham o mesmo series_id, para mover ou excluir a série
   const series_id = rows.length > 1 ? crypto.randomUUID() : null;
-  return sb.from('appointments').insert(rows.map((r) => ({ ...r, series_id }))).select().then(unwrap);
+  return sb.from('appointments').insert(rows.map((r) => own({ ...r, series_id }))).select().then(unwrap);
 };
 /** Exclui da série as sessões ainda agendadas a partir de uma data. */
 export const deleteSeriesFrom = (seriesId, fromDate) =>
@@ -177,7 +205,7 @@ export const deleteSeriesFrom = (seriesId, fromDate) =>
 /* ---------- agenda: bloqueios e lista de espera ---------- */
 const upsertRow = (table) => (row) => {
   const { id, ...rest } = row;
-  return id ? sb.from(table).update(rest).eq('id', id).select().single().then(unwrap) : sb.from(table).insert(rest).select().single().then(unwrap);
+  return id ? sb.from(table).update(rest).eq('id', id).select().single().then(unwrap) : sb.from(table).insert(own(rest)).select().single().then(unwrap);
 };
 const delRow = (table) => (id) => sb.from(table).delete().eq('id', id).then(unwrap);
 /** Bloqueios que tocam o período (feriado, folga, horário sem sessão). */
@@ -204,11 +232,11 @@ export const deleteScore = delRow('scale_scores');
 
 /* ---------- financeiro: cobranças que não são sessão, recibos e pesquisa ---------- */
 export const listCharges = ({ open, paidFrom, paidTo, patientId } = {}) => {
-  let q = sb.from('charges').select('*,patients(name)').order('due_date');
+  let q = sb.from('charges').select(emb()).order('due_date');
   if (open) q = q.neq('payment_status', 'pago');
   if (paidFrom) q = q.eq('payment_status', 'pago').gte('paid_on', paidFrom).lte('paid_on', paidTo);
   if (patientId) q = q.eq('patient_id', patientId);
-  return q.then(unwrap);
+  return q.then(unwrap).then(named);
 };
 export const saveCharge = upsertRow('charges');
 export const deleteCharge = delRow('charges');
@@ -222,7 +250,7 @@ export const ensureMonthlyCharges = async (month, label) => {
   const novas = admins.filter((a) => !tem.has(a.patient_id)).map((a) => ({
     patient_id: a.patient_id, kind: 'mensalidade', ref_month: month, description: `Mensalidade de ${label}`,
     amount: a.monthly_fee, due_date: `${month}-${String(a.billing_day || 5).padStart(2, '0')}` }));
-  if (novas.length) await sb.from('charges').insert(novas).then(unwrap);
+  if (novas.length) await sb.from('charges').insert(novas.map(own)).then(unwrap);
   return novas.length;
 };
 /** Despesas fixas: copia para o mês as do mês anterior que ainda não existem nele (entram como "a pagar"). */
@@ -237,11 +265,11 @@ export const ensureFixedExpenses = async (month) => {
   const tem = new Set(agora.map((e) => e.description));
   const novas = antes.filter((e) => !tem.has(e.description)).map((e) => ({
     date: `${month}-${String(Math.min(28, Number(e.date.slice(8, 10)))).padStart(2, '0')}`, description: e.description, category: e.category, amount: e.amount, fixed: true, paid: false }));
-  if (novas.length) await sb.from('expenses').insert(novas).then(unwrap);
+  if (novas.length) await sb.from('expenses').insert(novas.map(own)).then(unwrap);
   return novas.length;
 };
-export const listReceipts = () => sb.from('receipts').select('*,patients(name)').order('numero', { ascending: false }).limit(200).then(unwrap);
-export const saveReceipt = (r) => sb.from('receipts').insert(r).select().single().then(unwrap);
+export const listReceipts = () => sb.from('receipts').select(emb()).order('numero', { ascending: false }).limit(200).then(unwrap).then(named);
+export const saveReceipt = (r) => sb.from('receipts').insert(own(r)).select().single().then(unwrap);
 export const listSurveyAnswers = () => sb.from('survey_answers').select('*').order('created_at', { ascending: false }).limit(500).then(unwrap);
 export const getSurveyLink = () => sb.from('share_links').select('id,token,expires_at').eq('kind', 'pesquisa').order('created_at', { ascending: false }).limit(1).then(unwrap).then((r) => r[0] || null);
 export const updateAppointment = (id, patch) =>
@@ -280,14 +308,14 @@ export const setAppointmentStatus = async (a, status) => {
 };
 /** Tudo o que está em aberto (qualquer data): sessões realizadas ou faltas, ainda não pagas. */
 export const listOpenCharges = () =>
-  sb.from('appointments').select('*,patients(name)').neq('payment_status', 'pago').in('status', ['realizado', 'falta']).order('date').order('time', { nullsFirst: true }).then(unwrap);
+  sb.from('appointments').select(emb()).neq('payment_status', 'pago').in('status', ['realizado', 'falta']).order('date').order('time', { nullsFirst: true }).then(unwrap).then(named);
 /** Pagamentos recebidos no período, pela data do pagamento (e não pela data da sessão). */
 export const listPaidBetween = (from, to) =>
-  sb.from('appointments').select('*,patients(name)').eq('payment_status', 'pago').gte('paid_on', from).lte('paid_on', to).then(unwrap);
+  sb.from('appointments').select(emb()).eq('payment_status', 'pago').gte('paid_on', from).lte('paid_on', to).then(unwrap).then(named);
 export const getPatientAdmin = (patientId) =>
   sb.from('patient_admin').select('*').eq('patient_id', patientId).maybeSingle().then(unwrap);
 export const savePatientAdmin = (row) =>
-  sb.from('patient_admin').upsert({ ...row, updated_at: new Date().toISOString() }).select().single().then(unwrap);
+  sb.from('patient_admin').upsert(own({ ...row, updated_at: new Date().toISOString() })).select().single().then(unwrap);
 
 /* ---------- financeiro: despesas e dados administrativos de todos os pacientes ---------- */
 export const listPatientAdmins = () => sb.from('patient_admin').select('*').then(unwrap);
@@ -301,7 +329,7 @@ export const saveExpense = (row) => {
   const { id, ...rest } = row;
   return id
     ? sb.from('expenses').update(rest).eq('id', id).select().single().then(unwrap)
-    : sb.from('expenses').insert(rest).select().single().then(unwrap);
+    : sb.from('expenses').insert(own(rest)).select().single().then(unwrap);
 };
 export const deleteExpense = (id) => sb.from('expenses').delete().eq('id', id).then(unwrap);
 
@@ -309,7 +337,7 @@ export const deleteExpense = (id) => sb.from('expenses').delete().eq('id', id).t
 export const portalReports = () => sb.rpc('portal_list_reports').then(unwrap);
 
 /* ---------- links públicos (anamnese para o paciente responder; relatório para ler/baixar) ---------- */
-export const createShareLink = (row) => sb.from('share_links').insert(row).select('id,token,kind,expires_at').single().then(unwrap);
+export const createShareLink = (row) => sb.from('share_links').insert(own(row)).select('id,token,kind,expires_at').single().then(unwrap);
 export const listShareLinks = (patientId) =>
   sb.from('share_links').select('id,token,kind,expires_at,responded_at,opened_at,created_at,report_id,template_id,appointment_id,fields').eq('patient_id', patientId).order('created_at', { ascending: false }).then(unwrap);
 export const revokeShareLink = (id) => sb.from('share_links').delete().eq('id', id).then(unwrap);

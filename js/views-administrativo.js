@@ -23,13 +23,28 @@ const statusOpts = (cur) => Object.entries(ATT_STATUS).map(([k, l]) => `<option 
 export async function renderAdministrativo(params) {
   const main = shell('administrativo'); loading(main);
   const patients = await api.listPatients();
-  const ABAS = [['agenda', 'Agenda'], ['espera', 'Lista de espera'], ['frequencia', 'Folha de frequência'], ['declaracoes', 'Declarações'], ['convenios', 'Convênios'], ['pesquisa', 'Pesquisa']];
+  let ABAS = [['agenda', 'Agenda'], ['espera', 'Lista de espera'], ['frequencia', 'Folha de frequência'], ['declaracoes', 'Declarações'], ['convenios', 'Convênios'], ['pesquisa', 'Pesquisa']];
+  // secretária(o): sem Convênios e Pesquisa (mexem no perfil do profissional) e com cadastro básico de paciente
+  const staff = state.profile?.role === 'secretary';
+  if (staff) ABAS = ABAS.filter(([k]) => !['convenios', 'pesquisa'].includes(k));
   const aba = ABAS.some(([k]) => k === params.get('aba')) ? params.get('aba') : 'agenda';
-  main.innerHTML = pageHeader('Administrativo', 'Agenda, folha de frequência, declarações e convênios. Separados dos registros clínicos.',
-    aba === 'agenda' ? `<button class="btn bloom" id="new-ap">${icon('plus')}Nova sessão</button>` : '') + `
+  main.innerHTML = pageHeader('Administrativo', staff ? `Agenda e documentos administrativos de ${esc(state.profile.full_name)}.` : 'Agenda, folha de frequência, declarações e convênios. Separados dos registros clínicos.',
+    (staff ? `<button class="btn quiet" id="staff-pac">${icon('users')}Cadastrar paciente</button>` : '') + (aba === 'agenda' ? `<button class="btn bloom" id="new-ap">${icon('plus')}Nova sessão</button>` : '')) + `
     <div class="tabs" role="tablist">
       ${ABAS.map(([k, l]) => `<a class="tab ${aba === k ? 'on' : ''}" href="#/administrativo${k === 'agenda' ? '' : '?aba=' + k}" role="tab" style="text-decoration:none">${l}</a>`).join('')}
     </div><div id="pane"></div>`;
+  if ($('#staff-pac')) $('#staff-pac').onclick = async () => {
+    const r = await openModal('Cadastrar paciente', `<p class="muted small">Cadastro básico para agendar e cobrar. Os dados clínicos são preenchidos pelo(a) profissional.</p>
+      <label class="field">Nome completo<input name="n" required maxlength="160"></label>
+      <label class="field">Telefone (WhatsApp)<input name="t" placeholder="(00) 00000-0000"></label>
+      <label class="field">E-mail (opcional)<input type="email" name="e"></label>`,
+    { okText: 'Cadastrar', onOk: async (d) => {
+      const f = (n) => d.querySelector(`[name=${n}]`).value.trim();
+      if (!f('n')) return false;
+      await api.staffSavePatient({ name: f('n'), phone: f('t'), email: f('e') }); return true;
+    } });
+    if (r) { toast('Paciente cadastrado.'); renderAdministrativo(params); }
+  };
   const PANES = { agenda: () => agenda(params, patients), frequencia: () => frequencia(params, patients),
     declaracoes: () => declaracoes(patients), convenios: () => convenios(), espera: () => espera(), pesquisa: () => pesquisa() };
   const reload = () => PANES[aba]();
@@ -91,10 +106,10 @@ async function agenda(params, patients) {
         const remarcar = ['falta', 'falta_justificada', 'cancelado'].includes(a.status) || a.confirm_status === 'remarcar' ? `<button class="btn quiet sm" data-remarcar="${a.id}">Reagendar</button>` : '';
         const rid = evo.get(`${a.patient_id}|${a.date}`);
         const evoLink = rid ? `<a class="small" href="#/relatorio/${rid}">${icon('file')}Evolução</a>`
-          : a.status === 'realizado' ? `<a class="small" href="#/nova?paciente=${a.patient_id}">${icon('plus')}Registrar evolução</a>` : '';
+          : a.status === 'realizado' && state.profile?.role !== 'secretary' ? `<a class="small" href="#/nova?paciente=${a.patient_id}">${icon('plus')}Registrar evolução</a>` : '';
         return `<div class="tr cols-agenda">
           <span class="t">${esc(hhmm(a.time) || '—')}</span>
-          <span class="ellip"><a href="#/pacientes/${a.patient_id}" style="color:inherit">${esc(a.patients?.name || '')}</a><small class="muted"> · ${a.duration_min} min${a.notes ? ' · ' + esc(a.notes) : ''}</small> ${conf}</span>
+          <span class="ellip">${state.profile?.role === 'secretary' ? esc(a.patients?.name || '') : `<a href="#/pacientes/${a.patient_id}" style="color:inherit">${esc(a.patients?.name || '')}</a>`}<small class="muted"> · ${a.duration_min} min${a.notes ? ' · ' + esc(a.notes) : ''}</small> ${conf}</span>
           <span class="ag-meta"><select class="ag-st st-${a.status}" data-st="${a.id}" aria-label="Situação">${statusOpts(a.status)}</select>${evoLink}</span>
           <span class="row" style="gap:2px;flex-wrap:nowrap">${a.status === 'agendado' ? `<button class="btn quiet sm" data-lem="${a.id}" title="Enviar lembrete pelo WhatsApp">Lembrete</button>` : ''}${remarcar}<button class="icon-btn" data-ed="${a.id}" title="Editar" aria-label="Editar">${icon('edit')}</button><button class="icon-btn" data-del="${a.id}" title="Excluir" aria-label="Excluir">${icon('trash')}</button></span>
         </div>`;

@@ -1189,8 +1189,6 @@ alter table public.appointments add column if not exists payment_note text;     
 alter table public.charges add column if not exists payment_note text;
 
 -- ---------------------------------------------------------------------
--- v15 (ATENÇÃO: em 12/11/2026 ainda NÃO estava aplicada no Supabase; a migração
--- pede confirmação do dono do projeto. As telas que dependem dela não existem ainda.)
 -- v15: acesso de secretária (só agenda e financeiro de um profissional),
 -- página pública do profissional e portal do paciente com próximas sessões
 -- ---------------------------------------------------------------------

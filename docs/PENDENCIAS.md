@@ -30,6 +30,9 @@ Estes itens foram testados só no ambiente de teste (dados simulados). O que se 
 | Bloqueio, série e reagendar | Bloquear um dia, tentar agendar por cima, excluir uma série e reagendar uma falta. |
 | Pesquisa de satisfação | Responder pelo celular e ver a nota em Administrativo → Pesquisa. |
 | Calendário (.ics) | Abrir o arquivo no celular (Android e iPhone) e conferir horários. |
+| Acesso de secretária | **Ainda não testado com uma conta real.** Liberar um e-mail em Equipe, criar a conta como "Sou secretária(o)", confirmar o e-mail e entrar. Conferir: vê agenda e financeiro; agenda, cobra, registra pagamento e emite recibo; cadastra paciente básico; **não** abre relatórios nem a ficha. Suspender o acesso e ver que ela perde a entrada. |
+| Página pública do profissional | Ligar em Aparência e marca, definir o link próprio e abrir `#/p/<link>` num celular sem login. |
+| Portal do paciente | Entrar como paciente (mesmo e-mail do cadastro), ver as próximas sessões, confirmar e conferir na agenda do profissional. Emitir um recibo e ver na lista. |
 | Pasta dos documentos | No Chrome ou Edge do computador: escolher a pasta, anexar um laudo, exportar um Word e conferir no Explorador de Arquivos. Fechar e reabrir o navegador e ver se a pasta continua lembrada (não foi possível testar o seletor de pastas nem a pasta lembrada fora de um computador real). |
 
 ## 2. Proposto e ainda não implementado
@@ -52,7 +55,9 @@ O James quer emissão de nota fiscal no futuro. Fica para depois.
 ## 3. Achados da revisão que ainda não foram tratados
 
 **Financeiro**
-- O número do recibo avança mesmo se o profissional cancelar a impressão (o recibo agora fica guardado, com segunda via).
+- O número do recibo avança mesmo se o profissional cancelar a impressão (o recibo fica guardado, com segunda via).
+- No portal, o paciente vê a lista de recibos mas não baixa o PDF.
+- A secretária não vê a aba Pesquisa nem Convênios, e não usa a pasta de documentos por paciente com dados clínicos (só os administrativos).
 - Controle de convênio é simples: separa o que o convênio deve, sem guias nem faturamento por lote.
 - O recibo considera as sessões pagas pelo mês da sessão, não pelo mês do pagamento.
 - Editar um valor na tabela de sessões recarrega a tela inteira.
@@ -68,18 +73,6 @@ O James quer emissão de nota fiscal no futuro. Fica para depois.
 **Desempenho**
 - A lista de modelos carrega as imagens do timbre de todos os modelos a cada tela que usa modelos. Com muitos modelos importados pode ficar lento.
 
-## 3A. Bloco aguardando o banco (schema v15 escrito, não aplicado)
-
-A migração **v15** está no fim de `supabase/schema.sql`, mas o Supabase pediu a confirmação do James e ela não foi aplicada. **Primeiro passo de quem retomar:** aplicar a v15 com a aprovação dele. Depois, construir as telas abaixo (nenhuma existe ainda):
-
-1. **Acesso de secretária(o).** Decidido pelo James: fazer.
-   - O profissional autoriza um e-mail em Configurações → Equipe (tabela `staff`).
-   - A pessoa cria a conta como "Sou secretária(o)" (papel `secretary`) e vê só **Administrativo e Financeiro** daquele profissional. Nada clínico: sem relatórios, sem ficha do paciente, sem observações.
-   - No banco já previsto: `staff_of()`, `can_manage()`, políticas de agenda e financeiro, `staff_context()`, `staff_list_patients()` (só nome, telefone, e-mail), `staff_save_patient()` e `next_receipt_number()`.
-   - No site falta: opção no cadastro; rotas e menu reduzidos; `js/api.js` enviar `professional_id` nos cadastros e montar os nomes dos pacientes sem o `patients(name)`; esconder Dados de pagamento, Convênios e "Cobrar faltas"; aba Equipe em Configurações.
-2. **Página pública do profissional** em `#/p/<link-próprio>`: apresentação, áreas de atuação e botão de WhatsApp. Ligada e editada em Configurações → Aparência e marca (`branding.public`). Função `public_profile()` prevista.
-3. **Portal do paciente mais completo:** próximas sessões com confirmar/remarcar e lista de recibos. Funções `portal_overview()` e `portal_confirm()` previstas.
-
 ## 3B. Clínicas (só mapeado; o James pediu para NÃO implementar ainda)
 
 Ideias para quando ele decidir:
@@ -91,7 +84,7 @@ Ideias para quando ele decidir:
 - **Paciente da clínica** atendido por mais de uma profissional, com compartilhamento de registro só com consentimento.
 - **Lista de espera e pesquisa de satisfação** da clínica.
 - **Convênios da clínica**, com guias e faturamento por lote.
-- **Impacto técnico:** hoje tudo é por `professional_id`. Clínica exige uma tabela de organização, vínculo profissional–clínica e revisão de todas as regras de acesso. O acesso de secretária (3A) deve ser pensado para caber nesse desenho.
+- **Impacto técnico:** hoje tudo é por `professional_id`. Clínica exige uma tabela de organização, vínculo profissional–clínica e revisão de todas as regras de acesso. O acesso de secretária já existe por profissional (tabela `staff`, funções `staff_of()` e `can_manage()`); na clínica ele precisa valer para várias profissionais.
 
 ## 3C. Ideias ainda não feitas
 

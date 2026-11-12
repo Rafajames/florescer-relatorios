@@ -1036,3 +1036,9 @@ a.stat:hover,a.dcard:hover,.tline .card:hover{transform:translateY(-2px);box-sha
 .tour-steps{display:flex;gap:6px;margin:0 0 12px}.tour-steps i{flex:1;height:4px;border-radius:99px;background:var(--line)}.tour-steps i.on{background:var(--bloom)}
 .hoje-it{flex-wrap:wrap}
 .arq-it{padding:7px 0;border-bottom:1px solid var(--line);word-break:break-word}.arq-it:last-of-type{border-bottom:0}
+.pp-hero{color:#fff;border-radius:22px;padding:44px 30px;text-align:center;margin-bottom:16px}
+.pp-hero h1{margin:10px 0 6px;font-size:clamp(28px,6vw,40px)}.pp-hero p{margin:0;color:rgba(255,255,255,.86)}
+.pp-hero .pp-tag{margin-top:10px;font-size:18px;color:#fff}
+.pp-logo{display:inline-grid;place-items:center;width:84px;height:84px;border-radius:22px;background:#fff;padding:10px}.pp-logo img{max-width:100%;max-height:100%}
+.pp-hero .pp-cta{margin-top:20px;background:#fff;color:#10252d;border-color:#fff;font-weight:700}
+.pp-areas{display:flex;flex-wrap:wrap;gap:8px}.pp-areas span{padding:7px 14px;border-radius:99px;background:var(--petrol-tint,#e2eef1);font-weight:500;font-size:14.5px}

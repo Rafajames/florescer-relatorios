@@ -17,7 +17,7 @@ import {
    ===================================================================== */
 const ALL_TABS = [
   ['perfil', 'Perfil e timbre'], ['aparencia', 'Aparência e marca'], ['preferencias', 'Preferências'], ['chaves', 'Chaves de IA'],
-  ['consentimento', 'Consentimento'], ['seguranca', 'Segurança'], ['dados', 'Dados e privacidade'],
+  ['consentimento', 'Consentimento'], ['equipe', 'Equipe'], ['seguranca', 'Segurança'], ['dados', 'Dados e privacidade'],
 ];
 
 const download = (name, text, type) => {
@@ -92,6 +92,7 @@ export async function renderSettings(params) {
   }
 
   if (tab === 'aparencia') {
+    const pub = (p.branding && p.branding.public) || {};
     const b = brandOf(p);
     const draft = { ...b };
     const base = location.origin + location.pathname;
@@ -145,9 +146,20 @@ export async function renderSettings(params) {
       </section>
       <section class="panel"><h2>Seu link próprio</h2>
         <p class="muted">Quem abrir este link vê a tela de login com a sua marca. Mande aos seus pacientes.</p>
-        <label class="field">Endereço<div class="row" style="flex-wrap:nowrap"><span class="muted small" style="white-space:nowrap">${esc(base)}#/c/</span><input name="slug" value="${esc(b.slug)}" placeholder="meu-consultorio" style="margin:0" pattern="[a-z0-9\-]{3,40}"></div>
+        <label class="field">Endereço<div class="row" style="flex-wrap:nowrap"><span class="muted small" style="white-space:nowrap">${esc(base)}#/c/</span><input name="slug" value="${esc(b.slug)}" placeholder="meu-consultorio" style="margin:0" pattern="[a-z0-9\\-]{3,40}"></div>
           <small>Só letras minúsculas, números e hífen (3 a 40 caracteres).</small></label>
         <p class="small" id="slug-link"></p>
+      </section>
+      <section class="panel"><h2>Página pública de apresentação</h2>
+        <p class="muted">Uma página simples com a sua apresentação e um botão de WhatsApp, para divulgar. Usa o endereço do seu link próprio.</p>
+        <label class="check"><input type="checkbox" name="pub_on" ${pub.on ? 'checked' : ''}> Publicar minha página de apresentação</label>
+        <label class="field">Apresentação<textarea name="pub_bio" rows="4" maxlength="1200" placeholder="Quem você é, como trabalha, para quem atende.">${esc(pub.bio || '')}</textarea></label>
+        <label class="field">Áreas de atuação (uma por linha)<textarea name="pub_areas" rows="3" maxlength="600" placeholder="Ex.: Integração sensorial&#10;Atraso no desenvolvimento">${esc((pub.areas || []).join('\n'))}</textarea></label>
+        <div class="grid2">
+          <label class="field">WhatsApp para contato<input name="pub_whats" value="${esc(pub.whatsapp || '')}" placeholder="(00) 00000-0000"></label>
+          <label class="field">Cidade e forma de atendimento<input name="pub_city" value="${esc(pub.city || '')}" maxlength="100" placeholder="Ex.: Boa Vista/RR · presencial e online"></label>
+        </div>
+        <p class="small" id="pub-link"></p>
       </section>
       <section class="panel"><h2>Prévia</h2>
         <div class="brand-preview" id="prev"></div>
@@ -157,6 +169,8 @@ export async function renderSettings(params) {
     $('#hc').onchange = (e) => setLook({ contrast: e.target.checked ? 'high' : 'normal' });
     const f = $('#bf');
     const el = (n) => f.elements[n];
+    const pubDraft = () => ({ on: el('pub_on').checked, bio: el('pub_bio').value.trim(), areas: el('pub_areas').value.split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 12),
+      whatsapp: el('pub_whats').value.trim(), city: el('pub_city').value.trim() });
     const img = (id, src) => { $(id).innerHTML = src ? `<img src="${src}" alt="">` : '<span class="muted small">Sem imagem</span>'; };
     const paint = () => {
       draft.org_name = el('org_name').value.trim(); draft.tagline = el('tagline').value.trim(); draft.footer = el('footer').value.trim();
@@ -165,6 +179,7 @@ export async function renderSettings(params) {
       img('#logo-box', draft.logo); img('#sig-box', draft.signature);
       applyBrand(draft);
       const slug = el('slug').value.trim();
+      $('#pub-link').innerHTML = !el('pub_on').checked ? '' : slug ? `Sua página: <a href="${esc(base)}#/p/${esc(slugify(slug))}" target="_blank" rel="noopener">${esc(base)}#/p/${esc(slugify(slug))}</a> (vale depois de salvar)` : 'Defina o endereço em “Seu link próprio” para a página funcionar.';
       $('#slug-link').innerHTML = slug ? `Seu link: <a href="${esc(base)}#/c/${esc(slug)}" target="_blank" rel="noopener">${esc(base)}#/c/${esc(slug)}</a>` : '';
       $('#prev').innerHTML = `
         <div class="prev-login" style="background:${esc(draft.color)}">${draft.logo ? `<span class="mark has-logo"><img src="${draft.logo}" alt=""></span>` : ''}
@@ -179,22 +194,51 @@ export async function renderSettings(params) {
     $('#sig-rm').onclick = () => { draft.signature = ''; paint(); };
     $('#brand-reset').onclick = async () => {
       if (!(await confirmBox('Remover logo, cores e textos personalizados?', 'Voltar ao padrão'))) return;
-      await saveProfile({ branding: {}, slug: null }); const nb = brandOf(state.profile); applyBrand(nb); rememberBrand(nb); toast('Aparência restaurada.'); renderSettings(params);
+      // volta só a aparência ao padrão; dados de pagamento, convênios e sequência de recibos ficam
+      const manter = Object.fromEntries(Object.entries(state.profile.branding || {}).filter(([k]) => ['payment', 'insurers', 'recibo_seq', 'charge_absence'].includes(k)));
+      await saveProfile({ branding: manter, slug: null }); const nb = brandOf(state.profile); applyBrand(nb); rememberBrand(nb); toast('Aparência restaurada.'); renderSettings(params);
     };
     f.onsubmit = (e) => {
       e.preventDefault(); paint();
       const slug = slugify(el('slug').value);
       if (el('slug').value.trim() && (slug.length < 3)) return toast('O endereço precisa ter ao menos 3 caracteres.', 'err');
+      if (el('pub_on').checked && !slug) return toast('Para publicar a página, defina o endereço em “Seu link próprio”.', 'err');
       return busy($('[type=submit]', f), 'Salvando…', async () => {
         await saveProfile({
           clinic_name: draft.org_name || p.clinic_name, slug: slug || null,
-          branding: { org_name: draft.org_name, tagline: draft.tagline, logo: draft.logo, signature: draft.signature, color: draft.color, accent: draft.accent, footer: draft.footer, contact: draft.contact, doc_font: el('doc_font').value, doc_margin: el('doc_margin').value, doc_header: el('doc_header').value },
+          branding: { ...(state.profile.branding || {}), public: pubDraft(), org_name: draft.org_name, tagline: draft.tagline, logo: draft.logo, signature: draft.signature, color: draft.color, accent: draft.accent, footer: draft.footer, contact: draft.contact, doc_font: el('doc_font').value, doc_margin: el('doc_margin').value, doc_header: el('doc_header').value },
         });
         const nb = brandOf(state.profile); applyBrand(nb); rememberBrand(nb);
         toast('Aparência salva.'); renderSettings(params);
       });
     };
     paint();
+  }
+
+  if (tab === 'equipe') {
+    const lista = await api.listStaff();
+    pane.innerHTML = `<section class="panel"><h2>Equipe</h2>
+      <p class="muted">Libere o acesso de uma secretária ou secretário. A pessoa vê só a <b>agenda e o financeiro</b>: agenda sessões, envia lembretes, cobra e registra pagamentos. Ela <b>não vê</b> anamneses, evoluções, relatórios nem a ficha clínica.</p>
+      <form id="st-f"><div class="grid2">
+        <label class="field">E-mail da pessoa<input type="email" name="email" required placeholder="nome@exemplo.com"></label>
+        <label class="field">Nome (opcional)<input name="name" maxlength="100"></label>
+      </div><button class="btn" type="submit">${icon('plus')}Liberar acesso</button></form>
+      <p class="muted small" style="margin-top:12px">Depois, a pessoa cria a conta dela em “Criar conta” → “Sou secretária(o)”, com este mesmo e-mail, e confirma o e-mail.</p>
+    </section>
+    ${lista.length ? `<div class="list">${lista.map((s) => `<div class="li"><div class="grow"><div class="t">${esc(s.name || s.email)} ${s.active ? chip('Acesso liberado', 'ok') : chip('Suspenso', 'warn')}</div>
+      <div class="meta">${esc(s.email)}</div></div>
+      <button class="btn quiet sm" data-st-tog="${s.id}" data-on="${s.active ? 1 : 0}">${s.active ? 'Suspender' : 'Liberar de novo'}</button>
+      <button class="icon-btn" data-st-del="${s.id}" title="Remover" aria-label="Remover acesso">${icon('trash')}</button></div>`).join('')}</div>` : emptyState('Ninguém na equipe', 'Só você acessa a sua agenda e o seu financeiro.')}`;
+    $('#st-f').onsubmit = (e) => {
+      e.preventDefault(); const fd = new FormData(e.target);
+      return busy($('[type=submit]', e.target), 'Liberando…', async () => {
+        try { await api.saveStaff({ email: fd.get('email'), name: String(fd.get('name') || '').trim() }); }
+        catch (err) { throw new Error(/duplicate|unique/i.test(err.message) ? 'Este e-mail já está na sua equipe.' : err.message); }
+        toast('Acesso liberado.'); renderSettings(params);
+      });
+    };
+    $$('[data-st-tog]').forEach((b) => (b.onclick = async () => { await api.setStaffActive(b.dataset.stTog, b.dataset.on !== '1'); toast(b.dataset.on === '1' ? 'Acesso suspenso.' : 'Acesso liberado.'); renderSettings(params); }));
+    $$('[data-st-del]').forEach((b) => (b.onclick = async () => { if (!(await confirmBox('Remover o acesso desta pessoa à sua agenda e ao seu financeiro?', 'Remover'))) return; await api.deleteStaff(b.dataset.stDel); toast('Acesso removido.'); renderSettings(params); }));
   }
 
   if (tab === 'preferencias') {

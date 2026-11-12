@@ -33,6 +33,7 @@ const PRO_ROUTES = [
   [/^#\/admin$/, () => import('./views-admin.js').then((m) => m.renderAdmin())],
   [/^#\/config$/, (m, q) => settings.renderSettings(q)],
 ];
+const isStaffRole = (p) => p && p.role === 'secretary';
 const PATIENT_ROUTES = [
   [/^#\/portal$/, () => portal.renderPortal()],
   [/^#\/portal\/([\w-]+)$/, (m) => portal.renderPortalReport(m[1])],
@@ -50,6 +51,9 @@ async function doRoute() {
   // links públicos (#/l/token): sem login, só a tela do link
   const pub = (location.hash.match(/^#\/l\/([\w-]+)/) || [])[1];
   if (pub) return import('./views-public.js').then((m) => m.renderPublicLink(pub));
+  // página pública do profissional (#/p/link-proprio): apresentação e contato, sem login
+  const pag = (location.hash.match(/^#\/p\/([\w-]+)/) || [])[1];
+  if (pag) return import('./views-public.js').then((m) => m.renderPublicProfile(pag));
   try {
     if (!state.settingsLoaded) { try { applySettings(await api.loadSettings(), PROVIDERS); } catch { /* tabela ainda não criada */ } state.settingsLoaded = true; }
     const session = await api.getSession();
@@ -64,24 +68,40 @@ async function doRoute() {
       return renderAuth(brand);
     }
     if (await api.mfaNeedsCode()) return renderMfaChallenge(session.user.email, () => route());
-    if (!state.profile || state.profile.id !== session.user.id) {
+    if (!state.profile || (state.profile._uid || state.profile.id) !== session.user.id) {
       state.user = session.user;
-      state.profile = await api.getProfile();
+      api.setStaff(null);
+      const meu = await api.getProfile();
+      if (meu.role === 'secretary' && !meu.disabled) {
+        // secretária(o): entra na agenda e no financeiro do profissional que liberou o e-mail dela
+        const ctx = await api.staffContext();
+        if (!ctx) {
+          $('#app').innerHTML = `<div class="auth-wrap"><div class="card auth-card"><h2>Acesso ainda não liberado</h2>
+            <p>Sua conta de secretária(o) foi criada com o e-mail <b>${esc(session.user.email)}</b>. Peça ao(à) profissional para liberar este e-mail em Configurações → Equipe. Depois, entre de novo.</p>
+            <div class="row"><button class="btn" id="retry">Tentar de novo</button><button class="btn ghost" id="out">Sair</button></div></div></div>`;
+          $('#retry').onclick = () => route();
+          $('#out').onclick = async () => { await api.signOut(); api.setStaff(null); state.profile = null; route(); };
+          return;
+        }
+        api.setStaff(ctx.professional_id);
+        state.profile = { ...ctx, id: ctx.professional_id, role: 'secretary', _uid: session.user.id, staff_name: meu.full_name, onboarded: true, preferences: {} };
+      } else state.profile = meu;
     }
     if (state.profile.disabled) {
       $('#app').innerHTML = `<div class="auth-wrap"><div class="card auth-card"><h2>Conta desativada</h2><p>O acesso desta conta foi desativado pela administração. Entre em contato com o suporte.</p><button class="btn ghost" id="out">Sair</button></div></div>`;
-      $('#out').onclick = async () => { await api.signOut(); state.profile = null; route(); };
+      $('#out').onclick = async () => { await api.signOut(); api.setStaff(null); state.profile = null; route(); };
       return;
     }
     const isPatient = state.profile.role === 'patient';
     if (isPatient) applyBrand(DEFAULT_BRAND);
     else {
       const b = brandOf(state.profile); applyBrand(b); rememberBrand(b);
-      if (!state.profile.onboarded && !state.profile.is_admin) return renderOnboarding(() => { location.hash = '#/painel'; route(); });
+      if (!isStaffRole(state.profile) && !state.profile.onboarded && !state.profile.is_admin) return renderOnboarding(() => { location.hash = '#/painel'; route(); });
     }
-    const home = isPatient ? '#/portal' : state.profile.is_admin ? '#/admin' : '#/painel';
+    const isStaff = state.profile.role === 'secretary';
+    const home = isPatient ? '#/portal' : isStaff ? '#/administrativo' : state.profile.is_admin ? '#/admin' : '#/painel';
     const [path, query = ''] = (location.hash || home).split('?');
-    const routes = isPatient ? PATIENT_ROUTES : PRO_ROUTES;
+    const routes = isPatient ? PATIENT_ROUTES : isStaff ? PRO_ROUTES.filter(([re]) => /administrativo|financeiro|ajuda/.test(re.source)) : PRO_ROUTES;
     const hit = routes.map(([re, fn]) => [path.match(re), fn]).find(([m]) => m);
     if (!hit) { location.hash = home; return; }
     const TELAS = { painel: 'Início', pacientes: 'Pacientes', nova: 'Nova sessão', relatorios: 'Relatórios', relatorio: 'Relatório', periodo: 'Por período', modelos: 'Modelos', administrativo: 'Administrativo', financeiro: 'Financeiro', mais: 'Mais', ajuda: 'Ajuda', admin: 'Administração', config: 'Configurações', portal: 'Portal' };
@@ -95,7 +115,7 @@ async function doRoute() {
       <div class="row"><button class="btn" id="retry">Tentar novamente</button>
       <button class="btn ghost" id="out">Sair</button></div></div></div>`;
     $('#retry').onclick = () => route();
-    $('#out').onclick = async () => { await api.signOut(); state.profile = null; route(); };
+    $('#out').onclick = async () => { await api.signOut(); api.setStaff(null); state.profile = null; route(); };
   }
 }
 
@@ -111,7 +131,7 @@ window.addEventListener('beforeunload', (e) => { if (window.__dirty) { e.prevent
 if (api.configured) {
   api.sb.auth.onAuthStateChange((event, sess) => {
     // não chamar o Supabase dentro do callback: agenda para depois
-    if (event === 'SIGNED_OUT') setTimeout(() => { state.profile = null; state.user = null; route(); }, 0);
+    if (event === 'SIGNED_OUT') setTimeout(() => { api.setStaff(null); state.profile = null; state.user = null; route(); }, 0);
     else if (event === 'SIGNED_IN' && (!state.user || state.user.id !== sess?.user?.id)) setTimeout(() => { state.profile = null; route(); }, 0);
     else if (event === 'PASSWORD_RECOVERY') setTimeout(() => promptNewPassword(), 0);
   });
@@ -147,7 +167,7 @@ document.addEventListener('keydown', (e) => {
 
 document.addEventListener('click', async (e) => {
   if (!e.target.closest('#logout, [data-logout]')) return;
-  await api.signOut(); state.profile = null; state.user = null; location.hash = '';
+  await api.signOut(); api.setStaff(null); state.profile = null; state.user = null; location.hash = '';
 });
 
 route();

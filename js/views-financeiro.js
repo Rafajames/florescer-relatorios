@@ -14,7 +14,7 @@ import {
 const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 const METHODS = [['', 'Forma de pagamento'], ['pix', 'PIX'], ['dinheiro', 'Dinheiro'], ['cartao', 'Cartão'], ['transferencia', 'Transferência'], ['convenio', 'Convênio']];
 const CATS = ['Aluguel', 'Materiais', 'Software e internet', 'Transporte', 'Impostos e taxas', 'Formação', 'Outros'];
-const TABS = [['cobrancas', 'Cobranças'], ['despesas', 'Gastos'], ['resumo', 'Resumo'], ['valores', 'Valores'], ['documentos', 'Documentos'], ['pagamento', 'Dados de pagamento']];
+const ALL_TABS = [['cobrancas', 'Cobranças'], ['despesas', 'Gastos'], ['resumo', 'Resumo'], ['valores', 'Valores'], ['documentos', 'Documentos'], ['pagamento', 'Dados de pagamento']];
 
 const monthRange = (m) => {
   const [y, mo] = m.split('-').map(Number);
@@ -28,6 +28,8 @@ const refresh = () => renderFinanceiro(new URLSearchParams(location.hash.split('
 
 export async function renderFinanceiro(params) {
   const main = shell('financeiro'); loading(main);
+  // secretária(o) não altera os dados de pagamento do profissional
+  const TABS = state.profile?.role === 'secretary' ? ALL_TABS.filter(([k]) => k !== 'pagamento') : ALL_TABS;
   const aba = TABS.some(([k]) => k === params.get('aba')) ? params.get('aba') : 'cobrancas';
   const mes = /^\d{4}-\d{2}$/.test(params.get('mes') || '') ? params.get('mes') : todayISO().slice(0, 7);
   const [from, to] = monthRange(mes);
@@ -208,7 +210,7 @@ async function pricesTab(pane, mes) {
       : a.session_price != null ? `${brl(a.session_price)} por sessão` : 'Valor não definido');
   pane.innerHTML = `<section class="panel"><h2>Como cada paciente paga</h2>
     <p class="muted">Por sessão, mensalidade fixa ou pacote pago adiantado. Mudar o valor não altera sessões já realizadas. No dia de cobrança, a cobrança aparece pronta para enviar.</p>
-    <label class="check" style="margin-bottom:12px"><input type="checkbox" id="pr-faltas" ${state.profile?.branding?.charge_absence ? 'checked' : ''}> Cobrar também as faltas sem justificativa (só na cobrança por sessão)</label>
+    <label class="check" style="margin-bottom:12px"><input type="checkbox" id="pr-faltas" ${state.profile?.branding?.charge_absence ? 'checked' : ''} ${state.profile?.role === 'secretary' ? 'disabled title="Só o(a) profissional altera"' : ''}> Cobrar também as faltas sem justificativa (só na cobrança por sessão)</label>
     ${list.length ? `<div class="table">${list.map((p) => `<div class="tr val-row" data-pid="${p.id}">
         <span class="grow t">${esc(p.name)}<small class="muted"> · ${esc(adm[p.id]?.insurer || 'Particular')}${adm[p.id]?.insurer_pays ? ' (convênio paga)' : ''}</small><br><small>${resumo(adm[p.id])}</small></span>
         <span class="row" style="gap:6px;flex-wrap:wrap">${adm[p.id]?.billing_mode === 'pacote' ? '<button class="btn sm" data-vender>Vender pacote</button>' : ''}
@@ -427,8 +429,9 @@ async function documentsTab(pane, mes, from, to) {
   // Recibo com número sequencial: o número só avança quando o recibo é emitido.
   const emitRecibo = (fn) => async () => {
     const a = rcArgs(); if (!needRc(a)) return;
-    const numero = (state.profile.branding?.recibo_seq || 0) + 1;
-    try { await saveBranding({ recibo_seq: numero }); }
+    // o número vem do banco (sequência no perfil do profissional), para a secretária também poder emitir
+    let numero;
+    try { numero = await api.nextReceiptNumber(); state.profile = { ...state.profile, branding: { ...(state.profile.branding || {}), recibo_seq: numero } }; }
     catch (err) { return toast(err.message, 'err'); }
     fn({ ...a, numero });
     api.saveReceipt({ patient_id: $('#rc-p').value, numero, total: a.total, data: { patientName: a.patientName, specialty: a.specialty, monthLabel: a.monthLabel, items: a.items, total: a.total } })

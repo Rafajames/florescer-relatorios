@@ -4,6 +4,18 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 12/11/2026 — Secretária, página pública do profissional e portal do paciente
+
+Banco: schema **v15** (aplicado com a aprovação do James).
+
+- **Acesso de secretária(o):** o profissional libera um e-mail em Configurações → Equipe. A pessoa cria a conta como "Sou secretária(o)" e entra direto na **agenda e no financeiro** daquele profissional: agenda, lembretes, lista de espera, frequência, declarações, cobranças, gastos, resumo, valores e recibos. Não vê relatórios, anamneses, evoluções nem a ficha do paciente; cadastra só nome, telefone e e-mail. Não altera dados de pagamento, convênios nem a opção de cobrar faltas.
+- **Página pública do profissional** em `#/p/link-próprio`: apresentação, áreas de atuação, cidade e botão de WhatsApp. Ligada em Configurações → Aparência e marca.
+- **Portal do paciente:** próximas sessões com "Confirmo" e "Preciso remarcar", e lista de recibos (número, data e valor).
+- O número do recibo passou a vir do banco, para a secretária também emitir.
+
+**Correção importante**
+- Salvar "Aparência e marca" apagava os dados de pagamento (chaves PIX), os convênios, a sequência de recibos e a opção de cobrar faltas, porque regravava a marca sem preservar o resto. Agora preserva. "Voltar ao padrão" também passou a manter esses dados.
+
 ## 12/11/2026 — Pasta dos documentos no computador
 
 - Em Configurações → Dados e privacidade, o profissional escolhe uma pasta do computador. A plataforma cria uma subpasta por paciente, com Relatórios, Recibos, Cobranças e Laudos e exames.

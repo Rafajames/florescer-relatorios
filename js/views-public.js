@@ -38,6 +38,33 @@ export async function renderPublicLink(token) {
   }
 }
 
+/* ---------- página pública do profissional (#/p/link-proprio) ---------- */
+export async function renderPublicProfile(slug) {
+  const app = $('#app');
+  app.innerHTML = '<div class="pub"><main class="pub-main" id="pm"><p class="muted">Carregando…</p></main></div>';
+  const main = $('#pm');
+  let info = null;
+  try { info = await api.publicProfile(slug); } catch { info = null; }
+  if (!info) { main.innerHTML = card('Página não encontrada', '<p>Este endereço não existe ou a página não está publicada.</p>'); return; }
+  const pg = info.page || {};
+  const cor = /^#[0-9a-f]{6}$/i.test(info.color || '') ? info.color : '#134B5F';
+  const fone = String(pg.whatsapp || '').replace(/\D/g, '');
+  const wa = fone.length >= 10 ? `https://wa.me/${fone.length <= 11 ? '55' + fone : fone}?text=${encodeURIComponent(`Olá, ${info.full_name}! Vi a sua página e gostaria de saber mais sobre o atendimento.`)}` : '';
+  document.title = `${info.name} · ${info.specialty || 'Profissional de saúde'}`;
+  main.innerHTML = `
+    <section class="pp-hero" style="background:linear-gradient(165deg,${esc(cor)},color-mix(in srgb,${esc(cor)} 70%,#000))">
+      ${info.logo ? `<span class="pp-logo"><img src="${esc(info.logo)}" alt=""></span>` : ''}
+      <h1>${esc(info.name)}</h1>
+      <p>${esc([info.full_name !== info.name ? info.full_name : '', info.specialty, info.council_registry].filter(Boolean).join(' · '))}</p>
+      ${info.tagline ? `<p class="pp-tag">${esc(info.tagline)}</p>` : ''}
+      ${wa ? `<a class="btn pp-cta" target="_blank" rel="noopener" href="${esc(wa)}">Falar pelo WhatsApp</a>` : ''}
+    </section>
+    ${pg.bio ? `<section class="panel"><h2>Apresentação</h2><p style="white-space:pre-wrap;line-height:1.65">${esc(pg.bio)}</p></section>` : ''}
+    ${(pg.areas || []).length ? `<section class="panel"><h2>Áreas de atuação</h2><div class="pp-areas">${pg.areas.map((a) => `<span>${esc(a)}</span>`).join('')}</div></section>` : ''}
+    ${pg.city ? `<section class="panel"><h2>Atendimento</h2><p>${esc(pg.city)}</p></section>` : ''}
+    <p class="muted small" style="text-align:center">Já é paciente? <a href="#/c/${esc(slug)}">Entrar na área do paciente</a> · Página feita com a Potira</p>`;
+}
+
 /** Topo com a marca de quem enviou o link (logo e nome); sem marca, fica a Potira. */
 function marca(info) {
   const b = info.branding || {}, h = $('.pub-h');

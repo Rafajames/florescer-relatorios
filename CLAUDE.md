@@ -26,7 +26,7 @@ Plataforma web de registro clínico, agenda e cobrança para profissionais de sa
 - `js/pasta.js` pasta dos documentos no computador do profissional
 - `js/views-clinico.js` metas e escalas · `js/tour.js` tour de primeiro acesso · `apresentacao.html` página de apresentação
 - `js/export.js` PDF e Word de todos os documentos · `js/import-template.js` leitura de Word/PDF/foto para virar modelo
-- `js/views-public.js` páginas públicas por link · `js/brand.js` e `js/theme.js` marca e tema · `css/app.css` estilos
+- `js/views-public.js` páginas públicas por link e página pública do profissional · `js/views-portal.js` portal do paciente · `js/brand.js` e `js/theme.js` marca e tema · `css/app.css` estilos
 
 ## Não fazer
 

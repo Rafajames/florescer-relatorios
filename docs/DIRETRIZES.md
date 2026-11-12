@@ -39,6 +39,8 @@ Regras que valem para qualquer mudança, feita por pessoa ou por IA. O objetivo 
 - **O áudio nunca é guardado.** Só o texto.
 - **Dados administrativos e financeiros ficam separados dos clínicos** (tabelas `appointments`, `patient_admin`, `expenses`). Não colocar informação clínica na agenda.
 - O paciente só vê o que foi **revisado e liberado**, e só as seções marcadas como visíveis.
+- **Secretária(o) nunca vê nada clínico.** Só agenda e financeiro do profissional que liberou o e-mail dela (`staff`). As regras de acesso das tabelas administrativas usam `public.can_manage(professional_id)`; as clínicas (`reports`, `patients`, `goals`, `scales`…) continuam só do profissional. Paciente, para a secretária, é nome, telefone e e-mail.
+- Ao salvar `profiles.branding`, **sempre preservar o que já existe** (`{ ...branding, novoCampo }`). Ali ficam também pagamento, convênios, sequência de recibos e a página pública.
 - O log de auditoria não guarda conteúdo clínico.
 - Páginas públicas por link (`#/l/<token>`) só acessam o banco pelas funções `public_get_link` e `public_submit_anamnese`. Não abrir tabelas para acesso anônimo.
 - Nunca colocar a chave `service_role` do Supabase no site.

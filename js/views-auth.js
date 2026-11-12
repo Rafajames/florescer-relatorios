@@ -54,6 +54,7 @@ export function renderAuth(brand = null) {
           <div class="seg" id="role-seg" style="margin-bottom:14px">
             <label><input type="radio" name="role" value="professional" checked><span>Sou profissional</span></label>
             <label><input type="radio" name="role" value="patient"><span>Sou paciente</span></label>
+            <label><input type="radio" name="role" value="secretary"><span>Sou secretária(o)</span></label>
           </div>
           <label class="field">Nome completo<input name="full_name" required autocomplete="name"></label>
           <div id="pro-fields" class="stack">
@@ -78,7 +79,7 @@ export function renderAuth(brand = null) {
     document.querySelectorAll('.auth-card .tab').forEach((b) => (b.onclick = () => { mode = b.dataset.mode; draw(); }));
     const seg = $('#role-seg');
     if (seg) seg.addEventListener('change', () => {
-      $('#pro-fields').style.display = seg.querySelector('input:checked').value === 'patient' ? 'none' : '';
+      $('#pro-fields').style.display = seg.querySelector('input:checked').value === 'professional' ? '' : 'none';
     });
     const forgot = $('#forgot');
     if (forgot) forgot.onclick = async () => {

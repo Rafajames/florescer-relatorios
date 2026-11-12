@@ -123,27 +123,30 @@ const TAB = [
 // itens que ficam no botão "Mais" do celular
 export const NAV_MORE = NAV.filter(([k]) => !['painel', 'pacientes', 'relatorios'].includes(k));
 
+const TAB_STAFF = [['administrativo', '#/administrativo', 'clipboard', 'Agenda'], ['financeiro', '#/financeiro', 'wallet', 'Financeiro'], ['sair', '#', 'logout', 'Sair']];
 const TAB_ADMIN = [['admin', '#/admin', 'home', 'Início'], ['config', '#/config?aba=seguranca', 'shield', 'Segurança'], ['sair', '#', 'logout', 'Sair']];
 
 export function shell(active) {
   const p = state.profile;
   const isPatient = p && p.role === 'patient';
-  const isAdm = Boolean(p && p.is_admin);
-  const nav = isPatient ? NAV_PATIENT : (p && p.is_admin ? [['admin', '#/admin', 'home', 'Início'], ['config', '#/config?aba=seguranca', 'shield', 'Minha segurança']] : NAV);
+  const isStaff = Boolean(p && p.role === 'secretary');
+  const isAdm = Boolean(p && p.is_admin) || isStaff; // secretária usa a moldura simples: sem busca e sem "Novo"
+  const NAV_STAFF = NAV.filter(([k]) => ['administrativo', 'financeiro', 'ajuda'].includes(k));
+  const nav = isPatient ? NAV_PATIENT : isStaff ? NAV_STAFF : (p && p.is_admin ? [['admin', '#/admin', 'home', 'Início'], ['config', '#/config?aba=seguranca', 'shield', 'Minha segurança']] : NAV);
   const nt = settings.notice && settings.notice.on && settings.notice.text ? settings.notice : null;
   const br = isPatient ? { logo: '', org_name: '' } : brandOf(p);
   $('#app').innerHTML = `
     <div class="app">
       <aside class="rail">
-        <a class="brand" href="${isPatient ? '#/portal' : isAdm ? '#/admin' : '#/painel'}"><span class="mark ${br.logo ? 'has-logo' : ''}">${br.logo ? `<img src="${esc(br.logo)}" alt="">` : icon('flower')}</span><b>${esc(br.org_name || 'Potira')}</b></a>
+        <a class="brand" href="${isPatient ? '#/portal' : isStaff ? '#/administrativo' : isAdm ? '#/admin' : '#/painel'}"><span class="mark ${br.logo ? 'has-logo' : ''}">${br.logo ? `<img src="${esc(br.logo)}" alt="">` : icon('flower')}</span><b>${esc(br.org_name || 'Potira')}</b></a>
         <nav class="nav" aria-label="Principal">
           ${nav.map(([k, h, ic, l]) => `${NAV_SEC[k] && nav === NAV ? `<span class="nav-sec">${NAV_SEC[k]}</span>` : ''}<a href="${h}" class="${k === active ? 'on' : ''}" ${k === active ? 'aria-current="page"' : ''}>${icon(ic)}${l}</a>`).join('')}
         </nav>
         <div class="theme-row"><span>${icon('sun')}Tema</span><span class="theme-tog" role="group" aria-label="Tema"><button type="button" data-theme-set="light" title="Claro" aria-label="Tema claro">${icon('sun')}</button><button type="button" data-theme-set="dark" title="Escuro" aria-label="Tema escuro">${icon('moon')}</button></span></div>
         <a class="rail-credit" href="#/ajuda?sobre=1">${icon('info')}Sobre a Potira</a>
         <div class="rail-foot">
-          <span class="avatar">${esc(initials(p?.full_name || state.user?.email))}</span>
-          <div class="who"><b>${esc(p?.full_name || state.user?.email || '')}</b><span>${esc(isPatient ? 'Paciente' : isAdm ? 'Administrador' : (p?.specialty || 'Profissional'))}</span></div>
+          <span class="avatar">${esc(initials((isStaff ? p.staff_name : p?.full_name) || state.user?.email))}</span>
+          <div class="who"><b>${esc((isStaff ? p.staff_name : p?.full_name) || state.user?.email || '')}</b><span>${esc(isPatient ? 'Paciente' : isStaff ? `Secretária(o) de ${p.full_name}` : isAdm ? 'Administrador' : (p?.specialty || 'Profissional'))}</span></div>
           <button class="icon-btn" id="logout" title="Sair" aria-label="Sair">${icon('logout')}</button>
         </div>
       </aside>
@@ -160,7 +163,7 @@ export function shell(active) {
         <main id="main" class="page"></main>
       </div>
       ${isPatient ? '' : `<nav class="tabbar" aria-label="Atalhos" ${isAdm ? 'style="grid-template-columns:repeat(3,1fr)"' : ''}>
-        ${(isAdm ? TAB_ADMIN : TAB).map(([k, h, ic, l, cta]) => `<a href="${h}" ${cta ? 'data-new' : ''} ${k === 'sair' ? 'data-logout' : ''} class="${k === active || (k === 'mais' && NAV_MORE.some(([m]) => m === active)) ? 'on' : ''} ${cta ? 'cta' : ''}">${cta ? `<span class="circle">${icon(ic)}</span>` : icon(ic)}${l}</a>`).join('')}
+        ${(isStaff ? TAB_STAFF : isAdm ? TAB_ADMIN : TAB).map(([k, h, ic, l, cta]) => `<a href="${h}" ${cta ? 'data-new' : ''} ${k === 'sair' ? 'data-logout' : ''} class="${k === active || (k === 'mais' && NAV_MORE.some(([m]) => m === active)) ? 'on' : ''} ${cta ? 'cta' : ''}">${cta ? `<span class="circle">${icon(ic)}</span>` : icon(ic)}${l}</a>`).join('')}
       </nav>`}
     </div>`;
   // tema claro/escuro direto no menu
@@ -175,7 +178,7 @@ export function shell(active) {
   const back = $('#go-back');
   if (back) back.onclick = () => {
     if (history.length > 1) history.back();
-    else location.hash = isPatient ? '#/portal' : isAdm ? '#/admin' : '#/painel';
+    else location.hash = isPatient ? '#/portal' : isStaff ? '#/administrativo' : isAdm ? '#/admin' : '#/painel';
   };
   return $('#main');
 }
