@@ -95,6 +95,24 @@ Ideias para quando ele decidir:
 - **Agenda em grade semanal.**
 - **Cobrança enviada sozinha** (por e-mail), ver seção 2.
 
+## 3D. Melhorias propostas em 12/11/2026 (tarde), nenhuma aprovada ainda
+
+**Confiabilidade**
+1. **Backup incompleto.** "Baixar backup completo" só leva pacientes, consentimentos, relatórios, modelos e sessões. Ficam de fora: valores e forma de cobrança, gastos, cobranças avulsas, recibos, metas, escalas, lista de espera, bloqueios e equipe. O arquivo ainda sai com o nome "florescer-backup". Esperado: incluir tudo e renomear.
+2. **Teste com conta real.** Quase tudo desta rodada foi testado só com dados simulados. Esperado: percorrer o roteiro da seção 1 no site publicado, com uma conta de teste.
+3. **Avisos para o profissional.** Quando o paciente responde uma anamnese, pede para remarcar ou abre as orientações, o profissional só descobre ao abrir a tela certa. Esperado: um bloco "Novidades" no Início.
+
+**Telas que ainda têm texto demais ou não foram revisadas**
+4. **Ficha do paciente** ficou longa (próximas sessões, metas, linha do tempo, financeiro, escalas, arquivos, links). Esperado: abas dentro da ficha (Resumo, Clínico, Financeiro, Arquivos e links).
+5. **Configurações:** muitas abas e muito texto explicativo. Mesmo tratamento dos Modelos: cartões curtos, detalhe ao abrir.
+6. **Relatórios e Pacientes:** listas ainda no formato antigo.
+7. **Editor do relatório:** é a tela mais usada e não foi revisada.
+
+**Funcionalidades**
+8. Relatório por período trazer o progresso das metas e das escalas.
+9. Busca (Ctrl K) achar também sessões e cobranças.
+10. Agenda em grade semanal; PDF gravado direto na pasta; cobrança automática por e-mail (ver seções acima).
+
 ## 4. Segurança (adiado pelo James por estar em fase de testes)
 
 Avisos do Supabase que continuam abertos. **Tratar antes de abrir a plataforma para uso real.**
