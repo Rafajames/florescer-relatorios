@@ -72,20 +72,16 @@ O James quer emissão de nota fiscal no futuro. Fica para depois.
 **Desempenho**
 - A lista de modelos carrega as imagens do timbre de todos os modelos a cada tela que usa modelos. Com muitos modelos importados pode ficar lento.
 
-## 3B. Clínicas (só mapeado; o James pediu para NÃO implementar ainda)
+## 3B. Conta de clínica (desenhada, não implementada)
 
-**Decisão do James em 12/11/2026:** não haverá cadastro de secretária(o) avulso. No máximo existirá uma **conta/página de clínica**; quando a conta for de clínica, o layout muda para o de clínica. Até lá, só profissional e paciente. A opção "Sou secretária(o)" e a aba Equipe foram retiradas da tela. O que ficou pronto e desligado, para reaproveitar na clínica: tabela `staff`, funções `staff_of()`, `can_manage()`, `staff_context()`, `staff_list_patients()`, `staff_save_patient()`, e o modo secretária em `js/api.js`, `js/main.js` e `js/ui.js` (papel `secretary`).
+O desenho completo, com papéis, permissões, layout e as perguntas em aberto, está em **[CLINICA.md](CLINICA.md)**. Resumo do que o James definiu em 12/11/2026:
 
-Ideias para quando ele decidir:
-- **Conta da clínica** com várias profissionais. Cada profissional continua dona dos próprios registros clínicos; a clínica não lê prontuário.
-- **Papéis:** dono(a) da clínica, profissional, secretária(o) da clínica (agenda e financeiro de todas), financeiro.
-- **Agenda única** com filtro por profissional e por sala; bloqueio de sala.
-- **Financeiro da clínica:** repasse por profissional (percentual ou valor fixo por sessão), fechamento mensal, gastos da clínica separados dos gastos de cada profissional.
-- **Marca da clínica** nos documentos, com o nome e o registro de quem assina.
-- **Paciente da clínica** atendido por mais de uma profissional, com compartilhamento de registro só com consentimento.
-- **Lista de espera e pesquisa de satisfação** da clínica.
-- **Convênios da clínica**, com guias e faturamento por lote.
-- **Impacto técnico:** hoje tudo é por `professional_id`. Clínica exige uma tabela de organização, vínculo profissional–clínica e revisão de todas as regras de acesso. O acesso de secretária já existe por profissional (tabela `staff`, funções `staff_of()` e `can_manage()`); na clínica ele precisa valer para várias profissionais.
+- Duas contas separadas: **profissional autônomo** (como hoje) e **clínica** (com profissionais e secretárias).
+- **Dono da clínica:** acesso total à administração; não vê relatórios nem nada clínico.
+- **Secretária(o):** entra pela clínica e vê só o que o dono permitir.
+- **Profissional da clínica:** só o clínico dos pacientes dele; não vê valores nem administração.
+- Não existe cadastro de secretária avulso. "Criar conta" segue só com profissional e paciente.
+- **Não implementar antes de o James responder as perguntas do fim do CLINICA.md.**
 
 ## 3C. Ideias ainda não feitas
 

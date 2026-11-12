@@ -7,6 +7,7 @@ Plataforma web de registro clínico, agenda e cobrança para profissionais de sa
 1. `docs/DIRETRIZES.md` — regras que não podem ser quebradas (identidade, vocabulário, privacidade, regras de negócio, interface).
 2. `docs/PENDENCIAS.md` — o que falta fazer, o que precisa de revisão e o que está aguardando decisão do James.
 3. `docs/ATUALIZACOES.md` — o que já foi feito.
+4. `docs/CLINICA.md` — desenho da conta de clínica (não implementado; há perguntas em aberto para o James).
 
 ## Como entregar
 

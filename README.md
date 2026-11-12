@@ -25,6 +25,7 @@ A plataforma está em **fase de testes** com profissionais convidados. Usa apena
 | [docs/DIRETRIZES.md](docs/DIRETRIZES.md) | Regras que toda mudança deve seguir para não descaracterizar o projeto. **Leia antes de alterar qualquer coisa.** |
 | [docs/ATUALIZACOES.md](docs/ATUALIZACOES.md) | Histórico do que já foi feito, da versão mais nova para a mais antiga. |
 | [docs/PENDENCIAS.md](docs/PENDENCIAS.md) | O que foi proposto e ainda não foi feito, e o que foi feito mas ainda precisa de revisão ou teste. |
+| [docs/CLINICA.md](docs/CLINICA.md) | Desenho proposto da conta de clínica (ainda não implementado). |
 | [CLAUDE.md](CLAUDE.md) | Resumo para uma nova conversa com o Claude começar já sabendo o que se espera. |
 | [tutoriais/](tutoriais/) | Passo a passo para conectar as chaves de IA (Gemini, Groq, Claude, OpenAI). |
 
