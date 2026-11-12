@@ -66,6 +66,44 @@ O James quer emissão de nota fiscal no futuro. Fica para depois.
 **Desempenho**
 - A lista de modelos carrega as imagens do timbre de todos os modelos a cada tela que usa modelos. Com muitos modelos importados pode ficar lento.
 
+## 3A. Novas ideias (levantadas em 12/11/2026, nenhuma aprovada ainda)
+
+Nenhuma destas existe hoje na plataforma. **Só implementar as que o James escolher.** O que se espera em cada uma está descrito para quem for fazer.
+
+**Rotina do consultório**
+1. **Tela "Hoje" no Início:** sessões do dia em ordem, com botões de lembrete, registrar evolução e marcar falta; cobranças do dia; rascunhos para revisar. Substitui o painel atual, que não foi revisado.
+2. **Lembretes de amanhã em lote:** uma lista das sessões do dia seguinte com um botão de WhatsApp por paciente, para enviar todos em sequência.
+3. **Confirmação de presença por link:** o paciente toca em "Confirmo" ou "Preciso remarcar" e a agenda mostra a resposta. Usa o mesmo mecanismo dos links públicos.
+4. **Reagendar com um toque:** ao marcar falta ou cancelar, oferecer nova data já preenchida. Excluir ou mover uma série inteira de sessões repetidas.
+5. **Bloqueios e feriados:** marcar dias e horários sem atendimento, que entram no aviso de conflito.
+6. **Lista de espera:** nomes aguardando vaga, com dias e horários preferidos.
+7. **Agenda no calendário do celular:** exportar as sessões em arquivo .ics.
+
+**Clínico**
+8. **Plano terapêutico com metas:** objetivos por paciente, com prazo e situação. A evolução marca em quais metas trabalhou e o relatório por período resume o progresso de cada uma.
+9. **Escalas próprias com gráfico:** o profissional cria uma escala simples (itens com nota) e acompanha a pontuação ao longo do tempo. Não incluir instrumentos protegidos por direito autoral.
+10. **Orientações para casa:** texto enviado por link para a família, com registro de que foi aberto.
+11. **Anexos do paciente:** laudos e exames guardados na ficha. Exige o armazenamento de arquivos do Supabase (o plano gratuito tem limite de espaço).
+
+**Financeiro**
+12. **Pacotes e mensalidade:** pacote de sessões pago adiantado, com saldo de sessões, ou valor fixo mensal no lugar da cobrança por sessão.
+13. **Resumo para o contador:** recebido por mês e por forma de pagamento, despesas por categoria, em planilha. Recibos guardados com segunda via.
+14. **Controle de convênio:** o que cada convênio deve, separado do que o paciente deve.
+15. **Gráfico de 6 meses:** recebido e despesas mês a mês.
+
+**Relacionamento**
+16. **Aniversariantes do mês**, com mensagem pronta para o WhatsApp.
+17. **Pesquisa de satisfação por link**, anônima, com resumo para o profissional.
+18. **Portal do paciente mais completo:** próximas sessões, confirmação de presença e recibos.
+
+**Produto**
+19. **Instalar como aplicativo:** ícone na tela inicial do celular, abrindo em tela cheia. Não é uso offline.
+20. **Página de apresentação da Potira**, para mostrar a possíveis clientes.
+21. **Página pública do profissional:** apresentação, áreas de atuação e botão de WhatsApp, no link próprio que já existe.
+22. **Equipe:** clínica com várias profissionais e secretária com acesso só à agenda e ao financeiro. Mudança grande nas regras de acesso.
+23. **Tour guiado no primeiro acesso**, mostrando o caminho paciente → sessão → relatório → cobrança.
+24. **Contraste automático:** quando o tema escolhido for claro, escurecer botões e links para continuarem legíveis.
+
 ## 4. Segurança (adiado pelo James por estar em fase de testes)
 
 Avisos do Supabase que continuam abertos. **Tratar antes de abrir a plataforma para uso real.**
