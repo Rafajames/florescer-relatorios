@@ -75,6 +75,7 @@ export async function renderReport(id) {
           <p class="small muted">Leva nascimento, responsáveis e diagnóstico desta anamnese para a ficha do paciente. Você confere antes.</p>
           <button class="btn quiet" id="to-cad">${icon('users')}Atualizar cadastro</button>
         </div>` : ''}
+        ${r.kind === 'sessao' ? '<div class="panel" id="pl-metas-sessao"></div>' : ''}
         <div class="panel">
           <h3>Entrega</h3>
           <div class="stack-btns" style="margin-top:8px">
@@ -323,6 +324,7 @@ export async function renderReport(id) {
       patientName: r.patients.name, professional: state.profile, sections: secs, layout,
     };
   };
+  if ($('#pl-metas-sessao')) import('./views-clinico.js').then((m) => m.metasDaSessao($('#pl-metas-sessao'), r)).catch(() => { const el = $('#pl-metas-sessao'); if (el) el.remove(); });
   if ($('#to-cad')) $('#to-cad').onclick = async () => {
     const txt = (re) => { const sec = sections.find((x) => re.test(x.title || '')); return sec ? String(sec.text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : ''; };
     const dm = txt(/nascimento/i).match(/(\d{2})\/(\d{2})\/(\d{4})/);

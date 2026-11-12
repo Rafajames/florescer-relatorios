@@ -108,7 +108,7 @@ export const saveTemplate = (t) => {
 export const deleteTemplate = (id) => sb.from('templates').delete().eq('id', id).then(unwrap);
 
 /* ---------- relatórios ---------- */
-const LIST_COLS = 'id,title,kind,session_date,period_start,period_end,status,released_to_patient,ai_generated,patient_id,created_at,patients(name,email)';
+const LIST_COLS = 'id,title,kind,session_date,period_start,period_end,status,released_to_patient,ai_generated,patient_id,created_at,goal_ids,patients(name,email)';
 export const listReports = ({ patientId, kind, status, limit, from, to, withSections } = {}) => {
   let q = sb.from('reports').select(withSections ? LIST_COLS + ',sections' : LIST_COLS)
     .order('session_date', { ascending: false }).order('created_at', { ascending: false });

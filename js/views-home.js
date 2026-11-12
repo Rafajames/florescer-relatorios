@@ -6,6 +6,7 @@ import { exportDossierWord, exportDossierPdf, exportAuditoriaPdf, KIND_LABEL, br
 import { newToken, sha256, waLink, cobravel, cobrancaVencida } from './cobranca.js';
 import { abrirCobranca, registrarPagamento, agendarCobranca } from './cobrar.js';
 import { appointmentModal, lembretesModal } from './views-administrativo.js';
+import { metasPanel, escalasPanel } from './views-clinico.js';
 import {
   $, $$, esc, fmtDate, fmtDateTime, toast, openModal, confirmBox, busy, statusChip, chip, meta, callout,
   shell, loading, pageHeader, backLink, icon, greeting, longDate, emptyState, todayISO,
@@ -274,14 +275,17 @@ const LINK_DAYS = [[1, '1 dia'], [3, '3 dias'], [7, '7 dias'], [14, '14 dias'], 
 const daysSel = (def) => `<label class="field">Válido por<select name="days">${LINK_DAYS.map(([v, l]) => `<option value="${v}" ${v === def ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
 const expiresIn = (days) => new Date(Date.now() + days * 864e5).toISOString();
 
+const LINK_NOME = { anamnese: 'Anamnese', relatorio: 'Relatório', confirmacao: 'Confirmação de presença', orientacao: 'Orientações para casa' };
 const linksPanel = (links) => `<div class="panel">
   <div class="panel-head"><h3>Links enviados</h3></div>
-  ${links.length ? links.map((l) => {
+  ${links.length ? links.slice(0, 12).map((l) => {
     const expired = new Date(l.expires_at) < new Date();
     const st = l.kind === 'anamnese'
       ? (l.responded_at ? chip(`Respondida em ${fmtDate(l.responded_at)}`, 'ok') : expired ? chip('Expirado') : chip('Aguardando', 'warn'))
-      : (expired ? chip('Expirado') : chip('Ativo', 'ok'));
-    return `<div class="small" style="margin-bottom:10px">${l.kind === 'anamnese' ? 'Anamnese' : 'Relatório'} · enviado em ${fmtDate(l.created_at)}<br>${st} <button class="link" data-rlink="${l.id}">Revogar</button></div>`;
+      : l.kind === 'confirmacao' ? (l.responded_at ? chip(`Respondeu em ${fmtDate(l.responded_at)}`, 'ok') : expired ? chip('Expirado') : chip('Sem resposta', 'warn'))
+        : l.kind === 'orientacao' ? (l.opened_at ? chip(`Aberto em ${fmtDate(l.opened_at)}`, 'ok') : expired ? chip('Expirado') : chip('Ainda não abriu', 'warn'))
+          : (expired ? chip('Expirado') : chip('Ativo', 'ok'));
+    return `<div class="small" style="margin-bottom:10px">${LINK_NOME[l.kind] || 'Link'} · enviado em ${fmtDate(l.created_at)}<br>${st} <button class="link" data-rlink="${l.id}">Revogar</button></div>`;
   }).join('') : '<p class="muted small">Nenhum link enviado.</p>'}
 </div>`;
 
@@ -379,6 +383,25 @@ async function anamneseLinkModal(p, id) {
   renderPatientDetail(id);
 }
 
+/* Orientações para casa: texto enviado por link, com registro de quando foi aberto. */
+async function orientacaoLinkModal(p, id) {
+  const r = await openModal('Orientações para casa', `
+    <p>A família abre o link e lê as orientações. A ficha mostra quando o link foi aberto.</p>
+    <label class="field">Título<input name="t" value="Orientações para casa" maxlength="100" required></label>
+    <label class="field">Orientações<textarea name="c" rows="8" maxlength="6000" required placeholder="Ex.: Fazer a atividade de pinça 10 minutos por dia, depois do banho."></textarea></label>
+    ${daysSel(30)}`,
+  { okText: 'Gerar link', wide: true, onOk: (d) => {
+    const t = d.querySelector('[name=t]').value.trim(), c = d.querySelector('[name=c]').value.trim();
+    if (!t || !c) { toast('Escreva o título e as orientações.', 'err'); return false; }
+    return { t, c, days: Number(d.querySelector('[name=days]').value) };
+  } });
+  if (!r || r === true) return;
+  const token = newToken(), expires = expiresIn(r.days);
+  await api.createShareLink({ token, kind: 'orientacao', patient_id: id, content: `# ${r.t}\n${r.c}`, expires_at: expires });
+  await showLinkModal(linkUrl(token), expires, `Olá! Seguem as orientações de ${p.name} para fazer em casa.`, p.phone);
+  renderPatientDetail(id);
+}
+
 async function relatorioLinkModal(p, id, reports) {
   const revs = reports.filter((x) => x.status === 'revisado' && (x.kind === 'sessao' || x.kind === 'periodo'));
   if (!revs.length) return toast('Revise um relatório antes de enviar por link.', 'err');
@@ -457,7 +480,8 @@ export async function renderPatientDetail(id) {
         <a href="#/periodo?paciente=${p.id}">${icon('calendar')}Relatório por período</a></div></details>
       <details class="menu"><summary class="btn quiet">${icon('right')}Enviar por link</summary><div class="menu-list">
         <button type="button" id="link-anamnese">${icon('file')}Anamnese para responder</button>
-        <button type="button" id="link-rel">${icon('file')}Relatório para ler e baixar</button></div></details>
+        <button type="button" id="link-rel">${icon('file')}Relatório para ler e baixar</button>
+        <button type="button" id="link-ori">${icon('file')}Orientações para casa</button></div></details>
       <details class="menu"><summary class="btn quiet">${icon('download')}Exportar</summary><div class="menu-list">
         <button type="button" id="dossier">${icon('download')}Prontuário completo</button>
         <button type="button" id="audit">${icon('shield')}Auditoria (PDF)</button></div></details>
@@ -470,12 +494,14 @@ export async function renderPatientDetail(id) {
     <div class="cols">
       <section>
         ${proximasHtml}
+        <div id="pl-metas"></div>
         <div class="panel-head" style="margin-top:22px"><h2>Linha do tempo</h2><span class="muted small">${anamneses.length} anamnese · ${evolucoes.length} evoluções · ${periodos.length} por período</span></div>
         ${timeline || emptyState('Nenhum registro ainda', 'Comece pela anamnese (entrevista inicial) ou registre a primeira evolução.', `<div class="row"><a class="btn quiet" href="#/nova?paciente=${p.id}&tipo=anamnese">${icon('file')}Fazer anamnese</a><a class="btn bloom" href="#/nova?paciente=${p.id}">${icon('mic')}Nova evolução</a></div>`)}
         ${p.notes ? `<h3 style="margin-top:26px">Observações</h3><p class="pre">${esc(p.notes)}</p>` : ''}
       </section>
       <aside>
         ${financeiroPanel}
+        <div id="pl-escalas"></div>
         ${linksPanel(links)}
         <div class="panel">
           <div class="panel-head"><h3>Consentimento (LGPD)</h3>${active ? chip('Ativo', 'ok') : chip('Pendente', 'warn')}</div>
@@ -548,6 +574,10 @@ export async function renderPatientDetail(id) {
     if (r) { toast('Valor salvo.'); renderPatientDetail(id); }
   };
   $('#link-anamnese').onclick = () => anamneseLinkModal(p, id);
+  $('#link-ori').onclick = () => orientacaoLinkModal(p, id);
+  // metas e escalas carregam à parte: se o banco ainda não tiver as tabelas, a ficha segue sem elas
+  metasPanel($('#pl-metas'), id, reports).catch(() => { $('#pl-metas').innerHTML = ''; });
+  escalasPanel($('#pl-escalas'), id).catch(() => { $('#pl-escalas').innerHTML = ''; });
   $('#link-rel').onclick = () => relatorioLinkModal(p, id, reports);
   $$('[data-rlink]').forEach((b) => (b.onclick = async () => {
     if (!(await confirmBox('Revogar este link? Quem já tiver o endereço deixa de ter acesso.', 'Revogar'))) return;

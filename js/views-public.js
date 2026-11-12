@@ -112,6 +112,9 @@ function confirmacao(main, token, info) {
 
 /* ---------- orientações para casa ---------- */
 function orientacao(main, info) {
+  // a primeira linha "# Título" é o título escolhido pelo profissional
+  const m = String(info.content || '').match(/^# (.+)\n([\s\S]*)$/);
+  if (m) { info.title = m[1]; info.content = m[2]; }
   main.innerHTML = `<section class="panel"><h1>${esc(info.title)}</h1>
     <p class="muted">Para ${esc(info.patient_name)} · enviado por ${esc(info.professional_name)} em ${esc(fmtDate(info.created_at))}</p>
     <div class="pre" style="white-space:pre-wrap;line-height:1.6">${esc(info.content)}</div>

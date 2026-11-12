@@ -1015,3 +1015,6 @@ a.stat:hover,a.dcard:hover,.tline .card:hover{transform:translateY(-2px);box-sha
 @media print{.pub-h,.pub .row{display:none!important}}
 .hoje-it{display:flex;align-items:center;gap:10px}.hoje-it .nm{flex:1;min-width:0}
 .hoje-act{display:flex;gap:6px;flex-wrap:nowrap}
+.meta-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.meta-row .grow{min-width:200px}
+.esc-bloco{padding:10px 0;border-bottom:1px solid var(--line)}.esc-bloco:last-of-type{border-bottom:0}
+.esc-graf{display:block;width:100%;max-width:300px;height:auto;margin:6px 0;color:var(--ink)}
