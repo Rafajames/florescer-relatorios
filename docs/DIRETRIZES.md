@@ -56,6 +56,7 @@ Regras que valem para qualquer mudança, feita por pessoa ou por IA. O objetivo 
 - A mensagem de cobrança mostra a **chave PIX como foi cadastrada** e o código copia-e-cola. O profissional pode ter várias chaves e escolher ou editar na hora; a edição vale só para aquela cobrança.
 - Pagamento por comprovante: o sistema lê e propõe; **nada é marcado como pago sem o profissional confirmar**.
 - Cobrança agendada (dia fixo ou data avulsa) **não envia sozinha**: deixa pronta e avisa.
+- **Arquivos do paciente (laudos, exames, documentos exportados) ficam na pasta que o profissional escolhe no próprio computador** (`js/pasta.js`). A plataforma não guarda cópia no servidor. Sem pasta escolhida ou em navegador sem suporte, o arquivo é baixado.
 - **Não se guardam arquivos de comprovante.** Guardam-se só as informações do pagamento: valor, data, forma e quem pagou.
 - Formas de cobrança por paciente: **por sessão**, **mensalidade** (cobrança do mês criada sozinha, sessões entram quitadas) ou **pacote** (saldo de sessões que diminui a cada sessão realizada e volta se a sessão deixar de ser realizada).
 - O que não é sessão (mensalidade, pacote, avulsa) fica na tabela `charges` e aparece junto em "Em aberto".

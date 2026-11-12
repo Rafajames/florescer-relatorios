@@ -113,15 +113,32 @@ function buildDossier({ patient, professional, reports, only, layout }) {
 </body></html>`;
 }
 
-const toWord = (html, name) => {
+const aviso = (msg) => import('./ui.js').then((u) => u.toast(msg)).catch(() => {});
+/**
+ * dest (opcional): { patient, tipo }. Se o profissional escolheu a pasta dos documentos neste computador,
+ * o arquivo é gravado em Pasta/Paciente/Tipo; senão, é baixado normalmente.
+ */
+const toWord = (html, name, dest) => {
   const blob = new Blob(['﻿', html], { type: 'application/msword' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `${slug(name)}.doc`;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  const arquivo = `${slug(name)}.doc`;
+  const baixar = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = arquivo;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+  if (!dest || !dest.patient) return baixar();
+  import('./pasta.js').then((p) => p.salvar(dest.patient, dest.tipo, arquivo, blob))
+    .then((onde) => (onde ? aviso(`Salvo em ${onde}`) : baixar())).catch(baixar);
 };
-const toPdf = (html) => {
+/** O PDF sai pela janela de impressão; a plataforma só deixa a pasta do paciente pronta e avisa onde salvar. */
+const prepararPdf = (dest) => {
+  if (!dest || !dest.patient) return;
+  import('./pasta.js').then(async (p) => { if (await p.prepararPaciente(dest.patient)) aviso(`Na janela, escolha "Salvar como PDF" e a pasta ${(await p.raiz()).name}/${p.nomeSeguro(dest.patient)}/${dest.tipo}.`); }).catch(() => {});
+};
+const toPdf = (html, dest) => {
+  prepararPdf(dest);
   const f = document.createElement('iframe');
   f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0';
   document.body.appendChild(f);
@@ -134,10 +151,10 @@ const toPdf = (html) => {
 };
 
 export const previewHtml = (args) => buildHtml(args);
-export const exportWord = (args) => toWord(buildHtml({ ...args, layout: args.layout && { ...args.layout, watermark: null } }), args.report.title);
-export const exportPdf = (args) => toPdf(buildHtml(args));
-export const exportDossierWord = (args) => toWord(buildDossier({ ...args, layout: args.layout && { ...args.layout, watermark: null } }), `Prontuario ${args.patient.name}`);
-export const exportDossierPdf = (args) => toPdf(buildDossier(args));
+export const exportWord = (args) => toWord(buildHtml({ ...args, layout: args.layout && { ...args.layout, watermark: null } }), `${args.report.title} ${args.patientName || ''}`, { patient: args.patientName, tipo: 'Relatórios' });
+export const exportPdf = (args) => toPdf(buildHtml(args), { patient: args.patientName, tipo: 'Relatórios' });
+export const exportDossierWord = (args) => toWord(buildDossier({ ...args, layout: args.layout && { ...args.layout, watermark: null } }), `Prontuario ${args.patient.name}`, { patient: args.patient.name, tipo: 'Relatórios' });
+export const exportDossierPdf = (args) => toPdf(buildDossier(args), { patient: args.patient.name, tipo: 'Relatórios' });
 
 /* ---------- Administrativo: folha de frequência ---------- */
 export const ATT_STATUS = { agendado: 'Agendado', realizado: 'Realizado', falta: 'Falta', falta_justificada: 'Falta justificada', cancelado: 'Cancelado' };
@@ -167,7 +184,7 @@ function buildAttendance({ professional, patientName, approach, insurer, period,
 </body></html>`;
 }
 export const exportAttendancePdf = (args) => toPdf(buildAttendance(args));
-export const exportAttendanceWord = (args) => toWord(buildAttendance(args), `Frequencia ${args.patientName} ${args.period || ''}`);
+export const exportAttendanceWord = (args) => toWord(buildAttendance(args), `Frequencia ${args.patientName} ${args.period || ''}`, { patient: args.patientName, tipo: 'Outros' });
 
 /* ---------- Financeiro e declarações ---------- */
 export const brl = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -235,11 +252,11 @@ export function buildDeclaracao({ professional, patientName, specialty, type, se
     .replace(/<body>/, `<body><div style="text-align:right;font-size:10pt">Emitida em ${esc(longDate(hoje))}</div>`);
 }
 export const exportOrcamentoPdf = (a) => toPdf(buildOrcamento(a));
-export const exportOrcamentoWord = (a) => toWord(buildOrcamento(a), `Orcamento ${a.patientName}`);
-export const exportReciboPdf = (a) => toPdf(buildRecibo(a));
-export const exportReciboWord = (a) => toWord(buildRecibo(a), `Recibo ${a.patientName}`);
+export const exportOrcamentoWord = (a) => toWord(buildOrcamento(a), `Orcamento ${a.patientName}`, { patient: a.patientName, tipo: 'Cobranças' });
+export const exportReciboPdf = (a) => toPdf(buildRecibo(a), { patient: a.patientName, tipo: 'Recibos' });
+export const exportReciboWord = (a) => toWord(buildRecibo(a), `Recibo ${a.patientName}`, { patient: a.patientName, tipo: 'Recibos' });
 export const exportDeclaracaoPdf = (a) => toPdf(buildDeclaracao(a));
-export const exportDeclaracaoWord = (a) => toWord(buildDeclaracao(a), `Declaracao ${a.patientName}`);
+export const exportDeclaracaoWord = (a) => toWord(buildDeclaracao(a), `Declaracao ${a.patientName}`, { patient: a.patientName, tipo: 'Outros' });
 
 /* ---------- Auditoria: pasta completa do paciente para conferência ---------- */
 const AUD_ACTION = { insert: 'Criado', update: 'Alterado', delete: 'Excluído', create: 'Criado', edit: 'Alterado', export: 'Exportado' };
@@ -311,4 +328,4 @@ export function buildCobranca({ professional, patientName, items, payment, pixCo
   ${pixCode ? `<h2>Pagamento por PIX (copia e cola)</h2><p style="word-break:break-all;font-family:monospace;font-size:9pt">${esc(pixCode)}</p>` : ''}`;
   return docPage('COBRANÇA', professional, body).replace(/<body>/, `<body><div style="text-align:right;font-size:10pt">Emitido em ${esc(fmtDate(new Date().toISOString()))}</div>`);
 }
-export const exportCobrancaPdf = (a) => toPdf(buildCobranca(a));
+export const exportCobrancaPdf = (a) => toPdf(buildCobranca(a), { patient: a.patientName, tipo: 'Cobranças' });

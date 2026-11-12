@@ -23,6 +23,7 @@ Plataforma web de registro clínico, agenda e cobrança para profissionais de sa
 - `js/views-home.js` Início, Pacientes e ficha do paciente · `js/views-session.js` nova sessão · `js/views-report.js` editor do relatório
 - `js/views-administrativo.js` agenda, frequência, declarações, convênios · `js/views-financeiro.js` cobranças, valores, despesas, documentos, dados de pagamento
 - `js/cobranca.js` PIX, WhatsApp, textos e regras de cobrança · `js/cobrar.js` janelas de cobrar, registrar pagamento e agendar cobrança
+- `js/pasta.js` pasta dos documentos no computador do profissional
 - `js/views-clinico.js` metas e escalas · `js/tour.js` tour de primeiro acesso · `apresentacao.html` página de apresentação
 - `js/export.js` PDF e Word de todos os documentos · `js/import-template.js` leitura de Word/PDF/foto para virar modelo
 - `js/views-public.js` páginas públicas por link · `js/brand.js` e `js/theme.js` marca e tema · `css/app.css` estilos

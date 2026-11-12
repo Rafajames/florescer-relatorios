@@ -87,7 +87,15 @@ export function abrirCobranca({ profile, patient, items }) {
     };
     $('#cb-copy', d).onclick = () => copiar(msgEl.value, 'Mensagem copiada.');
     $('#cb-pixcopy', d).onclick = () => { if (!pix) return toast('Informe a chave PIX primeiro.', 'err'); copiar(pix, 'Código PIX copiado.'); };
-    $('#cb-txt', d).onclick = () => { baixarTexto(`cobranca_${slug(patient.name)}.txt`, msgEl.value); toast('Mensagem baixada.'); };
+    $('#cb-txt', d).onclick = async () => {
+      const nome = `cobranca_${slug(patient.name)}.txt`;
+      // com a pasta dos documentos escolhida, grava em Pasta/Paciente/Cobranças; senão, baixa
+      try {
+        const onde = await (await import('./pasta.js')).salvar(patient.name, 'Cobranças', nome, new Blob(['\ufeff', msgEl.value], { type: 'text/plain;charset=utf-8' }));
+        if (onde) return toast(`Salvo em ${onde}`);
+      } catch { /* sem pasta: segue para o download */ }
+      baixarTexto(nome, msgEl.value); toast('Mensagem baixada.');
+    };
     const docArgs = () => ({ professional: profile, patientName: patient.name, items, payment: { ...pay, pix: keyEl.value.trim() }, pixCode: pix });
     $('#cb-pdf', d).onclick = () => exportCobrancaPdf(docArgs());
   } });

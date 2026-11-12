@@ -4,6 +4,14 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 12/11/2026 — Pasta dos documentos no computador
+
+- Em Configurações → Dados e privacidade, o profissional escolhe uma pasta do computador. A plataforma cria uma subpasta por paciente, com Relatórios, Recibos, Cobranças e Laudos e exames.
+- Vão direto para a pasta: documentos em Word (relatório, prontuário, recibo, orçamento, declaração, frequência), a mensagem de cobrança em texto e os **laudos e exames anexados** na ficha do paciente.
+- A ficha do paciente lista os arquivos da pasta, abre e exclui.
+- O PDF continua saindo pela janela de impressão; a pasta do paciente já fica criada e um aviso diz onde salvar.
+- Funciona no Chrome e no Edge do computador. Em outros navegadores e no celular, os arquivos continuam sendo baixados. A plataforma não guarda cópia dos arquivos.
+
 ## 12/11/2026 — Agenda, plano terapêutico, financeiro completo e apresentação
 
 Banco: schemas **v13** e **v14** (aplicados). O schema **v15** está escrito mas **não aplicado** (ver pendências).

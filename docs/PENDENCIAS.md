@@ -30,6 +30,7 @@ Estes itens foram testados só no ambiente de teste (dados simulados). O que se 
 | Bloqueio, série e reagendar | Bloquear um dia, tentar agendar por cima, excluir uma série e reagendar uma falta. |
 | Pesquisa de satisfação | Responder pelo celular e ver a nota em Administrativo → Pesquisa. |
 | Calendário (.ics) | Abrir o arquivo no celular (Android e iPhone) e conferir horários. |
+| Pasta dos documentos | No Chrome ou Edge do computador: escolher a pasta, anexar um laudo, exportar um Word e conferir no Explorador de Arquivos. Fechar e reabrir o navegador e ver se a pasta continua lembrada (não foi possível testar o seletor de pastas nem a pasta lembrada fora de um computador real). |
 
 ## 2. Proposto e ainda não implementado
 
@@ -95,7 +96,8 @@ Ideias para quando ele decidir:
 ## 3C. Ideias ainda não feitas
 
 - **Instalar como aplicativo** (ícone na tela do celular). O James pediu para **não fazer ainda**.
-- **Anexos do paciente** (laudos, exames). O James decidiu **não guardar arquivos de comprovante**, só as informações do pagamento. Para anexos de laudos e exames ele ainda não decidiu. A tabela `attachments` e a pasta privada `anexos` existem no banco, vazias e sem tela. Perguntar antes de usar.
+- **PDF gravado direto na pasta.** Hoje o PDF sai pela janela de impressão do navegador, então a plataforma só prepara a pasta e avisa onde salvar. Gravar sozinho exigiria gerar o PDF dentro do site com uma biblioteca, com risco de perder qualidade. Não decidido.
+- A tabela `attachments` e a pasta privada `anexos` do Supabase existem, vazias e sem uso: o James decidiu guardar laudos e exames **na pasta do computador**, não no servidor. Podem ser removidas numa limpeza.
 - **Relatório por período com o progresso das metas.** Hoje as metas aparecem na ficha e na evolução, não no relatório por período.
 - **Agenda em grade semanal.**
 - **Cobrança enviada sozinha** (por e-mail), ver seção 2.

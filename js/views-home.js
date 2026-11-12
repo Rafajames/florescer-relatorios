@@ -394,6 +394,42 @@ async function anamneseLinkModal(p, id) {
   renderPatientDetail(id);
 }
 
+/* Arquivos do paciente na pasta do computador (laudos, exames e documentos gravados pela plataforma). */
+async function arquivosPanel(box, p) {
+  const pasta = await import('./pasta.js');
+  if (!pasta.suportada()) { box.innerHTML = ''; return; }
+  const st = await pasta.estado();
+  const again = () => arquivosPanel(box, p);
+  if (st !== 'ok') {
+    box.innerHTML = `<div class="panel"><div class="panel-head"><h3>Arquivos no computador</h3></div>
+      <p class="muted small">${st === 'sem' ? 'Escolha uma pasta deste computador para guardar laudos, exames e documentos deste paciente.' : 'O navegador precisa liberar de novo o acesso à pasta dos documentos.'}</p>
+      ${st === 'sem' ? '<a class="btn quiet sm" href="#/config?aba=dados">Escolher pasta</a>' : '<button class="btn sm" id="arq-lib">Liberar acesso</button>'}</div>`;
+    if ($('#arq-lib', box)) $('#arq-lib', box).onclick = async () => { if (!(await pasta.liberar())) toast('O navegador não liberou o acesso.', 'err'); again(); };
+    return;
+  }
+  const lista = await pasta.listar(p.name);
+  const kb = (n) => (n > 1048576 ? `${(n / 1048576).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+  box.innerHTML = `<div class="panel"><div class="panel-head"><h3>Arquivos no computador</h3>${lista.length ? chip(String(lista.length)) : ''}</div>
+    ${lista.length ? lista.slice(0, 30).map((f, i) => `<div class="small arq-it"><button class="link" data-arq="${i}" title="Abrir">${esc(f.nome)}</button>
+      <br><span class="muted">${esc(f.tipo)} · ${fmtDate(new Date(f.data).toISOString())} · ${kb(f.tamanho)}</span> <button class="link small" data-arq-del="${i}">excluir</button></div>`).join('')
+      : '<p class="muted small">Nenhum arquivo na pasta deste paciente.</p>'}
+    <label class="btn quiet sm" style="margin-top:8px;cursor:pointer">${icon('plus')}Anexar laudo ou exame<input type="file" id="arq-add" multiple hidden></label>
+    <p class="muted small" style="margin:8px 0 0">Os arquivos ficam só neste computador, na pasta que você escolheu.</p></div>`;
+  $$('[data-arq]', box).forEach((b) => (b.onclick = () => pasta.abrir(lista[+b.dataset.arq]).catch((err) => toast(err.message || String(err), 'err'))));
+  $$('[data-arq-del]', box).forEach((b) => (b.onclick = async () => {
+    const f = lista[+b.dataset.arqDel];
+    if (!(await confirmBox(`Excluir "${f.nome}" da pasta do computador? Não dá para desfazer.`, 'Excluir'))) return;
+    try { await pasta.apagar(f); toast('Arquivo excluído.'); } catch (err) { toast(err.message || String(err), 'err'); }
+    again();
+  }));
+  $('#arq-add', box).onchange = async (e) => {
+    const files = [...e.target.files]; if (!files.length) return;
+    try { for (const f of files) await pasta.salvar(p.name, 'Laudos e exames', f.name, f); toast(`${files.length} arquivo(s) guardado(s) na pasta do paciente.`); }
+    catch (err) { toast(err.message || String(err), 'err'); }
+    again();
+  };
+}
+
 /* Orientações para casa: texto enviado por link, com registro de quando foi aberto. */
 async function orientacaoLinkModal(p, id) {
   const r = await openModal('Orientações para casa', `
@@ -520,6 +556,7 @@ export async function renderPatientDetail(id) {
       <aside>
         ${financeiroPanel}
         <div id="pl-escalas"></div>
+        <div id="pl-arquivos"></div>
         ${linksPanel(links)}
         <div class="panel">
           <div class="panel-head"><h3>Consentimento (LGPD)</h3>${active ? chip('Ativo', 'ok') : chip('Pendente', 'warn')}</div>
@@ -596,6 +633,7 @@ export async function renderPatientDetail(id) {
   // metas e escalas carregam à parte: se o banco ainda não tiver as tabelas, a ficha segue sem elas
   metasPanel($('#pl-metas'), id, reports).catch(() => { $('#pl-metas').innerHTML = ''; });
   escalasPanel($('#pl-escalas'), id).catch(() => { $('#pl-escalas').innerHTML = ''; });
+  arquivosPanel($('#pl-arquivos'), p).catch(() => { $('#pl-arquivos').innerHTML = ''; });
   $('#link-rel').onclick = () => relatorioLinkModal(p, id, reports);
   $$('[data-rlink]').forEach((b) => (b.onclick = async () => {
     if (!(await confirmBox('Revogar este link? Quem já tiver o endereço deixa de ter acesso.', 'Revogar'))) return;

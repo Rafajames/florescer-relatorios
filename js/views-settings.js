@@ -322,6 +322,7 @@ export async function renderSettings(params) {
 
   if (tab === 'dados') {
     pane.innerHTML = `
+      <section class="panel" id="pasta-box"></section>
       <section class="panel"><h2>Seus dados</h2>
         <p class="muted">Você é responsável pelos dados dos seus pacientes. Guarde cópias em local seguro e criptografado.</p>
         <div class="row">
@@ -333,6 +334,29 @@ export async function renderSettings(params) {
         <p class="muted">Quem criou, alterou ou liberou o quê. O conteúdo clínico não é gravado neste registro.</p>
         <div id="act"><p class="muted">Carregando…</p></div>
       </section>`;
+    // Pasta dos documentos neste computador (Chrome ou Edge no computador)
+    const drawPasta = async () => {
+      const pasta = await import('./pasta.js');
+      const box = $('#pasta-box');
+      if (!pasta.suportada()) {
+        box.innerHTML = `<h2>Pasta dos documentos neste computador</h2><p class="muted">Este navegador não permite que a plataforma grave em uma pasta. Use o Chrome ou o Edge no computador. Aqui, os arquivos continuam sendo baixados normalmente.</p>`;
+        return;
+      }
+      const st = await pasta.estado(); const h = await pasta.raiz();
+      box.innerHTML = `<h2>Pasta dos documentos neste computador</h2>
+        <p class="muted">Escolha uma pasta e a plataforma cria uma subpasta por paciente (Relatórios, Recibos, Cobranças, Laudos e exames). Os arquivos em Word e os laudos e exames anexados vão direto para lá. O PDF sai pela janela de impressão: a pasta do paciente já fica criada para você salvar nela.</p>
+        <p class="small">${st === 'sem' ? 'Nenhuma pasta escolhida.' : `Pasta: <b>${esc(h.name)}</b> ${st === 'ok' ? chip('Liberada', 'ok') : chip('Precisa liberar o acesso', 'warn')}`}</p>
+        <div class="row">
+          ${st === 'pedir' ? `<button class="btn" id="pasta-lib">Liberar acesso à pasta</button>` : ''}
+          <button class="btn ${st === 'sem' ? '' : 'quiet'}" id="pasta-esc">${icon('plus')}${st === 'sem' ? 'Escolher pasta' : 'Trocar de pasta'}</button>
+          ${st !== 'sem' ? '<button class="btn quiet" id="pasta-esq">Deixar de usar a pasta</button>' : ''}
+        </div>
+        <p class="muted small">Os arquivos ficam só neste computador. A plataforma não guarda cópia; faça backup da pasta (ou escolha uma pasta dentro do OneDrive ou do Google Drive). Vale só para este navegador.</p>`;
+      $('#pasta-esc').onclick = async () => { try { const n = await pasta.escolher(); if (n) { toast(`Pasta "${n}" escolhida.`); drawPasta(); } } catch (err) { toast(err.message || String(err), 'err'); } };
+      if ($('#pasta-lib')) $('#pasta-lib').onclick = async () => { if (await pasta.liberar()) toast('Acesso liberado.'); else toast('O navegador não liberou o acesso.', 'err'); drawPasta(); };
+      if ($('#pasta-esq')) $('#pasta-esq').onclick = async () => { await pasta.esquecer(); toast('A plataforma deixou de usar a pasta. Os arquivos continuam no computador.'); drawPasta(); };
+    };
+    drawPasta().catch(() => { const box = $('#pasta-box'); if (box) box.remove(); });
     $('#bk').onclick = (e) => busy(e.currentTarget, 'Gerando…', async () => {
       const data = await api.exportEverything();
       download(`florescer-backup-${todayISO()}.json`, JSON.stringify(data, null, 2), 'application/json');
