@@ -488,26 +488,56 @@ export async function templateModal(t = {}) {
 export async function renderTemplates() {
   const main = shell('modelos'); loading(main);
   const list = api.templatesForMe(await api.listTemplates(), state.profile);
-  const sys = list.filter((t) => !t.professional_id), mine = list.filter((t) => t.professional_id);
-  const row = (t, own) => `<div class="li">
-    <div class="grow"><div class="t">${esc(t.name)} ${chip(KINDS[t.kind] || 'Evolução', 'petrol')} ${t.specialty ? chip(t.specialty) : ''} ${t.meta?.source ? chip('Importado', 'bloom') : ''}</div>
-    <div class="muted small">${t.sections.map((s) => esc(s.title)).join(', ')}</div></div>
-    ${own
-      ? `<button class="btn quiet sm" data-edit="${t.id}">${icon('edit')}Editar</button><button class="icon-btn" data-del="${t.id}" title="Excluir modelo" aria-label="Excluir modelo">${icon('trash')}</button>`
-      : `<button class="btn quiet sm" data-dup="${t.id}">Duplicar e editar</button>`}</div>`;
+  const prefs = getPrefs();
+  const padrao = new Set([prefs.defaultTemplateId, prefs.defaultAnamneseTemplateId].filter(Boolean));
+  // Os tipos de documento vêm primeiro; cada modelo é um cartão curto. Os campos ficam para quem abrir o modelo.
+  const TIPOS = [['anamnese', 'Anamnese', 'clipboard', 'Entrevista inicial'], ['sessao', 'Evolução', 'mic', 'Registro de cada sessão'],
+    ['periodo', 'Relatório por período', 'calendar', 'Resumo de várias sessões']];
+  const doTipo = (k) => list.filter((t) => (t.kind || 'sessao') === k);
+  const card = (t) => {
+    const meu = Boolean(t.professional_id);
+    return `<article class="tpl-card ${meu ? 'meu' : ''}">
+      <button type="button" class="tpl-open" data-open="${t.id}" aria-label="Abrir o modelo ${esc(t.name)}">
+        <b>${esc(t.name)}</b>
+        <span class="tpl-sub">${t.sections.length} campo${t.sections.length === 1 ? '' : 's'}${t.specialty ? ' · ' + esc(t.specialty) : ''}</span>
+        <span class="tpl-chips">${meu ? chip('Meu', 'bloom') : chip('Da Potira')}${padrao.has(t.id) ? chip('Padrão', 'ok') : ''}${t.meta?.layout ? chip('Com timbre', 'petrol') : ''}</span>
+      </button>
+      ${meu ? `<button class="icon-btn tpl-del" data-del="${t.id}" title="Excluir modelo" aria-label="Excluir o modelo ${esc(t.name)}">${icon('trash')}</button>` : ''}</article>`;
+  };
+  const grupo = ([k, nome, ic, sub]) => {
+    const ts = doTipo(k).sort((x, y) => Boolean(y.professional_id) - Boolean(x.professional_id) || x.name.localeCompare(y.name));
+    return `<section class="tpl-grupo" data-tipo="${k}">
+      <div class="tpl-tipo"><span class="tpl-ic">${icon(ic)}</span><div><h2>${nome}</h2><span class="muted small">${sub} · ${ts.length} modelo${ts.length === 1 ? '' : 's'}</span></div></div>
+      ${ts.length ? `<div class="tpl-grid">${ts.map(card).join('')}</div>` : '<p class="muted small">Nenhum modelo deste tipo ainda.</p>'}</section>`;
+  };
 
-  main.innerHTML = pageHeader('Modelos de documento', 'Defina os campos de cada tipo de registro, ou envie um documento seu para virar modelo.',
-    `<button class="btn" id="new">${icon('plus')}Novo modelo</button>`) + `
-    <section class="panel"><h2>Enviar um documento seu</h2>
-      <p class="muted">Word, PDF ou foto. O sistema lê o documento e monta os campos; você ajusta antes de salvar.</p>
-      ${dropzone({ id: 'imp', accept: '.docx,.pdf,image/*', title: 'Arraste seu documento para cá', hint: 'ou clique para escolher (.docx, PDF, JPG ou PNG).' })}
-      <div id="imp-msg" style="margin-top:12px"></div></section>
-    <section class="panel"><h2>Meus modelos</h2>
-      ${mine.length ? `<div class="list">${mine.map((t) => row(t, true)).join('')}</div>` : emptyState('Você ainda não criou modelos', 'Envie um documento seu na área acima ou duplique um modelo do sistema.')}</section>
-    <section class="panel"><h2>Modelos do sistema</h2><div class="list">${sys.map((t) => row(t, false)).join('')}</div></section>`;
+  main.innerHTML = pageHeader('Modelos de documento', 'Abra um modelo para ver os campos e editar.',
+    `<label class="btn quiet" style="cursor:pointer">${icon('download')}Enviar documento meu<input type="file" id="imp" accept=".docx,.pdf,image/*" hidden></label>
+     <button class="btn" id="new">${icon('plus')}Novo modelo</button>`) + `
+    <div id="imp-msg"></div>
+    <div class="tabs tpl-filtro" role="tablist" aria-label="Tipo de documento">
+      <button type="button" class="tab on" data-f="">Todos</button>
+      ${TIPOS.map(([k, nome]) => `<button type="button" class="tab" data-f="${k}">${nome} <small>${doTipo(k).length}</small></button>`).join('')}
+    </div>
+    ${TIPOS.map(grupo).join('')}`;
 
   const byId = Object.fromEntries(list.map((t) => [t.id, t]));
-  bindDrops($('#imp').closest('section'), null, { preview: false });
+  // filtro por tipo de documento
+  $$('.tpl-filtro .tab').forEach((b) => (b.onclick = () => {
+    $$('.tpl-filtro .tab').forEach((x) => x.classList.toggle('on', x === b));
+    $$('.tpl-grupo').forEach((g) => { g.style.display = !b.dataset.f || g.dataset.tipo === b.dataset.f ? '' : 'none'; });
+  }));
+  const copiar = (t) => { setTemplateDraft({ name: t.name + ' (meu)', specialty: t.specialty, kind: t.kind, sections: t.sections, meta: {} }); location.hash = '#/modelos/novo'; };
+  // Abrir: o modelo próprio vai para o editor; o da Potira abre para leitura, com o botão de editar uma cópia.
+  $$('[data-open]').forEach((b) => (b.onclick = async () => {
+    const t = byId[b.dataset.open];
+    if (t.professional_id) { location.hash = `#/modelos/editar/${t.id}`; return; }
+    const TIPO_CAMPO = { longo: 'Texto longo', curto: 'Texto curto', data: 'Data', marcar: 'Sim ou não', escolha: 'Lista de opções' };
+    const r = await openModal(t.name, `<p class="muted small">${esc(KINDS[t.kind] || 'Evolução')}${t.specialty ? ' · ' + esc(t.specialty) : ''} · ${t.sections.length} campos. Este modelo é da Potira: para mudar, edite uma cópia sua.</p>
+      <ol class="tpl-campos">${t.sections.map((sec) => `<li><b>${esc(sec.title)}</b><span class="muted small"> · ${TIPO_CAMPO[sec.type] || 'Texto longo'}</span>${sec.hint ? `<br><span class="muted small">${esc(sec.hint)}</span>` : ''}</li>`).join('')}</ol>`,
+    { okText: 'Editar uma cópia', cancelText: 'Fechar', wide: true, onOk: () => true });
+    if (r) copiar(t);
+  }));
   $('#new').onclick = () => { setTemplateDraft(null); location.hash = '#/modelos/novo'; };
   $('#imp').onchange = async (e) => {
     const file = e.target.files[0]; e.target.value = ''; if (!file) return;
@@ -520,12 +550,6 @@ export async function renderTemplates() {
       location.hash = '#/modelos/novo';
     } catch (err) { msg.innerHTML = callout(`<p>${esc(err.message)}</p>`, 'warn'); }
   };
-  $$('[data-edit]').forEach((b) => (b.onclick = () => { location.hash = `#/modelos/editar/${b.dataset.edit}`; }));
-  $$('[data-dup]').forEach((b) => (b.onclick = async () => {
-    const t = byId[b.dataset.dup];
-    setTemplateDraft({ name: t.name + ' (meu)', specialty: t.specialty, kind: t.kind, sections: t.sections, meta: {} });
-    location.hash = '#/modelos/novo';
-  }));
   $$('[data-del]').forEach((b) => (b.onclick = async () => {
     if (!(await confirmBox('Excluir este modelo? Relatórios já criados continuam intactos.', 'Excluir'))) return;
     await api.deleteTemplate(b.dataset.del); toast('Modelo excluído.'); renderTemplates();

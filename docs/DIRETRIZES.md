@@ -83,6 +83,7 @@ Regras que valem para qualquer mudança, feita por pessoa ou por IA. O objetivo 
 - O **menu é colorido** com a cor do tema do profissional (`--petrol`), no computador e no celular, com versão para tema escuro. Não voltar ao menu branco.
 - Animações são discretas e respeitam `prefers-reduced-motion`. Animação de entrada usa `backwards` (nunca `both`/`forwards`), para não cobrir os menus suspensos.
 - Toda tela precisa funcionar no **celular (390 px)** sem rolagem horizontal.
+- **Pouco texto nas telas de lista.** Mostrar o essencial em cartões curtos e deixar o detalhe para quando a pessoa abre o item (como em Modelos de documento).
 - Ações destrutivas pedem confirmação. Não usar `alert()`/`confirm()` do navegador; usar `openModal` e `confirmBox`.
 - Depois de salvar, mostrar aviso curto (`toast`).
 

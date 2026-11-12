@@ -4,6 +4,13 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 12/11/2026 — Modelos de documento com novo layout
+
+- A tela mostra os **tipos de documento** em destaque (Anamnese, Evolução, Relatório por período), com filtro por tipo.
+- Cada modelo virou um cartão curto: nome, quantidade de campos, área e selos (Meu, Da Potira, Padrão, Com timbre). A lista de campos saiu da tela.
+- Abrir um modelo próprio leva ao editor. Abrir um modelo da Potira mostra os campos para leitura, com o botão "Editar uma cópia".
+- "Enviar documento meu" virou um botão no topo, no lugar do bloco grande.
+
 ## 12/11/2026 — Sobre em página própria
 
 - "Sobre a Potira" saiu da Ajuda e virou uma página própria (`#/sobre`), aberta pelo link no rodapé do menu e pelo item em "Mais" no celular. A Ajuda ficou só com o passo a passo e o tour.

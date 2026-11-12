@@ -1042,3 +1042,20 @@ a.stat:hover,a.dcard:hover,.tline .card:hover{transform:translateY(-2px);box-sha
 .pp-logo{display:inline-grid;place-items:center;width:84px;height:84px;border-radius:22px;background:#fff;padding:10px}.pp-logo img{max-width:100%;max-height:100%}
 .pp-hero .pp-cta{margin-top:20px;background:#fff;color:#10252d;border-color:#fff;font-weight:700}
 .pp-areas{display:flex;flex-wrap:wrap;gap:8px}.pp-areas span{padding:7px 14px;border-radius:99px;background:var(--petrol-tint,#e2eef1);font-weight:500;font-size:14.5px}
+
+/* ---- Modelos de documento: tipos em destaque, cartões curtos ---- */
+.tpl-filtro{margin-bottom:6px}.tpl-filtro .tab{border:0;cursor:pointer;font:inherit}.tpl-filtro .tab small{opacity:.6;margin-left:3px}
+.tpl-grupo{margin:22px 0 0}
+.tpl-tipo{display:flex;align-items:center;gap:12px;margin-bottom:12px}.tpl-tipo h2{margin:0;font-size:20px}
+.tpl-ic{display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:var(--petrol);color:#fff;flex:none}.tpl-ic svg{width:22px;height:22px}
+.tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.tpl-card{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:16px;transition:transform .16s ease,box-shadow .2s ease,border-color .16s ease}
+.tpl-card:hover{transform:translateY(-2px);box-shadow:0 12px 26px -16px rgba(10,40,50,.45);border-color:var(--petrol)}
+.tpl-card.meu{border-left:4px solid var(--bloom)}
+.tpl-open{display:flex;flex-direction:column;gap:6px;width:100%;height:100%;padding:16px 16px 14px;border:0;background:none;text-align:left;color:var(--ink);font:inherit;cursor:pointer;border-radius:16px}
+.tpl-open b{font:600 16px/1.25 var(--display,var(--sans));padding-right:26px}
+.tpl-sub{font-size:13px;color:var(--ink-2)}
+.tpl-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:auto;padding-top:6px}
+.tpl-del{position:absolute;top:8px;right:8px;opacity:.55}.tpl-del:hover{opacity:1}
+.tpl-campos{margin:10px 0 0;padding-left:22px;display:grid;gap:8px}
+@media (max-width:560px){.tpl-grid{grid-template-columns:1fr 1fr}.tpl-open{padding:14px 12px 12px}}
