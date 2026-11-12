@@ -80,9 +80,10 @@ const dmy = (iso) => (iso ? new Date(String(iso).slice(0, 10) + 'T12:00:00').toL
 const hm = (t) => String(t || '').slice(0, 5);
 
 /** Lembrete de sessão. */
-export function lembreteTexto({ patient, professional, date, time, specialty }) {
+export function lembreteTexto({ patient, professional, date, time, specialty, link }) {
   const esp = specialty ? ` de ${specialty}` : '';
-  return `Olá, ${patient}! Tudo bem?\n\nLembrete da sua sessão${esp} com ${professional}:\n📅 ${dmy(date)}${time ? ' às ' + hm(time) : ''}\n\nQualquer imprevisto, me avise com antecedência. Até lá!`;
+  const fim = link ? `Confirme sua presença ou peça para remarcar por aqui:\n${link}` : 'Qualquer imprevisto, me avise com antecedência. Até lá!';
+  return `Olá, ${patient}! Tudo bem?\n\nLembrete da sua sessão${esp} com ${professional}:\n📅 ${dmy(date)}${time ? ' às ' + hm(time) : ''}\n\n${fim}`;
 }
 
 /** Cobrança das sessões realizadas e não pagas, com o PIX copia-e-cola. */

@@ -914,3 +914,267 @@ begin
                  where coalesce((s->>'patient_visible')::boolean, true)));
 end $$;
 
+-- ---------------------------------------------------------------------
+-- v13: agenda (séries, confirmação, bloqueios, lista de espera), clínico
+-- (metas, escalas, anexos), novos links públicos (confirmação de presença,
+-- orientações, pesquisa) e financeiro (cobranças avulsas, mensalidade,
+-- pacotes, convênio, recibos guardados)
+-- ---------------------------------------------------------------------
+alter table public.appointments add column if not exists series_id uuid;          -- sessões criadas juntas (repetição)
+alter table public.appointments add column if not exists confirm_status text;     -- resposta do paciente pelo link
+alter table public.appointments drop constraint if exists appointments_confirm_status_check;
+alter table public.appointments add constraint appointments_confirm_status_check check (confirm_status is null or confirm_status in ('confirmado','remarcar'));
+alter table public.appointments add column if not exists confirmed_at timestamptz;
+create index if not exists appointments_series_idx on public.appointments (series_id);
+
+create table if not exists public.agenda_blocks (
+  id uuid primary key default gen_random_uuid(),
+  professional_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  date date not null, end_date date, start_time time, end_time time, reason text,
+  created_at timestamptz not null default now()
+);
+alter table public.agenda_blocks enable row level security;
+drop policy if exists agenda_blocks_all_own on public.agenda_blocks;
+create policy agenda_blocks_all_own on public.agenda_blocks for all to authenticated
+  using (professional_id = auth.uid() and public.is_professional())
+  with check (professional_id = auth.uid() and public.is_professional());
+grant select, insert, update, delete on public.agenda_blocks to authenticated;
+
+create table if not exists public.waitlist (
+  id uuid primary key default gen_random_uuid(),
+  professional_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  name text not null, phone text, preference text, notes text,
+  status text not null default 'aguardando' check (status in ('aguardando','chamado','encerrado')),
+  created_at timestamptz not null default now()
+);
+alter table public.waitlist enable row level security;
+drop policy if exists waitlist_all_own on public.waitlist;
+create policy waitlist_all_own on public.waitlist for all to authenticated
+  using (professional_id = auth.uid() and public.is_professional())
+  with check (professional_id = auth.uid() and public.is_professional());
+grant select, insert, update, delete on public.waitlist to authenticated;
+
+create table if not exists public.goals (
+  id uuid primary key default gen_random_uuid(),
+  professional_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  patient_id uuid not null references public.patients(id) on delete cascade,
+  title text not null, description text, due_date date,
+  status text not null default 'em_andamento' check (status in ('em_andamento','alcancada','pausada')),
+  created_at timestamptz not null default now(), updated_at timestamptz not null default now()
+);
+create index if not exists goals_patient_idx on public.goals (patient_id);
+alter table public.goals enable row level security;
+drop policy if exists goals_all_own on public.goals;
+create policy goals_all_own on public.goals for all to authenticated
+  using (professional_id = auth.uid() and public.is_professional())
+  with check (professional_id = auth.uid() and public.is_professional());
+grant select, insert, update, delete on public.goals to authenticated;
+
+alter table public.reports add column if not exists goal_ids uuid[] not null default '{}'; -- metas trabalhadas na sessão
+
+create table if not exists public.scales (
+  id uuid primary key default gen_random_uuid(),
+  professional_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  name text not null, items jsonb not null, created_at timestamptz not null default now()
+);
+alter table public.scales enable row level security;
+drop policy if exists scales_all_own on public.scales;
+create policy scales_all_own on public.scales for all to authenticated
+  using (professional_id = auth.uid() and public.is_professional())
+  with check (professional_id = auth.uid() and public.is_professional());
+grant select, insert, update, delete on public.scales to authenticated;
+
+create table if not exists public.scale_scores (
+  id uuid primary key default gen_random_uuid(),
+  professional_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  patient_id uuid not null references public.patients(id) on delete cascade,
+  scale_id uuid not null references public.scales(id) on delete cascade,
+  date date not null, vals jsonb not null, total numeric(10,2) not null, notes text,
+  created_at timestamptz not null default now()
+);
+create index if not exists scale_scores_patient_idx on public.scale_scores (patient_id, date);
+alter table public.scale_scores enable row level security;
+drop policy if exists scale_scores_all_own on public.scale_scores;
+create policy scale_scores_all_own on public.scale_scores for all to authenticated
+  using (professional_id = auth.uid() and public.is_professional())
+  with check (professional_id = auth.uid() and public.is_professional());
+grant select, insert, update, delete on public.scale_scores to authenticated;
+
+create table if not exists public.attachments (
+  id uuid primary key default gen_random_uuid(),
+  professional_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  patient_id uuid not null references public.patients(id) on delete cascade,
+  name text not null, path text not null unique, size int, mime text,
+  kind text not null default 'documento' check (kind in ('documento','comprovante')),
+  created_at timestamptz not null default now()
+);
+create index if not exists attachments_patient_idx on public.attachments (patient_id, created_at desc);
+alter table public.attachments enable row level security;
+drop policy if exists attachments_all_own on public.attachments;
+create policy attachments_all_own on public.attachments for all to authenticated
+  using (professional_id = auth.uid() and public.is_professional())
+  with check (professional_id = auth.uid() and public.is_professional());
+grant select, insert, update, delete on public.attachments to authenticated;
+
+-- Arquivos (anexos e comprovantes): pasta privada por profissional. O caminho começa pelo id do profissional.
+insert into storage.buckets (id, name, public, file_size_limit) values ('anexos', 'anexos', false, 10485760)
+  on conflict (id) do update set public = false, file_size_limit = 10485760;
+drop policy if exists anexos_do_profissional on storage.objects;
+create policy anexos_do_profissional on storage.objects for all to authenticated
+  using (bucket_id = 'anexos' and (storage.foldername(name))[1] = auth.uid()::text and public.is_professional())
+  with check (bucket_id = 'anexos' and (storage.foldername(name))[1] = auth.uid()::text and public.is_professional());
+
+-- Links públicos: novos tipos
+alter table public.share_links drop constraint if exists share_links_kind_check;
+alter table public.share_links add constraint share_links_kind_check check (kind in ('anamnese','relatorio','confirmacao','orientacao','pesquisa'));
+alter table public.share_links add column if not exists appointment_id uuid references public.appointments(id) on delete cascade;
+alter table public.share_links add column if not exists content text;
+alter table public.share_links add column if not exists opened_at timestamptz;
+alter table public.share_links alter column patient_id drop not null;
+alter table public.share_links drop constraint if exists share_links_tipo_dados;
+alter table public.share_links add constraint share_links_tipo_dados check (
+  (kind <> 'confirmacao' or appointment_id is not null) and (kind <> 'orientacao' or content is not null) and (kind = 'pesquisa' or patient_id is not null));
+
+create table if not exists public.survey_answers (
+  id uuid primary key default gen_random_uuid(),
+  professional_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  link_id uuid not null references public.share_links(id) on delete cascade,
+  score smallint not null check (score between 0 and 10), comment text,
+  created_at timestamptz not null default now()
+);
+alter table public.survey_answers alter column professional_id drop default;
+alter table public.survey_answers enable row level security;
+drop policy if exists survey_answers_read_own on public.survey_answers;
+create policy survey_answers_read_own on public.survey_answers for select to authenticated
+  using (professional_id = auth.uid() and public.is_professional());
+drop policy if exists survey_answers_del_own on public.survey_answers;
+create policy survey_answers_del_own on public.survey_answers for delete to authenticated
+  using (professional_id = auth.uid() and public.is_professional());
+grant select, delete on public.survey_answers to authenticated;
+
+-- Financeiro: cobranças que não são sessão (mensalidade, pacote, avulsa)
+create table if not exists public.charges (
+  id uuid primary key default gen_random_uuid(),
+  professional_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  patient_id uuid not null references public.patients(id) on delete cascade,
+  kind text not null check (kind in ('mensalidade','pacote','avulsa')),
+  description text not null, amount numeric(10,2) not null check (amount >= 0),
+  due_date date not null, ref_month text,
+  payment_status text not null default 'pendente' check (payment_status in ('pendente','pago')),
+  paid_on date, payment_method text,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists charges_mensalidade_uma_por_mes on public.charges (patient_id, ref_month) where kind = 'mensalidade';
+create index if not exists charges_prof_idx on public.charges (professional_id, due_date);
+alter table public.charges enable row level security;
+drop policy if exists charges_all_own on public.charges;
+create policy charges_all_own on public.charges for all to authenticated
+  using (professional_id = auth.uid() and public.is_professional())
+  with check (professional_id = auth.uid() and public.is_professional());
+grant select, insert, update, delete on public.charges to authenticated;
+
+alter table public.patient_admin add column if not exists billing_mode text not null default 'sessao';
+alter table public.patient_admin drop constraint if exists patient_admin_billing_mode_check;
+alter table public.patient_admin add constraint patient_admin_billing_mode_check check (billing_mode in ('sessao','mensal','pacote'));
+alter table public.patient_admin add column if not exists monthly_fee numeric(10,2);
+alter table public.patient_admin add column if not exists package_size smallint;
+alter table public.patient_admin add column if not exists package_price numeric(10,2);
+alter table public.patient_admin add column if not exists package_balance int not null default 0;  -- sessões que restam do pacote
+alter table public.patient_admin add column if not exists insurer_pays boolean not null default false; -- quem paga é o convênio
+
+create table if not exists public.receipts (
+  id uuid primary key default gen_random_uuid(),
+  professional_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  patient_id uuid references public.patients(id) on delete set null,
+  numero int not null, issued_on date not null default current_date, total numeric(10,2) not null,
+  data jsonb not null,  -- o que foi impresso (para a segunda via)
+  created_at timestamptz not null default now()
+);
+create index if not exists receipts_prof_idx on public.receipts (professional_id, numero desc);
+alter table public.receipts enable row level security;
+drop policy if exists receipts_all_own on public.receipts;
+create policy receipts_all_own on public.receipts for all to authenticated
+  using (professional_id = auth.uid() and public.is_professional())
+  with check (professional_id = auth.uid() and public.is_professional());
+grant select, insert, update, delete on public.receipts to authenticated;
+
+create or replace function public.public_get_link(p_token text, p_password_hash text default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare l public.share_links; p public.profiles; pat public.patients; t public.templates; r public.reports; ap public.appointments;
+begin
+  select * into l from public.share_links where token = p_token;
+  if not found or l.expires_at < now() then raise exception 'link_invalido'; end if;
+  select * into p from public.profiles where id = l.professional_id;
+  select * into pat from public.patients where id = l.patient_id;
+  if l.opened_at is null then update public.share_links set opened_at = now() where id = l.id; end if;
+  if l.kind = 'confirmacao' then
+    select * into ap from public.appointments where id = l.appointment_id;
+    if not found then raise exception 'link_invalido'; end if;
+    return jsonb_build_object('kind','confirmacao','expires_at',l.expires_at,
+      'patient_name', pat.name, 'professional_name', p.full_name, 'specialty', p.specialty,
+      'branding', jsonb_build_object('org_name', p.branding->>'org_name', 'logo', p.branding->>'logo', 'color', p.branding->>'color'),
+      'date', ap.date, 'time', ap.time, 'duration_min', ap.duration_min, 'status', ap.status, 'confirm_status', ap.confirm_status);
+  end if;
+  if l.kind = 'orientacao' then
+    return jsonb_build_object('kind','orientacao','expires_at',l.expires_at,
+      'patient_name', pat.name, 'professional_name', p.full_name, 'specialty', p.specialty,
+      'branding', jsonb_build_object('org_name', p.branding->>'org_name', 'logo', p.branding->>'logo', 'color', p.branding->>'color'),
+      'title', coalesce(l.fields->>'title', 'Orientações'), 'content', l.content, 'created_at', l.created_at);
+  end if;
+  if l.kind = 'pesquisa' then
+    return jsonb_build_object('kind','pesquisa','expires_at',l.expires_at, 'professional_name', p.full_name, 'specialty', p.specialty,
+      'branding', jsonb_build_object('org_name', p.branding->>'org_name', 'logo', p.branding->>'logo', 'color', p.branding->>'color'));
+  end if;
+  if l.kind = 'anamnese' then
+    if l.fields is null then
+      select * into t from public.templates where id = l.template_id;
+      if not found then raise exception 'link_invalido'; end if;
+    end if;
+    return jsonb_build_object('kind','anamnese','expires_at',l.expires_at,'responded', l.responded_at is not null,
+      'patient_name', pat.name, 'professional_name', p.full_name, 'specialty', p.specialty,
+      'branding', jsonb_build_object('org_name', p.branding->>'org_name', 'logo', p.branding->>'logo', 'color', p.branding->>'color'),
+      'title', coalesce(t.name, 'Anamnese'), 'sections', coalesce(l.fields, t.sections));
+  end if;
+  if l.password_hash is not null and (p_password_hash is null or p_password_hash <> l.password_hash) then
+    return jsonb_build_object('kind','relatorio','needs_password', true, 'expires_at', l.expires_at);
+  end if;
+  select * into r from public.reports where id = l.report_id;
+  if not found or r.status <> 'revisado' then raise exception 'relatorio_indisponivel'; end if;
+  return jsonb_build_object('kind','relatorio','needs_password', false, 'expires_at', l.expires_at,
+    'patient_name', pat.name, 'professional_name', p.full_name, 'specialty', p.specialty, 'council_registry', p.council_registry,
+    'branding', coalesce(p.branding, '{}'::jsonb) - 'payment' - 'insurers' - 'recibo_seq',
+    'layout', (select tp.meta->'layout' from public.templates tp where tp.id = r.template_id
+               and tp.meta ? 'layout' and coalesce((tp.meta->'layout'->>'use')::boolean, true)),
+    'report_kind', r.kind, 'title', r.title, 'session_date', r.session_date, 'period_start', r.period_start, 'period_end', r.period_end,
+    'sections', (select coalesce(jsonb_agg(s), '[]'::jsonb) from jsonb_array_elements(r.sections) s
+                 where coalesce((s->>'patient_visible')::boolean, true)));
+end $$;
+
+-- Paciente confirma presença ou pede para remarcar.
+create or replace function public.public_confirm(p_token text, p_answer text)
+returns void language plpgsql security definer set search_path = public as $$
+declare l public.share_links;
+begin
+  select * into l from public.share_links where token = p_token for update;
+  if not found or l.kind <> 'confirmacao' or l.expires_at < now() then raise exception 'link_invalido'; end if;
+  if p_answer not in ('confirmado','remarcar') then raise exception 'resposta_invalida'; end if;
+  update public.appointments set confirm_status = p_answer, confirmed_at = now() where id = l.appointment_id and status = 'agendado';
+  update public.share_links set responded_at = now() where id = l.id;
+end $$;
+
+-- Pesquisa de satisfação anônima (várias respostas pelo mesmo link).
+create or replace function public.public_submit_survey(p_token text, p_score int, p_comment text)
+returns void language plpgsql security definer set search_path = public as $$
+declare l public.share_links;
+begin
+  select * into l from public.share_links where token = p_token;
+  if not found or l.kind <> 'pesquisa' or l.expires_at < now() then raise exception 'link_invalido'; end if;
+  if p_score is null or p_score < 0 or p_score > 10 then raise exception 'resposta_invalida'; end if;
+  if (select count(*) from public.survey_answers where link_id = l.id) >= 2000 then raise exception 'link_invalido'; end if;
+  insert into public.survey_answers (professional_id, link_id, score, comment)
+  values (l.professional_id, l.id, p_score, nullif(left(trim(coalesce(p_comment, '')), 2000), ''));
+end $$;
+revoke all on function public.public_confirm(text, text) from public;
+revoke all on function public.public_submit_survey(text, int, text) from public;
+grant execute on function public.public_confirm(text, text) to anon, authenticated;
+grant execute on function public.public_submit_survey(text, int, text) to anon, authenticated;

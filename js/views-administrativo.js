@@ -2,7 +2,7 @@
 // Dados administrativos ficam separados dos clínicos (tabelas appointments e patient_admin).
 import * as api from './api.js';
 import { state } from './state.js';
-import { waLink, lembreteTexto } from './cobranca.js';
+import { waLink, lembreteTexto, newToken } from './cobranca.js';
 import { exportAttendancePdf, exportAttendanceWord, exportDeclaracaoPdf, exportDeclaracaoWord, ATT_STATUS } from './export.js';
 import {
   $, $$, esc, fmtDate, todayISO, toast, confirmBox, busy, chip, shell, loading, pageHeader, icon, openModal, emptyState, callout, NAV_MORE,
@@ -23,7 +23,7 @@ const statusOpts = (cur) => Object.entries(ATT_STATUS).map(([k, l]) => `<option 
 export async function renderAdministrativo(params) {
   const main = shell('administrativo'); loading(main);
   const patients = await api.listPatients();
-  const ABAS = [['agenda', 'Agenda'], ['frequencia', 'Folha de frequência'], ['declaracoes', 'Declarações'], ['convenios', 'Convênios']];
+  const ABAS = [['agenda', 'Agenda'], ['espera', 'Lista de espera'], ['frequencia', 'Folha de frequência'], ['declaracoes', 'Declarações'], ['convenios', 'Convênios'], ['pesquisa', 'Pesquisa']];
   const aba = ABAS.some(([k]) => k === params.get('aba')) ? params.get('aba') : 'agenda';
   main.innerHTML = pageHeader('Administrativo', 'Agenda, folha de frequência, declarações e convênios. Separados dos registros clínicos.',
     aba === 'agenda' ? `<button class="btn bloom" id="new-ap">${icon('plus')}Nova sessão</button>` : '') + `
@@ -31,7 +31,7 @@ export async function renderAdministrativo(params) {
       ${ABAS.map(([k, l]) => `<a class="tab ${aba === k ? 'on' : ''}" href="#/administrativo${k === 'agenda' ? '' : '?aba=' + k}" role="tab" style="text-decoration:none">${l}</a>`).join('')}
     </div><div id="pane"></div>`;
   const PANES = { agenda: () => agenda(params, patients), frequencia: () => frequencia(params, patients),
-    declaracoes: () => declaracoes(patients), convenios: () => convenios() };
+    declaracoes: () => declaracoes(patients), convenios: () => convenios(), espera: () => espera(), pesquisa: () => pesquisa() };
   const reload = () => PANES[aba]();
   if ($('#new-ap')) $('#new-ap').onclick = () => {
     if (!patients.length) return toast('Cadastre um paciente primeiro.', 'err');
@@ -46,10 +46,15 @@ async function agenda(params, patients) {
   const pane = $('#pane');
   const start = mondayOf(params.get('semana') || todayISO());
   const end = addDays(start, 6);
-  const [aps, reps] = await Promise.all([
+  const [aps, reps, blocks] = await Promise.all([
     api.listAppointments({ from: start, to: end }),
     api.listReports({ kind: 'sessao', from: start, to: end, limit: 500 }),
+    api.listBlocks({ from: start, to: end }).catch(() => []),
   ]);
+  const blocksOf = (d) => blocks.filter((b) => b.date <= d && (b.end_date || b.date) >= d);
+  const blockTxt = (b) => `${b.start_time ? `${hhmm(b.start_time)}–${hhmm(b.end_time)}` : 'Dia todo'}${b.reason ? ' · ' + esc(b.reason) : ''}`;
+  const blocksHtml = (d) => blocksOf(d).map((b) => `<span class="ag-block">${icon('x')}Bloqueado: ${blockTxt(b)} <button class="link small" data-unblock="${b.id}">Liberar</button></span>`).join('');
+  const amanha = addDays(todayISO(), 1);
   const evo = new Map(reps.map((r) => [`${r.patient_id}|${r.session_date}`, r.id]));
   const count = (s) => aps.filter((a) => a.status === s).length;
   const week = (n) => `#/administrativo?semana=${addDays(start, 7 * n)}`;
@@ -61,8 +66,12 @@ async function agenda(params, patients) {
       <b style="min-width:190px;text-align:center">${fmtDate(start)} a ${fmtDate(end)}</b>
       <a class="btn quiet sm" href="${week(1)}" aria-label="Próxima semana">${icon('right')}</a>
       <a class="btn quiet sm" href="#/administrativo">Hoje</a>
+      <details class="menu"><summary class="btn quiet sm">${icon('more')}Ações</summary><div class="menu-list">
+        <button type="button" id="ag-lembretes">${icon('calendar')}Lembretes de amanhã</button>
+        <button type="button" id="ag-bloquear">${icon('x')}Bloquear dia ou horário</button>
+        <button type="button" id="ag-ics">${icon('download')}Levar para o calendário do celular</button></div></details>
       <span class="grow"></span>
-      <span class="small muted">${aps.length} sessão${aps.length === 1 ? '' : 's'}</span>
+      <span class="small muted">${aps.length} sessão${aps.length === 1 ? '' : 'ões'}</span>
       ${['realizado', 'falta', 'falta_justificada', 'cancelado'].filter(count).map((s) => chip(`${ATT_STATUS[s]}: ${count(s)}`, STATUS_KIND[s])).join(' ')}
     </div>
     <div id="days"></div>`;
@@ -73,19 +82,21 @@ async function agenda(params, patients) {
     if (!list.length && dt(d).getDay() === 0) return ''; // domingo vazio não aparece
     if (!list.length) return `<section class="ag-day vazio ${d === today ? 'today' : ''}">
       <h3>${WD[dt(d).getDay()]}, ${fmtDate(d)}${d === today ? ' ' + chip('Hoje', 'bloom') : ''}<span class="muted small ag-livre">sem sessões</span>
-      <button class="link small" data-novo="${d}">Agendar</button></h3></section>`;
+      <button class="link small" data-novo="${d}">Agendar</button></h3>${blocksHtml(d)}</section>`;
     return `<section class="ag-day ${d === today ? 'today' : ''}">
       <h3>${WD[dt(d).getDay()]}, ${fmtDate(d)}${d === today ? ' ' + chip('Hoje', 'bloom') : ''}<span class="muted small ag-livre">${list.length} sessão${list.length === 1 ? '' : 'ões'}</span>
-      <button class="link small" data-novo="${d}">Agendar</button></h3>
+      <button class="link small" data-novo="${d}">Agendar</button></h3>${blocksHtml(d)}
       ${list.length ? `<div class="table">${list.map((a) => {
+        const conf = a.status !== 'agendado' ? '' : a.confirm_status === 'confirmado' ? chip('Confirmou', 'ok') : a.confirm_status === 'remarcar' ? chip('Pediu para remarcar', 'warn') : '';
+        const remarcar = ['falta', 'falta_justificada', 'cancelado'].includes(a.status) || a.confirm_status === 'remarcar' ? `<button class="btn quiet sm" data-remarcar="${a.id}">Reagendar</button>` : '';
         const rid = evo.get(`${a.patient_id}|${a.date}`);
         const evoLink = rid ? `<a class="small" href="#/relatorio/${rid}">${icon('file')}Evolução</a>`
           : a.status === 'realizado' ? `<a class="small" href="#/nova?paciente=${a.patient_id}">${icon('plus')}Registrar evolução</a>` : '';
         return `<div class="tr cols-agenda">
           <span class="t">${esc(hhmm(a.time) || '—')}</span>
-          <span class="ellip"><a href="#/pacientes/${a.patient_id}" style="color:inherit">${esc(a.patients?.name || '')}</a><small class="muted"> · ${a.duration_min} min${a.notes ? ' · ' + esc(a.notes) : ''}</small></span>
+          <span class="ellip"><a href="#/pacientes/${a.patient_id}" style="color:inherit">${esc(a.patients?.name || '')}</a><small class="muted"> · ${a.duration_min} min${a.notes ? ' · ' + esc(a.notes) : ''}</small> ${conf}</span>
           <span class="ag-meta"><select class="ag-st st-${a.status}" data-st="${a.id}" aria-label="Situação">${statusOpts(a.status)}</select>${evoLink}</span>
-          <span class="row" style="gap:2px;flex-wrap:nowrap">${a.status === 'agendado' ? `<button class="btn quiet sm" data-lem="${a.id}" title="Enviar lembrete pelo WhatsApp">Lembrete</button>` : ''}<button class="icon-btn" data-ed="${a.id}" title="Editar" aria-label="Editar">${icon('edit')}</button><button class="icon-btn" data-del="${a.id}" title="Excluir" aria-label="Excluir">${icon('trash')}</button></span>
+          <span class="row" style="gap:2px;flex-wrap:nowrap">${a.status === 'agendado' ? `<button class="btn quiet sm" data-lem="${a.id}" title="Enviar lembrete pelo WhatsApp">Lembrete</button>` : ''}${remarcar}<button class="icon-btn" data-ed="${a.id}" title="Editar" aria-label="Editar">${icon('edit')}</button><button class="icon-btn" data-del="${a.id}" title="Excluir" aria-label="Excluir">${icon('trash')}</button></span>
         </div>`;
       }).join('')}</div>` : ''}
     </section>`;
@@ -101,12 +112,22 @@ async function agenda(params, patients) {
     const a = aps.find((x) => x.id === b.dataset.ed);
     appointmentModal({ patients, appointment: a }).then((ok) => ok && again());
   }));
-  $$('[data-lem]').forEach((b) => (b.onclick = () => {
-    const a = aps.find((x) => x.id === b.dataset.lem);
-    const pat = patients.find((x) => x.id === a?.patient_id);
-    const url = waLink(pat?.phone, lembreteTexto({ patient: pat?.name || '', professional: state.profile.full_name, date: a.date, time: a.time, specialty: state.profile.specialty }));
-    if (!url) return toast('Cadastre o telefone do paciente para enviar o lembrete.', 'err');
-    window.open(url, '_blank', 'noopener');
+  $$('[data-lem]').forEach((b) => (b.onclick = () => lembretesModal({ aps: aps.filter((x) => x.id === b.dataset.lem), patients, title: 'Lembrete da sessão' })));
+  $('#ag-lembretes').onclick = async () => {
+    const lista = (await api.listAppointments({ from: amanha, to: amanha })).filter((x) => x.status === 'agendado');
+    if (!lista.length) return toast('Não há sessões agendadas para amanhã.', 'err');
+    await lembretesModal({ aps: lista, patients, title: `Lembretes de amanhã (${fmtDate(amanha)})` });
+  };
+  $('#ag-bloquear').onclick = async () => { if (await blockModal(start <= todayISO() && todayISO() <= end ? todayISO() : start)) again(); };
+  $('#ag-ics').onclick = async () => {
+    const fut = (await api.listAppointments({ from: todayISO(), to: addDays(todayISO(), 90) })).filter((x) => x.status === 'agendado');
+    if (!fut.length) return toast('Não há sessões agendadas nos próximos 90 dias.', 'err');
+    baixarIcs(fut); toast(`${fut.length} sessões no arquivo. Abra o arquivo no celular para adicionar ao calendário.`);
+  };
+  $$('[data-unblock]').forEach((b) => (b.onclick = async () => { await api.deleteBlock(b.dataset.unblock); toast('Bloqueio removido.'); again(); }));
+  $$('[data-remarcar]').forEach((b) => (b.onclick = () => {
+    const o = aps.find((x) => x.id === b.dataset.remarcar);
+    appointmentModal({ patients: patients.filter((p) => !p.archived), date: addDays(o.date < todayISO() ? todayISO() : o.date, 7), preset: o }).then((ok) => ok && again());
   }));
   $$('[data-novo]').forEach((b) => (b.onclick = () => {
     appointmentModal({ patients: patients.filter((p) => !p.archived), date: b.dataset.novo }).then((ok) => ok && again());
@@ -115,15 +136,26 @@ async function agenda(params, patients) {
     const alvo = aps.find((x) => x.id === b.dataset.del);
     const aviso = alvo?.payment_status === 'pago' ? 'Esta sessão tem um pagamento registrado. Excluir apaga também o pagamento do Financeiro. Excluir mesmo assim?'
       : alvo?.status === 'realizado' ? 'Esta sessão já foi realizada e está nas cobranças. Excluir mesmo assim?' : 'Excluir esta sessão da agenda?';
+    if (alvo?.series_id && alvo.status === 'agendado') {
+      const r = await openModal('Excluir sessão', `<p>Esta sessão faz parte de uma série que se repete.</p>
+        <label class="check"><input type="radio" name="q" value="uma" checked> Só esta sessão (${fmtDate(alvo.date)})</label>
+        <label class="check"><input type="radio" name="q" value="serie"> Esta e as próximas da série que ainda estão agendadas</label>`,
+      { okText: 'Excluir', onOk: (d) => d.querySelector('[name=q]:checked').value });
+      if (!r || r === true) return;
+      if (r === 'serie') { const fora = await api.deleteSeriesFrom(alvo.series_id, alvo.date); toast(`${fora.length} sessões excluídas.`); return again(); }
+      await api.deleteAppointment(alvo.id); toast('Sessão excluída.'); return again();
+    }
     if (!(await confirmBox(aviso, 'Excluir'))) return;
     await busy(b, '…', async () => { await api.deleteAppointment(b.dataset.del); toast('Sessão excluída.'); again(); });
   }));
 }
 
 /** Nova sessão (com repetição semanal) ou edição. Resolve true se salvou. */
-export function appointmentModal({ patients, appointment: a, date }) {
-  const edit = Boolean(a);
-  const d0 = a?.date || date || todayISO();
+export function appointmentModal({ patients, appointment: a0, date, preset }) {
+  const edit = Boolean(a0);
+  // preset: sessão antiga usada como base ao reagendar (mesmo paciente, horário e duração)
+  const a = a0 || (preset ? { patient_id: preset.patient_id, time: preset.time, duration_min: preset.duration_min } : null);
+  const d0 = a0?.date || date || todayISO();
   const body = `
     <label class="field">Paciente<select name="patient_id" required>${patients.map((p) => `<option value="${p.id}" ${p.id === a?.patient_id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
     <div class="grid2">
@@ -138,7 +170,7 @@ export function appointmentModal({ patients, appointment: a, date }) {
     <label class="field">Por quantas semanas<input type="number" name="weeks" min="1" max="52" value="1"><small>Ex.: 3 vezes por semana durante 4 semanas = marque 3 dias e coloque 4.</small></label>`}
     <label class="field">Observação (opcional)<input name="notes" value="${esc(a?.notes || '')}" placeholder="Ex.: reposição, horário especial"></label>
     <p class="muted small">Não coloque aqui informações clínicas. Elas ficam na evolução.</p>`;
-  return openModal(edit ? 'Editar sessão' : 'Nova sessão', body, {
+  return openModal(edit ? 'Editar sessão' : preset ? 'Reagendar sessão' : 'Nova sessão', body, {
     okText: 'Salvar',
     onOk: async (d) => {
       const f = (n) => $(`[name=${n}]`, d).value;
@@ -148,8 +180,10 @@ export function appointmentModal({ patients, appointment: a, date }) {
         if (!base.time || ['cancelado', 'falta', 'falta_justificada'].includes(base.status)) return true;
         const min = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
         const ini = min(base.time), fim = ini + base.duration_min;
-        const outras = await api.listAppointments({ from: dates[0], to: dates[dates.length - 1] });
-        const bate = outras.filter((o) => o.id !== a?.id && dates.includes(o.date) && o.time && o.status !== 'cancelado'
+        const [outras, bloqueios] = await Promise.all([api.listAppointments({ from: dates[0], to: dates[dates.length - 1] }), api.listBlocks({ from: dates[0], to: dates[dates.length - 1] }).catch(() => [])]);
+        const preso = bloqueios.find((b) => dates.some((dia) => b.date <= dia && (b.end_date || b.date) >= dia) && (!b.start_time || (min(b.start_time) < fim && ini < min(b.end_time || '23:59'))));
+        if (preso && !(await confirmBox(`Este horário está bloqueado${preso.reason ? ` (${preso.reason})` : ''}. Agendar mesmo assim?`, 'Agendar mesmo assim'))) return false;
+        const bate = outras.filter((o) => o.id !== a0?.id && dates.includes(o.date) && o.time && o.status !== 'cancelado'
           && min(o.time) < fim && ini < min(o.time) + (o.duration_min || 50));
         if (!bate.length) return true;
         const quem = bate.slice(0, 3).map((o) => `${fmtDate(o.date)} ${hhmm(o.time)} (${o.patients?.name || 'paciente'})`).join(', ');
@@ -157,8 +191,9 @@ export function appointmentModal({ patients, appointment: a, date }) {
       };
       if (edit) {
         if (!(await conflito([f('date')]))) return false;
-        if (base.status !== a.status) await api.setAppointmentStatus(a, base.status);
-        await api.updateAppointment(a.id, { ...base, date: f('date') }); toast('Sessão atualizada.'); return true;
+        if (base.status !== a0.status) await api.setAppointmentStatus(a0, base.status);
+        const mudou = f('date') !== a0.date || (base.time || '') !== hhmm(a0.time);
+        await api.updateAppointment(a0.id, { ...base, date: f('date'), ...(mudou ? { confirm_status: null, confirmed_at: null } : {}) }); toast('Sessão atualizada.'); return true;
       }
       const first = f('date');
       const wds = $$('[name=wd]:checked', d).map((c) => Number(c.value));
@@ -180,6 +215,128 @@ export function appointmentModal({ patients, appointment: a, date }) {
       return true;
     },
   });
+}
+
+/* ---------- Lembretes com link de confirmação ---------- */
+/** Lista as sessões com um botão de WhatsApp para cada uma. A mensagem leva o link para o paciente confirmar ou pedir para remarcar. */
+export async function lembretesModal({ aps, patients, title }) {
+  const base = `${location.origin}${location.pathname}#/l/`;
+  const ja = await api.listConfirmLinks(aps.map((a) => a.id)).catch(() => []);
+  const agora = new Date().toISOString();
+  const tokenOf = Object.fromEntries(ja.filter((l) => l.expires_at > agora).map((l) => [l.appointment_id, l.token]));
+  for (const a of aps) {
+    if (tokenOf[a.id]) continue;
+    const token = newToken();
+    try { await api.createShareLink({ token, kind: 'confirmacao', patient_id: a.patient_id, appointment_id: a.id, expires_at: new Date(`${a.date}T23:59:59`).toISOString() }); tokenOf[a.id] = token; }
+    catch { /* sem link: o lembrete segue sem a confirmação */ }
+  }
+  const linha = (a) => {
+    const pat = patients.find((x) => x.id === a.patient_id) || {};
+    const nome = pat.name || a.patients?.name || 'Paciente';
+    const url = waLink(pat.phone, lembreteTexto({ patient: nome, professional: state.profile.full_name, date: a.date, time: a.time, specialty: state.profile.specialty, link: tokenOf[a.id] ? base + tokenOf[a.id] : '' }));
+    return `<div class="tr" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="grow t">${esc(hhmm(a.time) || '—')} · ${esc(nome)}</span>
+      ${url ? `<a class="btn sm" target="_blank" rel="noopener" href="${esc(url)}" data-sent>Enviar pelo WhatsApp</a>` : '<span class="small muted">sem telefone cadastrado</span>'}</div>`;
+  };
+  return openModal(title, `<p class="muted small">Cada mensagem leva um link para o paciente confirmar a presença ou pedir para remarcar. A resposta aparece na agenda.</p>
+    <div class="table">${aps.map(linha).join('')}</div>`,
+  { cancelText: 'Fechar', onOpen: (d) => d.querySelectorAll('[data-sent]').forEach((el) => el.addEventListener('click', () => { el.textContent = 'Enviado ✓'; el.classList.add('quiet'); })) });
+}
+
+/* ---------- Bloqueio de dia ou horário (feriado, folga) ---------- */
+function blockModal(d0) {
+  return openModal('Bloquear dia ou horário', `
+    <div class="grid2">
+      <label class="field">De<input type="date" name="date" value="${d0}" required></label>
+      <label class="field">Até (opcional)<input type="date" name="end_date"></label>
+      <label class="field">Das (vazio = dia todo)<input type="time" name="start_time"></label>
+      <label class="field">Às<input type="time" name="end_time"></label>
+    </div>
+    <label class="field">Motivo (opcional)<input name="reason" placeholder="Ex.: feriado, congresso, folga" maxlength="80"></label>
+    <p class="muted small">As sessões já agendadas não são alteradas. O bloqueio avisa quando você tentar agendar por cima.</p>`,
+  { okText: 'Bloquear', onOk: async (d) => {
+    const f = (n) => d.querySelector(`[name=${n}]`).value;
+    if (!f('date')) return false;
+    if (f('end_date') && f('end_date') < f('date')) { toast('A data final vem antes da inicial.', 'err'); return false; }
+    if (Boolean(f('start_time')) !== Boolean(f('end_time'))) { toast('Informe o início e o fim do horário, ou deixe os dois vazios.', 'err'); return false; }
+    await api.saveBlock({ date: f('date'), end_date: f('end_date') || null, start_time: f('start_time') || null, end_time: f('end_time') || null, reason: f('reason').trim() || null });
+    toast('Bloqueio salvo.'); return true;
+  } });
+}
+
+/* ---------- Calendário do celular (.ics) ---------- */
+function baixarIcs(aps) {
+  const z = (n) => String(n).padStart(2, '0');
+  const stamp = (date, t, plus = 0) => { const [h, m] = String(t || '08:00').split(':').map(Number); const x = new Date(`${date}T00:00:00`); x.setHours(h, m + plus);
+    return `${x.getFullYear()}${z(x.getMonth() + 1)}${z(x.getDate())}T${z(x.getHours())}${z(x.getMinutes())}00`; };
+  const txt = (v) => String(v || '').replace(/[\\;,]/g, (c) => '\\' + c).replace(/\n/g, ' ');
+  const ev = aps.map((a) => ['BEGIN:VEVENT', `UID:${a.id}@potira`, `DTSTAMP:${stamp(todayISO(), '00:00')}`, `DTSTART:${stamp(a.date, a.time)}`, `DTEND:${stamp(a.date, a.time, a.duration_min || 50)}`,
+    `SUMMARY:${txt('Sessão · ' + (a.patients?.name || 'Paciente'))}`, 'END:VEVENT'].join('\r\n'));
+  const blob = new Blob([['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Potira//Agenda//PT-BR', ...ev, 'END:VCALENDAR'].join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+  const el = document.createElement('a'); el.href = URL.createObjectURL(blob); el.download = 'agenda-potira.ics';
+  document.body.appendChild(el); el.click(); el.remove(); setTimeout(() => URL.revokeObjectURL(el.href), 2000);
+}
+
+/* ---------- Lista de espera ---------- */
+const ESPERA = { aguardando: 'Aguardando', chamado: 'Chamado', encerrado: 'Encerrado' };
+async function espera() {
+  const pane = $('#pane');
+  const list = await api.listWaitlist();
+  const again = () => renderAdministrativo(new URLSearchParams('aba=espera'));
+  pane.innerHTML = `
+    <section class="panel"><h2>Lista de espera</h2>
+      <p class="muted">Quem está aguardando vaga. Quando abrir um horário, chame pela ordem.</p>
+      <form id="we-f"><div class="grid2">
+        <label class="field">Nome<input name="name" required maxlength="120"></label>
+        <label class="field">Telefone<input name="phone" placeholder="(00) 00000-0000"></label>
+        <label class="field">Dias e horários preferidos<input name="preference" placeholder="Ex.: terça e quinta à tarde"></label>
+        <label class="field">Observação<input name="notes" placeholder="Ex.: indicado pela escola"></label>
+      </div><button class="btn" type="submit">${icon('plus')}Adicionar à lista</button></form>
+    </section>
+    ${list.length ? `<div class="table">${list.map((w, i) => `<div class="tr" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="muted">${i + 1}</span>
+      <span class="grow t">${esc(w.name)}<small class="muted"> · desde ${fmtDate(w.created_at)}${w.preference ? ' · ' + esc(w.preference) : ''}${w.notes ? ' · ' + esc(w.notes) : ''}</small></span>
+      <select data-we="${w.id}" aria-label="Situação" style="width:auto;margin:0;min-height:0;padding:5px 8px">${Object.entries(ESPERA).map(([k, l]) => `<option value="${k}" ${k === w.status ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      ${waLink(w.phone, '') ? `<a class="btn quiet sm" target="_blank" rel="noopener" href="${esc(waLink(w.phone, `Olá, ${w.name}! Abriu uma vaga para sessão com ${state.profile.full_name}. Podemos combinar o horário?`))}">Chamar</a>` : ''}
+      <button class="icon-btn" data-wdel="${w.id}" title="Remover" aria-label="Remover da lista">${icon('trash')}</button></div>`).join('')}</div>`
+      : emptyState('Ninguém na lista de espera', 'Adicione acima quem está aguardando vaga.')}`;
+  $('#we-f').onsubmit = (e) => {
+    e.preventDefault(); const fd = new FormData(e.target);
+    return busy($('[type=submit]', e.target), 'Salvando…', async () => {
+      await api.saveWaitlist({ name: String(fd.get('name')).trim(), phone: String(fd.get('phone')).trim() || null, preference: String(fd.get('preference')).trim() || null, notes: String(fd.get('notes')).trim() || null });
+      toast('Adicionado à lista de espera.'); again();
+    });
+  };
+  $$('[data-we]').forEach((sel) => (sel.onchange = async () => { await api.saveWaitlist({ id: sel.dataset.we, status: sel.value }); toast('Situação atualizada.'); }));
+  $$('[data-wdel]').forEach((b) => (b.onclick = async () => { if (!(await confirmBox('Remover esta pessoa da lista de espera?', 'Remover'))) return; await api.deleteWaitlist(b.dataset.wdel); toast('Removido.'); again(); }));
+}
+
+/* ---------- Pesquisa de satisfação (anônima, por link) ---------- */
+async function pesquisa() {
+  const pane = $('#pane');
+  let link = await api.getSurveyLink();
+  if (link && link.expires_at < new Date().toISOString()) link = null;
+  const answers = link ? await api.listSurveyAnswers() : [];
+  const url = link ? `${location.origin}${location.pathname}#/l/${link.token}` : '';
+  const media = answers.length ? (answers.reduce((s, a) => s + a.score, 0) / answers.length) : 0;
+  const msg = `Olá! Sua opinião ajuda a melhorar o atendimento. A pesquisa é anônima e leva um minuto:\n${url}`;
+  pane.innerHTML = `<section class="panel"><h2>Pesquisa de satisfação</h2>
+    <p class="muted">Um link só, anônimo, para enviar a pacientes e famílias. Eles dão uma nota de 0 a 10 e, se quiserem, um comentário. Você não vê quem respondeu.</p>
+    ${link ? `<label class="field">Link da pesquisa<input readonly id="pq-url" value="${esc(url)}"></label>
+      <div class="row"><button class="btn quiet" id="pq-copy">${icon('file')}Copiar mensagem com o link</button></div>`
+      : `<button class="btn" id="pq-new">${icon('plus')}Criar link da pesquisa</button>`}
+    </section>
+    ${link ? `<div class="stats"><div class="stat ok"><b>${answers.length ? media.toFixed(1).replace('.', ',') : '—'}</b><span>Nota média (0 a 10)</span></div>
+      <div class="stat"><b>${answers.length}</b><span>Respostas</span></div>
+      <div class="stat"><b>${answers.filter((a) => a.score >= 9).length}</b><span>Notas 9 e 10</span></div>
+      <div class="stat warn"><b>${answers.filter((a) => a.score <= 6).length}</b><span>Notas até 6</span></div></div>
+      ${answers.filter((a) => a.comment).length ? `<h3 style="margin:6px 0 10px">Comentários</h3><div class="table">${answers.filter((a) => a.comment).map((a) => `<div class="tr" style="display:flex;gap:12px;align-items:flex-start">
+        ${chip(`Nota ${a.score}`, a.score >= 9 ? 'ok' : a.score <= 6 ? 'warn' : '')}<span class="grow">${esc(a.comment)}<small class="muted"> · ${fmtDate(a.created_at)}</small></span></div>`).join('')}</div>` : '<p class="muted small">Nenhum comentário ainda.</p>'}` : ''}`;
+  if ($('#pq-new')) $('#pq-new').onclick = (e) => busy(e.currentTarget, 'Criando…', async () => {
+    await api.createShareLink({ token: newToken(), kind: 'pesquisa', expires_at: new Date(Date.now() + 365 * 864e5).toISOString() });
+    renderAdministrativo(new URLSearchParams('aba=pesquisa'));
+  });
+  if ($('#pq-copy')) $('#pq-copy').onclick = async () => { try { await navigator.clipboard.writeText(msg); toast('Mensagem copiada.'); } catch { $('#pq-url').select(); toast('Selecione o link e copie.', 'err'); } };
 }
 
 /* ---------- Folha de frequência ---------- */

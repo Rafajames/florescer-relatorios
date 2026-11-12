@@ -5,7 +5,7 @@ import { createDemo, removeDemo, isDemo } from './demo.js';
 import { exportDossierWord, exportDossierPdf, exportAuditoriaPdf, KIND_LABEL, brl, ATT_STATUS } from './export.js';
 import { newToken, sha256, waLink, cobravel, cobrancaVencida } from './cobranca.js';
 import { abrirCobranca, registrarPagamento, agendarCobranca } from './cobrar.js';
-import { appointmentModal } from './views-administrativo.js';
+import { appointmentModal, lembretesModal } from './views-administrativo.js';
 import {
   $, $$, esc, fmtDate, fmtDateTime, toast, openModal, confirmBox, busy, statusChip, chip, meta, callout,
   shell, loading, pageHeader, backLink, icon, greeting, longDate, emptyState, todayISO,
@@ -56,6 +56,8 @@ export async function renderDashboard() {
   const missAps = todayAps.filter((a) => a.status === 'falta' || a.status === 'falta_justificada').length;
   const leftAps = todayAps.length - doneAps - missAps;
   const nextAp = todayAps.find((a) => a.status === 'agendado');
+  const amanhaISO = iso(new Date(Date.now() + 864e5));
+  const amanhaAps = valid.filter((a) => a.date === amanhaISO && a.status === 'agendado');
   const hh = (t) => (t || '').slice(0, 5);
   const days = [...new Set(valid.map((a) => a.date))].filter((d) => d > today).slice(0, 4);
   const dayPill = (d, on) => { const dt = new Date(d + 'T12:00:00'); const n = valid.filter((a) => a.date === d).length;
@@ -92,8 +94,8 @@ export async function renderDashboard() {
   } catch { cobHoje = 0; }
   main.innerHTML = pageHeader(`${greeting()}, ${esc(first)}`, esc(longDate())) + (cobHoje ? callout(`<p><b>${cobHoje} cobrança${cobHoje === 1 ? '' : 's'} agendada${cobHoje === 1 ? '' : 's'} para hoje.</b> A mensagem e o PIX já estão prontos; é só conferir e enviar.</p>`, '', '<a class="btn sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a>') : '') + `
   <div class="dash">
-    <section class="dcard wide" aria-label="Atendimentos de hoje">
-      <h3>Atendimentos de hoje</h3><span class="ill">${ART.clip}</span>
+    <section class="dcard wide" aria-label="Sessões de hoje">
+      <h3>Sessões de hoje</h3><span class="ill">${ART.clip}</span>
       <div class="hero-row">
         <div class="bignum">${todayAps.length}<small>${todayAps.length === 1 ? 'sessão' : 'sessões'}</small></div>
         <div class="side">${nextAp ? `<div class="trend">Próxima: ${esc(nextAp.patients?.name || '')} às ${hh(nextAp.time) || '—'}</div>` : `<div class="trend down">${todayAps.length ? 'Nenhuma sessão pendente hoje' : 'Nada agendado para hoje'}</div>`}
@@ -122,12 +124,13 @@ export async function renderDashboard() {
       <div class="midnum" style="margin-top:16px">${todayAps.length}<small>hoje</small></div>
       <div class="muted small" style="margin-top:4px">${doneAps} de ${todayAps.length} ${todayAps.length === 1 ? 'feita' : 'feitas'}</div>
       <div class="daypills">${dayPill(today, true)}${days.map((d) => dayPill(d, false)).join('')}</div>
-      <div class="agl">${todayAps.length ? todayAps.map((a) => `<a class="agi" href="${a.status === 'realizado' ? `#/nova?paciente=${a.patient_id}` : '#/administrativo'}">
+      <div class="agl">${todayAps.length ? todayAps.map((a) => `<div class="agi hoje-it">
           <span class="ck ${a.status === 'realizado' ? 'ok' : a.status.startsWith('falta') ? 'no' : ''}"></span><span class="tm">${hh(a.time) || '—'}</span>
-          <span class="nm"><b>${esc(a.patients?.name || 'Paciente')}</b><span>${esc(ATT_STATUS[a.status] || '')}${a.duration_min ? ` · ${a.duration_min} min` : ''}</span></span>
-          ${a === nextAp ? chip('Próxima', 'petrol') : a.status === 'realizado' ? chip('Feita', 'ok') : ''}</a>`).join('')
+          <a class="nm" href="#/pacientes/${a.patient_id}" style="color:inherit;text-decoration:none"><b>${esc(a.patients?.name || 'Paciente')}</b><span>${esc(ATT_STATUS[a.status] || '')}${a.duration_min ? ` · ${a.duration_min} min` : ''}${a.confirm_status === 'confirmado' ? ' · confirmou' : a.confirm_status === 'remarcar' ? ' · pediu para remarcar' : ''}</span></a>
+          <span class="hoje-act">${a.status === 'agendado' ? `<a class="btn sm" href="#/nova?paciente=${a.patient_id}">Iniciar</a><button class="btn quiet sm" data-hfalta="${a.id}">Falta</button>`
+            : a.status === 'realizado' ? `<a class="btn quiet sm" href="#/nova?paciente=${a.patient_id}">Evolução</a>` : ''}</span></div>`).join('')
         : '<p class="empty-mini">Nenhuma sessão agendada para hoje.</p>'}</div>
-      <div class="foot"><a class="btn quiet" href="#/administrativo">Ver agenda</a><a class="btn" href="#/administrativo">${icon('plus')}Agendar</a></div>
+      <div class="foot">${amanhaAps.length ? `<button class="btn quiet" id="h-lembretes">Lembretes de amanhã (${amanhaAps.length})</button>` : ''}<a class="btn quiet" href="#/administrativo">Ver agenda</a><a class="btn" href="#/administrativo">${icon('plus')}Agendar</a></div>
     </section>
 
     <section class="dcard" aria-label="Relatórios">
@@ -162,6 +165,12 @@ export async function renderDashboard() {
     </aside>` : ''}
   </div>`;
 
+  if ($('#h-lembretes')) $('#h-lembretes').onclick = () => lembretesModal({ aps: amanhaAps, patients, title: `Lembretes de amanhã (${fmtDate(amanhaISO)})` });
+  $$('[data-hfalta]').forEach((b) => (b.onclick = async () => {
+    const a = todayAps.find((x) => x.id === b.dataset.hfalta);
+    if (!(await confirmBox(`Marcar falta de ${a.patients?.name || 'paciente'} na sessão de hoje?`, 'Marcar falta'))) return;
+    try { await api.setAppointmentStatus(a, 'falta'); toast('Falta registrada.'); renderDashboard(); } catch (err) { toast(err.message, 'err'); }
+  }));
   const go = $('#go-now');
   if (go) go.onclick = () => { const v = $('#who').value; goto(v ? `#/nova?paciente=${v}` : '#/nova'); };
 }

@@ -12,6 +12,7 @@ const MSG = {
   link_invalido: 'Este link não está mais disponível. Ele pode ter expirado ou sido cancelado. Peça um novo link ao(à) profissional.',
   ja_respondido: 'Esta anamnese já foi respondida. Obrigado(a)!',
   consentimento_obrigatorio: 'Marque a autorização antes de enviar.',
+  resposta_invalida: 'Não consegui registrar a resposta. Tente de novo.',
   relatorio_indisponivel: 'Este relatório não está disponível no momento.',
 };
 const errorText = (e) => { const m = String(e?.message || e); const k = Object.keys(MSG).find((x) => m.includes(x)); return k ? MSG[k] : 'Não foi possível carregar agora. Tente de novo em instantes.'; };
@@ -27,6 +28,9 @@ export async function renderPublicLink(token) {
     const info = await api.getPublicLink(token);
     marca(info);
     if (info.kind === 'anamnese') return anamnese(main, token, info);
+    if (info.kind === 'confirmacao') return confirmacao(main, token, info);
+    if (info.kind === 'orientacao') return orientacao(main, info);
+    if (info.kind === 'pesquisa') return pesquisa(main, token, info);
     if (info.needs_password) return senha(main, token);
     return relatorio(main, info);
   } catch (e) {
@@ -84,6 +88,56 @@ function anamnese(main, token, info) {
     } catch (err) {
       $('#pf-err').textContent = errorText(err); btn.disabled = false; btn.textContent = 'Enviar respostas';
     }
+  };
+}
+
+/* ---------- confirmação de presença ---------- */
+function confirmacao(main, token, info) {
+  const quando = `${new Date(info.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}${info.time ? ' às ' + String(info.time).slice(0, 5) : ''}`;
+  const feito = (r) => card(r === 'confirmado' ? 'Presença confirmada' : 'Pedido enviado',
+    r === 'confirmado' ? `<p>Obrigado! ${esc(info.professional_name)} espera por você na ${esc(quando)}.</p>`
+      : `<p>${esc(info.professional_name)} recebeu o seu pedido para remarcar a sessão de ${esc(quando)} e vai entrar em contato.</p>`);
+  if (info.status !== 'agendado') { main.innerHTML = card('Sessão', '<p>Esta sessão não está mais agendada. Fale com o(a) profissional se tiver dúvida.</p>'); return; }
+  main.innerHTML = `<section class="panel"><h1>Sua sessão</h1>
+    <p>${esc(info.patient_name)}, sua sessão com <b>${esc(info.professional_name)}</b>${info.specialty ? ' (' + esc(info.specialty) + ')' : ''} é <b>${esc(quando)}</b>.</p>
+    ${info.confirm_status ? `<p class="muted">Sua última resposta: ${info.confirm_status === 'confirmado' ? 'presença confirmada' : 'pediu para remarcar'}. Você pode mudar.</p>` : ''}
+    <div class="row"><button class="btn" data-r="confirmado">Confirmo a presença</button><button class="btn quiet" data-r="remarcar">Preciso remarcar</button></div>
+    <p id="cf-err" class="small" role="alert"></p></section>`;
+  main.querySelectorAll('[data-r]').forEach((b) => (b.onclick = async () => {
+    main.querySelectorAll('[data-r]').forEach((x) => (x.disabled = true));
+    try { await api.publicConfirm(token, b.dataset.r); main.innerHTML = feito(b.dataset.r); }
+    catch (err) { $('#cf-err').textContent = errorText(err); main.querySelectorAll('[data-r]').forEach((x) => (x.disabled = false)); }
+  }));
+}
+
+/* ---------- orientações para casa ---------- */
+function orientacao(main, info) {
+  main.innerHTML = `<section class="panel"><h1>${esc(info.title)}</h1>
+    <p class="muted">Para ${esc(info.patient_name)} · enviado por ${esc(info.professional_name)} em ${esc(fmtDate(info.created_at))}</p>
+    <div class="pre" style="white-space:pre-wrap;line-height:1.6">${esc(info.content)}</div>
+    <div class="row" style="margin-top:14px"><button class="btn quiet" id="or-print">Imprimir ou salvar em PDF</button></div></section>`;
+  $('#or-print').onclick = () => window.print();
+}
+
+/* ---------- pesquisa de satisfação ---------- */
+function pesquisa(main, token, info) {
+  let nota = null;
+  main.innerHTML = `<section class="panel"><h1>Como está sendo o atendimento?</h1>
+    <p class="muted">Pesquisa de ${esc(info.professional_name)}. É anônima: não pedimos seu nome.</p>
+    <p><b>De 0 a 10, que nota você dá ao atendimento?</b></p>
+    <div class="pub-notas" role="group" aria-label="Nota de 0 a 10">${[...Array(11)].map((_, i) => `<button type="button" class="btn quiet" data-n="${i}">${i}</button>`).join('')}</div>
+    <label class="field pub-f"><span class="pub-q">Quer contar o motivo ou deixar uma sugestão? (opcional)</span><textarea id="pq-c" rows="4" maxlength="2000"></textarea></label>
+    <div class="row end"><button class="btn" id="pq-send">Enviar</button></div>
+    <p id="pq-err" class="small" role="alert"></p></section>`;
+  main.querySelectorAll('[data-n]').forEach((b) => (b.onclick = () => {
+    nota = Number(b.dataset.n);
+    main.querySelectorAll('[data-n]').forEach((x) => { x.classList.toggle('quiet', x !== b); x.setAttribute('aria-pressed', x === b); });
+  }));
+  $('#pq-send').onclick = async (e) => {
+    if (nota === null) { $('#pq-err').textContent = 'Escolha uma nota de 0 a 10.'; return; }
+    e.currentTarget.disabled = true;
+    try { await api.publicSubmitSurvey(token, nota, $('#pq-c').value); main.innerHTML = card('Obrigado!', '<p>Sua resposta foi enviada. Ela ajuda a melhorar o atendimento.</p>'); }
+    catch (err) { $('#pq-err').textContent = errorText(err); e.currentTarget.disabled = false; }
   };
 }
 

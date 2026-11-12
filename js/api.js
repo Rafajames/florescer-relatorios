@@ -165,13 +165,76 @@ export const listAppointments = ({ from, to, patientId } = {}) => {
   if (patientId) q = q.eq('patient_id', patientId);
   return q.then(unwrap);
 };
-export const saveAppointments = (rows) => sb.from('appointments').insert(rows).select().then(unwrap);
+export const saveAppointments = (rows) => {
+  // sessões criadas juntas (repetição) ganham o mesmo series_id, para mover ou excluir a série
+  const series_id = rows.length > 1 ? crypto.randomUUID() : null;
+  return sb.from('appointments').insert(rows.map((r) => ({ ...r, series_id }))).select().then(unwrap);
+};
+/** Exclui da série as sessões ainda agendadas a partir de uma data. */
+export const deleteSeriesFrom = (seriesId, fromDate) =>
+  sb.from('appointments').delete().eq('series_id', seriesId).gte('date', fromDate).eq('status', 'agendado').select('id').then(unwrap);
+
+/* ---------- agenda: bloqueios e lista de espera ---------- */
+const upsertRow = (table) => (row) => {
+  const { id, ...rest } = row;
+  return id ? sb.from(table).update(rest).eq('id', id).select().single().then(unwrap) : sb.from(table).insert(rest).select().single().then(unwrap);
+};
+const delRow = (table) => (id) => sb.from(table).delete().eq('id', id).then(unwrap);
+/** Bloqueios que tocam o período (feriado, folga, horário sem sessão). */
+export const listBlocks = async ({ from, to } = {}) => {
+  const rows = await sb.from('agenda_blocks').select('*').order('date').then(unwrap);
+  return rows.filter((b) => (!to || b.date <= to) && (!from || (b.end_date || b.date) >= from));
+};
+export const saveBlock = upsertRow('agenda_blocks');
+export const deleteBlock = delRow('agenda_blocks');
+export const listWaitlist = () => sb.from('waitlist').select('*').order('created_at').then(unwrap);
+export const saveWaitlist = upsertRow('waitlist');
+export const deleteWaitlist = delRow('waitlist');
+
+/* ---------- clínico: metas e escalas ---------- */
+export const listGoals = (patientId) => sb.from('goals').select('*').eq('patient_id', patientId).order('created_at').then(unwrap);
+export const saveGoal = (g) => upsertRow('goals')({ ...g, updated_at: new Date().toISOString() });
+export const deleteGoal = delRow('goals');
+export const listScales = () => sb.from('scales').select('*').order('name').then(unwrap);
+export const saveScale = upsertRow('scales');
+export const deleteScale = delRow('scales');
+export const listScores = (patientId) => sb.from('scale_scores').select('*').eq('patient_id', patientId).order('date').then(unwrap);
+export const saveScore = upsertRow('scale_scores');
+export const deleteScore = delRow('scale_scores');
+
+/* ---------- financeiro: cobranças que não são sessão, recibos e pesquisa ---------- */
+export const listCharges = ({ open, paidFrom, paidTo, patientId } = {}) => {
+  let q = sb.from('charges').select('*,patients(name)').order('due_date');
+  if (open) q = q.neq('payment_status', 'pago');
+  if (paidFrom) q = q.eq('payment_status', 'pago').gte('paid_on', paidFrom).lte('paid_on', paidTo);
+  if (patientId) q = q.eq('patient_id', patientId);
+  return q.then(unwrap);
+};
+export const saveCharge = upsertRow('charges');
+export const deleteCharge = delRow('charges');
+/** Cria a mensalidade do mês para quem paga por mês e ainda não tem a do mês (uma por paciente e mês). */
+export const ensureMonthlyCharges = async (month, label) => {
+  const [admins, ja] = await Promise.all([
+    sb.from('patient_admin').select('patient_id,monthly_fee,billing_day').eq('billing_mode', 'mensal').gt('monthly_fee', 0).then(unwrap),
+    sb.from('charges').select('patient_id').eq('kind', 'mensalidade').eq('ref_month', month).then(unwrap),
+  ]);
+  const tem = new Set(ja.map((c) => c.patient_id));
+  const novas = admins.filter((a) => !tem.has(a.patient_id)).map((a) => ({
+    patient_id: a.patient_id, kind: 'mensalidade', ref_month: month, description: `Mensalidade de ${label}`,
+    amount: a.monthly_fee, due_date: `${month}-${String(a.billing_day || 5).padStart(2, '0')}` }));
+  if (novas.length) await sb.from('charges').insert(novas).then(unwrap);
+  return novas.length;
+};
+export const listReceipts = () => sb.from('receipts').select('*,patients(name)').order('numero', { ascending: false }).limit(200).then(unwrap);
+export const saveReceipt = (r) => sb.from('receipts').insert(r).select().single().then(unwrap);
+export const listSurveyAnswers = () => sb.from('survey_answers').select('*').order('created_at', { ascending: false }).limit(500).then(unwrap);
+export const getSurveyLink = () => sb.from('share_links').select('id,token,expires_at').eq('kind', 'pesquisa').order('created_at', { ascending: false }).limit(1).then(unwrap).then((r) => r[0] || null);
 export const updateAppointment = (id, patch) =>
   sb.from('appointments').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select().single().then(unwrap);
 export const deleteAppointment = (id) => sb.from('appointments').delete().eq('id', id).then(unwrap);
 /** Ao registrar a evolução de uma sessão, marca como realizada a sessão agendada do paciente naquele dia (a primeira do horário). Retorna a sessão marcada ou null. */
 export const markSessionRealized = async (patientId, date) => {
-  const { data, error } = await sb.from('appointments').select('id,patient_id,amount').eq('patient_id', patientId).eq('date', date).eq('status', 'agendado')
+  const { data, error } = await sb.from('appointments').select('id,patient_id,amount,status,payment_method').eq('patient_id', patientId).eq('date', date).eq('status', 'agendado')
     .order('time', { nullsFirst: true }).limit(1);
   if (error) throw error;
   const a = data && data[0];
@@ -179,14 +242,24 @@ export const markSessionRealized = async (patientId, date) => {
   return setAppointmentStatus(a, 'realizado');
 };
 /**
- * Muda a situação da sessão. Ao virar "realizado", grava o valor da sessão (preço do paciente naquele
- * momento), para que mudanças futuras de preço não alterem cobranças antigas.
+ * Muda a situação da sessão. Ao virar "realizado":
+ * - cobrança por sessão: grava o valor (preço do paciente naquele momento), para mudanças de preço não alterarem o passado;
+ * - mensalidade: a sessão entra com valor zero, já quitada pela mensalidade;
+ * - pacote com saldo: valor zero, quitada pelo pacote, e o saldo de sessões diminui.
+ * Ao sair de "realizado", desfaz o que a mensalidade ou o pacote tinham feito.
  */
 export const setAppointmentStatus = async (a, status) => {
   const patch = { status };
-  if (status === 'realizado' && a.amount == null) {
-    const adm = await getPatientAdmin(a.patient_id).catch(() => null);
-    if (adm && adm.session_price != null) patch.amount = adm.session_price;
+  const adm = (status === 'realizado' || a.status === 'realizado') ? await getPatientAdmin(a.patient_id).catch(() => null) : null;
+  if (status === 'realizado' && a.status !== 'realizado') {
+    if (adm && adm.billing_mode === 'mensal') Object.assign(patch, { amount: 0, payment_status: 'pago', paid_on: a.date || null, payment_method: 'mensalidade' });
+    else if (adm && adm.billing_mode === 'pacote' && adm.package_balance > 0) {
+      Object.assign(patch, { amount: 0, payment_status: 'pago', paid_on: a.date || null, payment_method: 'pacote' });
+      await savePatientAdmin({ patient_id: a.patient_id, package_balance: adm.package_balance - 1 });
+    } else if (a.amount == null && adm && adm.session_price != null) patch.amount = adm.session_price;
+  } else if (status !== 'realizado' && a.status === 'realizado' && ['pacote', 'mensalidade'].includes(a.payment_method)) {
+    Object.assign(patch, { amount: null, payment_status: 'pendente', paid_on: null, payment_method: null });
+    if (a.payment_method === 'pacote' && adm) await savePatientAdmin({ patient_id: a.patient_id, package_balance: (adm.package_balance || 0) + 1 });
   }
   return updateAppointment(a.id, patch);
 };
@@ -223,12 +296,18 @@ export const portalReports = () => sb.rpc('portal_list_reports').then(unwrap);
 /* ---------- links públicos (anamnese para o paciente responder; relatório para ler/baixar) ---------- */
 export const createShareLink = (row) => sb.from('share_links').insert(row).select('id,token,kind,expires_at').single().then(unwrap);
 export const listShareLinks = (patientId) =>
-  sb.from('share_links').select('id,token,kind,expires_at,responded_at,created_at,report_id,template_id').eq('patient_id', patientId).order('created_at', { ascending: false }).then(unwrap);
+  sb.from('share_links').select('id,token,kind,expires_at,responded_at,opened_at,created_at,report_id,template_id,appointment_id,fields').eq('patient_id', patientId).order('created_at', { ascending: false }).then(unwrap);
 export const revokeShareLink = (id) => sb.from('share_links').delete().eq('id', id).then(unwrap);
 export const getPublicLink = (token, passwordHash = null) =>
   sb.rpc('public_get_link', { p_token: token, p_password_hash: passwordHash }).then(unwrap);
 export const submitPublicAnamnese = (token, answers, consentText) =>
   sb.rpc('public_submit_anamnese', { p_token: token, p_answers: answers, p_consent_text: consentText }).then(unwrap);
+
+/** Links de confirmação de presença já criados para estas sessões. */
+export const listConfirmLinks = (appointmentIds) => (appointmentIds.length
+  ? sb.from('share_links').select('token,appointment_id,expires_at').eq('kind', 'confirmacao').in('appointment_id', appointmentIds).then(unwrap) : Promise.resolve([]));
+export const publicConfirm = (token, answer) => sb.rpc('public_confirm', { p_token: token, p_answer: answer }).then(unwrap);
+export const publicSubmitSurvey = (token, score, comment) => sb.rpc('public_submit_survey', { p_token: token, p_score: score, p_comment: comment }).then(unwrap);
 
 /** Registra uma exportação (auditoria). Falha em silêncio: não deve travar o download. */
 export const logExport = (entity, entityId, detail) =>
