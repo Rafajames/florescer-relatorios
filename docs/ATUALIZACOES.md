@@ -4,6 +4,11 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 12/11/2026 — Cadastro só de profissional ou paciente
+
+- Por decisão do James, **não existe cadastro de secretária(o)**. Saíram a opção "Sou secretária(o)" em Criar conta e a aba Equipe em Configurações. Quem cria conta é profissional ou paciente.
+- O acesso de equipe volta no futuro como parte da **conta de clínica**, com layout próprio (ver pendências, seção 3B). A base no banco (schema v15) e o modo secretária no código continuam lá, sem entrada pela tela.
+
 ## 12/11/2026 — Modelos de documento com novo layout
 
 - A tela mostra os **tipos de documento** em destaque (Anamnese, Evolução, Relatório por período), com filtro por tipo.

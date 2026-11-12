@@ -17,7 +17,7 @@ import {
    ===================================================================== */
 const ALL_TABS = [
   ['perfil', 'Perfil e timbre'], ['aparencia', 'Aparência e marca'], ['preferencias', 'Preferências'], ['chaves', 'Chaves de IA'],
-  ['consentimento', 'Consentimento'], ['equipe', 'Equipe'], ['seguranca', 'Segurança'], ['dados', 'Dados e privacidade'],
+  ['consentimento', 'Consentimento'], ['seguranca', 'Segurança'], ['dados', 'Dados e privacidade'],
 ];
 
 const download = (name, text, type) => {
@@ -213,32 +213,6 @@ export async function renderSettings(params) {
       });
     };
     paint();
-  }
-
-  if (tab === 'equipe') {
-    const lista = await api.listStaff();
-    pane.innerHTML = `<section class="panel"><h2>Equipe</h2>
-      <p class="muted">Libere o acesso de uma secretária ou secretário. A pessoa vê só a <b>agenda e o financeiro</b>: agenda sessões, envia lembretes, cobra e registra pagamentos. Ela <b>não vê</b> anamneses, evoluções, relatórios nem a ficha clínica.</p>
-      <form id="st-f"><div class="grid2">
-        <label class="field">E-mail da pessoa<input type="email" name="email" required placeholder="nome@exemplo.com"></label>
-        <label class="field">Nome (opcional)<input name="name" maxlength="100"></label>
-      </div><button class="btn" type="submit">${icon('plus')}Liberar acesso</button></form>
-      <p class="muted small" style="margin-top:12px">Depois, a pessoa cria a conta dela em “Criar conta” → “Sou secretária(o)”, com este mesmo e-mail, e confirma o e-mail.</p>
-    </section>
-    ${lista.length ? `<div class="list">${lista.map((s) => `<div class="li"><div class="grow"><div class="t">${esc(s.name || s.email)} ${s.active ? chip('Acesso liberado', 'ok') : chip('Suspenso', 'warn')}</div>
-      <div class="meta">${esc(s.email)}</div></div>
-      <button class="btn quiet sm" data-st-tog="${s.id}" data-on="${s.active ? 1 : 0}">${s.active ? 'Suspender' : 'Liberar de novo'}</button>
-      <button class="icon-btn" data-st-del="${s.id}" title="Remover" aria-label="Remover acesso">${icon('trash')}</button></div>`).join('')}</div>` : emptyState('Ninguém na equipe', 'Só você acessa a sua agenda e o seu financeiro.')}`;
-    $('#st-f').onsubmit = (e) => {
-      e.preventDefault(); const fd = new FormData(e.target);
-      return busy($('[type=submit]', e.target), 'Liberando…', async () => {
-        try { await api.saveStaff({ email: fd.get('email'), name: String(fd.get('name') || '').trim() }); }
-        catch (err) { throw new Error(/duplicate|unique/i.test(err.message) ? 'Este e-mail já está na sua equipe.' : err.message); }
-        toast('Acesso liberado.'); renderSettings(params);
-      });
-    };
-    $$('[data-st-tog]').forEach((b) => (b.onclick = async () => { await api.setStaffActive(b.dataset.stTog, b.dataset.on !== '1'); toast(b.dataset.on === '1' ? 'Acesso suspenso.' : 'Acesso liberado.'); renderSettings(params); }));
-    $$('[data-st-del]').forEach((b) => (b.onclick = async () => { if (!(await confirmBox('Remover o acesso desta pessoa à sua agenda e ao seu financeiro?', 'Remover'))) return; await api.deleteStaff(b.dataset.stDel); toast('Acesso removido.'); renderSettings(params); }));
   }
 
   if (tab === 'preferencias') {

@@ -30,7 +30,6 @@ Estes itens foram testados só no ambiente de teste (dados simulados). O que se 
 | Bloqueio, série e reagendar | Bloquear um dia, tentar agendar por cima, excluir uma série e reagendar uma falta. |
 | Pesquisa de satisfação | Responder pelo celular e ver a nota em Administrativo → Pesquisa. |
 | Calendário (.ics) | Abrir o arquivo no celular (Android e iPhone) e conferir horários. |
-| Acesso de secretária | **Ainda não testado com uma conta real.** Liberar um e-mail em Equipe, criar a conta como "Sou secretária(o)", confirmar o e-mail e entrar. Conferir: vê agenda e financeiro; agenda, cobra, registra pagamento e emite recibo; cadastra paciente básico; **não** abre relatórios nem a ficha. Suspender o acesso e ver que ela perde a entrada. |
 | Página pública do profissional | Ligar em Aparência e marca, definir o link próprio e abrir `#/p/<link>` num celular sem login. |
 | Portal do paciente | Entrar como paciente (mesmo e-mail do cadastro), ver as próximas sessões, confirmar e conferir na agenda do profissional. Emitir um recibo e ver na lista. |
 | Pasta dos documentos | No Chrome ou Edge do computador: escolher a pasta, anexar um laudo, exportar um Word e conferir no Explorador de Arquivos. Fechar e reabrir o navegador e ver se a pasta continua lembrada (não foi possível testar o seletor de pastas nem a pasta lembrada fora de um computador real). |
@@ -74,6 +73,8 @@ O James quer emissão de nota fiscal no futuro. Fica para depois.
 - A lista de modelos carrega as imagens do timbre de todos os modelos a cada tela que usa modelos. Com muitos modelos importados pode ficar lento.
 
 ## 3B. Clínicas (só mapeado; o James pediu para NÃO implementar ainda)
+
+**Decisão do James em 12/11/2026:** não haverá cadastro de secretária(o) avulso. No máximo existirá uma **conta/página de clínica**; quando a conta for de clínica, o layout muda para o de clínica. Até lá, só profissional e paciente. A opção "Sou secretária(o)" e a aba Equipe foram retiradas da tela. O que ficou pronto e desligado, para reaproveitar na clínica: tabela `staff`, funções `staff_of()`, `can_manage()`, `staff_context()`, `staff_list_patients()`, `staff_save_patient()`, e o modo secretária em `js/api.js`, `js/main.js` e `js/ui.js` (papel `secretary`).
 
 Ideias para quando ele decidir:
 - **Conta da clínica** com várias profissionais. Cada profissional continua dona dos próprios registros clínicos; a clínica não lê prontuário.

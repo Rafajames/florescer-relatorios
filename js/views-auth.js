@@ -54,7 +54,6 @@ export function renderAuth(brand = null) {
           <div class="seg" id="role-seg" style="margin-bottom:14px">
             <label><input type="radio" name="role" value="professional" checked><span>Sou profissional</span></label>
             <label><input type="radio" name="role" value="patient"><span>Sou paciente</span></label>
-            <label><input type="radio" name="role" value="secretary"><span>Sou secretária(o)</span></label>
           </div>
           <label class="field">Nome completo<input name="full_name" required autocomplete="name"></label>
           <div id="pro-fields" class="stack">

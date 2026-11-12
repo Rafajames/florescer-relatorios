@@ -33,4 +33,5 @@ Plataforma web de registro clínico, agenda e cobrança para profissionais de sa
 - Não adicionar framework, build ou serviço pago.
 - Não implementar uso offline, instalar como aplicativo, clínicas, cobrança enviada sozinha nem correções de segurança do Supabase sem o James pedir (ver pendências).
 - Não guardar arquivos de comprovante: só as informações do pagamento.
+- Não recriar o cadastro de secretária(o) nem a aba Equipe: conta é de profissional ou paciente; equipe só na futura conta de clínica.
 - Não trocar "sessão" por "atendimento", não voltar o menu para branco, não recriar a cobrança em Word.
