@@ -901,3 +901,19 @@ h1{font-size:30px} h2{font-size:19px;font-weight:650}
 .quick .btn.bloom{background:var(--bloom);border-color:var(--bloom)} .quick .btn.bloom:hover{background:var(--bloom-2)}
 @media (max-width:760px){.search-trigger{max-width:none}}
 .quick .btn{display:inline-flex;flex-direction:row}
+
+/* fechar no canto das janelas + editor de perguntas da anamnese por link */
+dialog.modal h3{padding-right:34px}
+.modal-x{position:absolute;top:12px;right:12px;width:34px;height:34px;border:0;border-radius:10px;background:transparent;color:var(--muted,#5b6b73);font-size:24px;line-height:1;cursor:pointer}
+.modal-x:hover,.modal-x:focus-visible{background:rgba(13,58,74,.1);color:var(--ink)}
+.an-head{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin:12px 0 8px}
+.an-row{display:grid;grid-template-columns:1fr 150px auto;gap:8px;align-items:center;margin-bottom:8px}
+.an-row input,.an-row select{margin:0}
+.an-act{display:flex;gap:2px;flex-wrap:nowrap}
+.an-act .icon-btn[disabled]{opacity:.3;cursor:default}
+#an-add{margin:2px 0 14px}
+@media (max-width:560px){.an-row{grid-template-columns:1fr auto;padding-bottom:8px;border-bottom:1px solid rgba(13,58,74,.12)}.an-row .an-t{grid-column:1 / -1}}
+.tpl-lay .lay-imgs{display:flex;flex-wrap:wrap;gap:14px;margin:12px 0}
+.tpl-lay figure{margin:0;border:1px solid rgba(13,58,74,.15);border-radius:10px;padding:10px;background:#fff;text-align:center}
+.tpl-lay figure img{display:block;max-width:200px;max-height:110px;margin:0 auto 6px}
+.tpl-lay figcaption{font-size:13px;color:#333}

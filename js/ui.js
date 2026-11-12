@@ -44,6 +44,7 @@ export function openModal(title, bodyHtml, { okText = 'Salvar', cancelText = 'Ca
     const d = document.createElement('dialog');
     d.className = 'modal' + (wide ? ' wide' : '');
     d.innerHTML = `<form method="dialog">
+      <button type="button" class="modal-x" data-x aria-label="Fechar" title="Fechar (Esc)">${icon('x')}</button>
       <h3>${esc(title)}</h3>
       <div class="modal-body">${bodyHtml}</div>
       <div class="row end">
@@ -54,6 +55,13 @@ export function openModal(title, bodyHtml, { okText = 'Salvar', cancelText = 'Ca
     const close = (v) => { d.close(); d.remove(); resolve(v); };
     $('[data-cancel]', d).onclick = () => close(null);
     d.addEventListener('cancel', (e) => { e.preventDefault(); close(null); });
+    $('[data-x]', d).onclick = () => close(null);
+    // Clicar fora fecha, desde que nada tenha sido digitado (para não perder o que foi escrito).
+    let dirty = false, downOut = false;
+    const fora = (e) => { const r = d.getBoundingClientRect(); return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom; };
+    d.addEventListener('input', () => { dirty = true; });
+    d.addEventListener('mousedown', (e) => { downOut = e.target === d && fora(e); });
+    d.addEventListener('click', (e) => { if (downOut && e.target === d && fora(e) && !dirty) close(null); downOut = false; });
     $('form', d).addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!onOk) return close(null);

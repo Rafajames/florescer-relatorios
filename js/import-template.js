@@ -56,6 +56,115 @@ async function pdfToText(file) {
   return lines.join('\n');
 }
 
+/* ---------- timbre do .docx: logo, marca d'água, cabeçalho e rodapé ---------- */
+const JSZIP = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+const IMG_MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', webp: 'image/webp' };
+
+/** Reduz a imagem para caber no modelo (lado maior até `max`, e no máximo ~300 KB). */
+async function shrink(dataUrl, max) {
+  const img = new Image();
+  await new Promise((ok, no) => { img.onload = ok; img.onerror = () => no(new Error('imagem')); img.src = dataUrl; });
+  let k = Math.min(1, max / Math.max(img.width, img.height)), out = dataUrl;
+  for (let t = 0; t < 4; t++) {
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    out = c.toDataURL('image/png');
+    if (out.length < 400000) break;
+    k *= 0.65;
+  }
+  return out;
+}
+
+const all = (root) => [...root.getElementsByTagName('*')];
+const inside = (el, name) => { for (let n = el.parentNode; n && n.localName; n = n.parentNode) if (n.localName === name) return n; return null; };
+
+/** Texto de um cabeçalho/rodapé, uma linha por parágrafo, sem numeração de página. */
+function partLines(doc) {
+  const byP = new Map();
+  all(doc).forEach((el) => {
+    if (!['t', 'tab', 'br'].includes(el.localName) || inside(el, 'Fallback')) return;
+    const par = inside(el, 'p'); if (!par) return;
+    byP.set(par, (byP.get(par) || '') + (el.localName === 't' ? el.textContent : ' '));
+  });
+  return [...byP.values()].map((l) => l.replace(/\s+/g, ' ').trim())
+    .filter((l) => l && !/^(p[áa]g(ina|\.)?\s*)?\d*(\s*(de|\/)\s*\d*)?$/i.test(l));
+}
+
+/** Imagens de uma parte: { rid, kind: 'logo' | 'marca', opacity } e marca d'água em texto. */
+function partImages(doc) {
+  const imgs = []; let text = '';
+  all(doc).forEach((el) => {
+    if (el.localName === 'blip' && !inside(el, 'Fallback')) {
+      const rid = el.getAttribute('r:embed'); if (!rid) return;
+      const anchor = inside(el, 'anchor');
+      const atras = anchor && anchor.getAttribute('behindDoc') === '1';
+      imgs.push({ rid, kind: atras ? 'marca' : 'logo', opacity: 1 });
+    } else if (el.localName === 'imagedata') {
+      const rid = el.getAttribute('r:id'); if (!rid) return;
+      const shape = inside(el, 'shape');
+      const marca = /watermark/i.test((shape && shape.getAttribute('id')) || '');
+      if (inside(el, 'Fallback') && !marca) return;
+      const lavada = el.hasAttribute('gain') || el.hasAttribute('blacklevel');
+      imgs.push({ rid, kind: marca ? 'marca' : 'logo', opacity: marca && lavada ? 0.15 : 1 });
+    } else if (el.localName === 'textpath' && el.getAttribute('string')) {
+      const shape = inside(el, 'shape');
+      if (/watermark/i.test((shape && shape.getAttribute('id')) || '')) text = el.getAttribute('string');
+    }
+  });
+  return { imgs, text };
+}
+
+async function docxLayout(file) {
+  await load(JSZIP, () => window.JSZip);
+  const zip = await window.JSZip.loadAsync(await file.arrayBuffer());
+  const xmlOf = async (path) => { const f = zip.file(path); return f ? new DOMParser().parseFromString(await f.async('string'), 'application/xml') : null; };
+  const imageOf = async (part, rid, max) => {
+    const rels = await xmlOf(`word/_rels/${part}.rels`); if (!rels) return null;
+    const rel = all(rels).find((r) => r.getAttribute('Id') === rid); if (!rel) return null;
+    const target = rel.getAttribute('Target').replace(/^\/?(word\/)?/, '').replace(/^\.\.\//, '');
+    const ext = (target.split('.').pop() || '').toLowerCase();
+    const f = zip.file(`word/${target}`);
+    if (!f || !IMG_MIME[ext]) return null; // EMF/WMF não abrem no navegador
+    try { return await shrink(`data:${IMG_MIME[ext]};base64,${await f.async('base64')}`, max); } catch { return null; }
+  };
+  const names = (re) => Object.keys(zip.files).filter((n) => re.test(n)).sort();
+  const out = { header: '', footer: '', logo: null, watermark: null };
+
+  for (const path of names(/^word\/header\d*\.xml$/)) {
+    const doc = await xmlOf(path); if (!doc) continue;
+    const part = path.split('/').pop();
+    const text = partLines(doc).join('\n');
+    if (text.length > out.header.length) out.header = text;
+    const { imgs, text: wmText } = partImages(doc);
+    for (const im of imgs) {
+      if (im.kind === 'logo' && !out.logo) out.logo = await imageOf(part, im.rid, 360);
+      if (im.kind === 'marca' && !(out.watermark && out.watermark.image)) {
+        const image = await imageOf(part, im.rid, 760);
+        if (image) out.watermark = { image, opacity: im.opacity };
+      }
+    }
+    if (wmText && !out.watermark) out.watermark = { text: wmText };
+  }
+  for (const path of names(/^word\/footer\d*\.xml$/)) {
+    const doc = await xmlOf(path); if (!doc) continue;
+    const text = partLines(doc).join('\n');
+    if (text.length > out.footer.length) out.footer = text;
+  }
+  // logo no começo do corpo do documento (documentos sem cabeçalho do Word)
+  if (!out.logo) {
+    const doc = await xmlOf('word/document.xml');
+    if (doc) {
+      const pars = all(doc).filter((e) => e.localName === 'p' && !inside(e, 'p')).slice(0, 6);
+      for (const par of pars) {
+        const blip = all(par).find((e) => e.localName === 'blip' && e.getAttribute('r:embed'));
+        if (blip) { out.logo = await imageOf('document.xml', blip.getAttribute('r:embed'), 360); break; }
+      }
+    }
+  }
+  return out.header || out.footer || out.logo || out.watermark ? out : null;
+}
+
 const fileToBase64 = (file) => new Promise((resolve, reject) => {
   const r = new FileReader();
   r.onload = () => resolve(String(r.result).split(',')[1]);
@@ -144,5 +253,8 @@ export async function importTemplate(file, { onStatus } = {}) {
       result = { name: '', sections };
     }
   }
-  return { name: result.name || name, sections: result.sections, usedAI, source: file.name };
+  // Timbre do documento (só em .docx): se a leitura falhar, o modelo segue sem ele.
+  let layout = null;
+  if (isDocx) { try { say('Lendo logo, cabeçalho e rodapé…'); layout = await docxLayout(file); } catch { layout = null; } }
+  return { name: result.name || name, sections: result.sections, usedAI, source: file.name, layout, isDocx };
 }

@@ -17,7 +17,10 @@ const visible = (s) => s.patient_visible !== false;
 
 export async function renderReport(id) {
   const main = shell('relatorios'); loading(main);
-  const [r, audit, versions] = await Promise.all([api.getReport(id), api.listAudit(id), api.listVersions(id).catch(() => [])]);
+  const [r, audit, versions, tplList] = await Promise.all([api.getReport(id), api.listAudit(id), api.listVersions(id).catch(() => []), api.listTemplates().catch(() => [])]);
+  // timbre do documento enviado como modelo (logo, marca d'água, cabeçalho e rodapé), se o modelo tiver
+  const tplLayout = ((tplList.find((t) => t.id === r.template_id) || {}).meta || {}).layout;
+  const layout = tplLayout && tplLayout.use !== false ? tplLayout : null;
   const prefs = getPrefs();
   const sections = clone(r.sections || []);
   let dirty = false, tab = 'relatorio', savedAt = null, confirmedLive = false;
@@ -312,7 +315,7 @@ export async function renderReport(id) {
     const secs = $('#onlyvis').checked ? sections.filter(visible) : sections;
     return {
       report: { ...r, title: $('#title').value.trim() || r.title, session_date: $('#date')?.value || r.session_date },
-      patientName: r.patients.name, professional: state.profile, sections: secs,
+      patientName: r.patients.name, professional: state.profile, sections: secs, layout,
     };
   };
   $('#word').onclick = () => exportWord(exportArgs());

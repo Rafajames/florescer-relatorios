@@ -448,7 +448,7 @@ export async function renderTemplates() {
     try {
       const r = await importTemplate(file, { onStatus: (t) => { const el = $('#imp-status'); if (el) el.textContent = t; } });
       msg.innerHTML = '';
-      setTemplateDraft({ name: r.name, sections: r.sections, kind: 'sessao', meta: { source: r.source, ai: r.usedAI } });
+      setTemplateDraft({ name: r.name, sections: r.sections, kind: 'sessao', meta: { source: r.source, ai: r.usedAI, ...(r.layout ? { layout: { ...r.layout, use: true } } : {}), ...(r.isDocx ? {} : { noLayout: true }) } });
       location.hash = '#/modelos/novo';
     } catch (err) { msg.innerHTML = callout(`<p>${esc(err.message)}</p>`, 'warn'); }
   };

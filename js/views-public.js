@@ -38,7 +38,7 @@ function campo(s, i) {
   const label = `<span class="pub-q">${esc(s.title)}</span>`;
   const hint = s.hint ? `<small class="muted">${esc(s.hint)}</small>` : '';
   let input;
-  if (s.type === 'curto') input = `<input name="a${i}" aria-label="${esc(s.title)}">`;
+  if (s.type === 'curto') input = `<input name="a${i}" value="${esc(s.value || '')}" aria-label="${esc(s.title)}">`;
   else if (s.type === 'data') input = `<input type="date" name="a${i}" aria-label="${esc(s.title)}">`;
   else if (s.type === 'marcar') input = `<select name="a${i}" aria-label="${esc(s.title)}"><option value="">—</option><option>Sim</option><option>Não</option><option>Não sei</option></select>`;
   else if (s.type === 'escolha') input = `<select name="a${i}" aria-label="${esc(s.title)}"><option value="">—</option>${(s.options || []).map((o) => `<option>${esc(o)}</option>`).join('')}</select>`;

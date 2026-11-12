@@ -803,3 +803,69 @@ revoke all on function public.log_export(text, uuid, jsonb) from public, anon;
 grant execute on function public.public_get_link(text, text) to anon, authenticated;
 grant execute on function public.public_submit_anamnese(text, jsonb, text) to anon, authenticated;
 grant execute on function public.log_export(text, uuid, jsonb) to authenticated;
+
+-- ---------------------------------------------------------------------
+-- v11: anamnese por link com campos próprios (o profissional monta as
+-- perguntas na hora de enviar; não depende de um modelo)
+-- ---------------------------------------------------------------------
+alter table public.share_links add column if not exists fields jsonb;
+alter table public.share_links drop constraint if exists share_anamnese_tem_modelo;
+alter table public.share_links add constraint share_anamnese_tem_modelo
+  check (kind <> 'anamnese' or template_id is not null or fields is not null);
+alter table public.share_links drop constraint if exists share_fields_lista;
+alter table public.share_links add constraint share_fields_lista
+  check (fields is null or (jsonb_typeof(fields) = 'array' and jsonb_array_length(fields) between 1 and 60));
+
+create or replace function public.public_get_link(p_token text, p_password_hash text default null)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare l public.share_links; p public.profiles; pat public.patients; t public.templates; r public.reports;
+begin
+  select * into l from public.share_links where token = p_token;
+  if not found or l.expires_at < now() then raise exception 'link_invalido'; end if;
+  select * into p from public.profiles where id = l.professional_id;
+  select * into pat from public.patients where id = l.patient_id;
+  if l.kind = 'anamnese' then
+    if l.fields is null then
+      select * into t from public.templates where id = l.template_id;
+      if not found then raise exception 'link_invalido'; end if;
+    end if;
+    return jsonb_build_object('kind','anamnese','expires_at',l.expires_at,'responded', l.responded_at is not null,
+      'patient_name', pat.name, 'professional_name', p.full_name, 'specialty', p.specialty,
+      'title', coalesce(t.name, 'Anamnese'), 'sections', coalesce(l.fields, t.sections));
+  end if;
+  if l.password_hash is not null and (p_password_hash is null or p_password_hash <> l.password_hash) then
+    return jsonb_build_object('kind','relatorio','needs_password', true, 'expires_at', l.expires_at);
+  end if;
+  select * into r from public.reports where id = l.report_id;
+  if not found or r.status <> 'revisado' then raise exception 'relatorio_indisponivel'; end if;
+  return jsonb_build_object('kind','relatorio','needs_password', false, 'expires_at', l.expires_at,
+    'patient_name', pat.name, 'professional_name', p.full_name, 'specialty', p.specialty, 'council_registry', p.council_registry,
+    'branding', coalesce(p.branding, '{}'::jsonb) - 'payment' - 'insurers' - 'recibo_seq',
+    'report_kind', r.kind, 'title', r.title, 'session_date', r.session_date, 'period_start', r.period_start, 'period_end', r.period_end,
+    'sections', (select coalesce(jsonb_agg(s), '[]'::jsonb) from jsonb_array_elements(r.sections) s
+                 where coalesce((s->>'patient_visible')::boolean, true)));
+end $$;
+
+create or replace function public.public_submit_anamnese(p_token text, p_answers jsonb, p_consent_text text)
+returns void language plpgsql security definer set search_path = public as $$
+declare l public.share_links; t public.templates; src jsonb; secs jsonb := '[]'::jsonb; item jsonb; idx int := 0;
+begin
+  select * into l from public.share_links where token = p_token for update;
+  if not found or l.kind <> 'anamnese' or l.expires_at < now() then raise exception 'link_invalido'; end if;
+  if l.responded_at is not null then raise exception 'ja_respondido'; end if;
+  if coalesce(length(trim(p_consent_text)), 0) = 0 then raise exception 'consentimento_obrigatorio'; end if;
+  if l.fields is null then
+    select * into t from public.templates where id = l.template_id;
+    if not found then raise exception 'link_invalido'; end if;
+  end if;
+  src := coalesce(l.fields, t.sections);
+  for item in select * from jsonb_array_elements(src) loop
+    secs := secs || jsonb_build_array(jsonb_build_object('title', item->>'title',
+      'text', left(coalesce(p_answers->>(idx::text), ''), 20000)));
+    idx := idx + 1;
+  end loop;
+  insert into public.reports (professional_id, patient_id, template_id, kind, title, session_date, sections, status)
+  values (l.professional_id, l.patient_id, l.template_id, 'anamnese', coalesce(t.name, 'Anamnese'),
+          (now() at time zone 'America/Sao_Paulo')::date, secs, 'rascunho');
+  update public.share_links set responded_at = now(), consent_at = now(), consent_text = p_consent_text where id = l.id;
+end $$;

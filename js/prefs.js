@@ -8,6 +8,7 @@ export const DEFAULT_PREFS = {
   flagUncertain: true,         // marcar trechos duvidosos com [verificar]
   autosave: true,              // salvar rascunhos automaticamente
   defaultTemplateId: '',       // modelo padrão de sessão
+  defaultAnamneseTemplateId: '', // modelo padrão de anamnese
   titlePattern: 'Sessão de {data}',
   sectionsVisibleToPatient: true, // novas seções já nascem visíveis ao paciente
 };

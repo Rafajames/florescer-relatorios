@@ -24,7 +24,7 @@ export async function renderNewSession(params) {
   const prefs = getPrefs();
   const tpls = api.templatesForMe(templates, state.profile).filter((t) => t.kind === K.tplKind);
   const tplById = Object.fromEntries(tpls.map((t) => [t.id, t]));
-  const defTpl = (kind === 'sessao' && tplById[prefs.defaultTemplateId])
+  const defTpl = tplById[kind === 'sessao' ? prefs.defaultTemplateId : prefs.defaultAnamneseTemplateId]
     || tpls.find((t) => t.specialty === state.profile.specialty) || tpls.find((t) => t.specialty === 'Geral') || tpls[0];
   const pre = params.get('paciente');
   const titleFor = (date) => (K.pattern ? K.pattern.split('{data}').join(new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')) : titleFromPattern(prefs.titlePattern, date));

@@ -34,21 +34,35 @@ const css = (c, st = {}) => `
   .sign img { max-height: 70px; max-width: 240px; display: block; }
   .sign .line { border-top: 1px solid #333; padding-top: 4px; }
   .foot { margin-top: 28px; font-size: 8.5pt; color: #6a746d; border-top: 1px solid #ccc; padding-top: 6px; }
-  .brk { page-break-before: always; }`;
+  .brk { page-break-before: always; }
+  .wm { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; z-index: -1; pointer-events: none; }
+  .wm img { max-width: 78%; max-height: 78%; }
+  .wm span { font-size: 78pt; font-weight: bold; color: #000; opacity: .08; transform: rotate(-35deg); white-space: nowrap; }`;
 
-function header(professional) {
+/** layout (opcional): timbre do documento que o profissional enviou como modelo: { logo, header, footer, watermark }. */
+function header(professional, layout) {
   const b = brandOf(professional);
   const reg = [professional.specialty, professional.council_registry].filter(Boolean).join(' · ');
   const name = b.org_name || professional.clinic_name || professional.full_name || '';
+  const logo = (layout && layout.logo) || b.logo;
+  const linhas = layout && layout.header ? String(layout.header).split('\n').map((l) => l.trim()).filter(Boolean) : null;
+  const texto = linhas
+    ? `<div class="clinic">${esc(linhas[0])}</div>${linhas.slice(1).map((l) => `<div class="prof">${esc(l)}</div>`).join('')}`
+    : `<div class="clinic">${esc(name)}</div>
+      <div class="prof">${esc(professional.full_name || '')}${reg ? ' — ' + esc(reg) : ''}</div>
+      ${b.tagline ? `<div class="tag">${esc(b.tagline)}</div>` : ''}`;
   return {
     b, reg,
     html: `<div class="hdr"><table><tr>
-      ${b.logo ? `<td style="width:1%;white-space:nowrap"><img class="logo" src="${b.logo}" alt=""></td>` : ''}
-      <td><div class="clinic">${esc(name)}</div>
-      <div class="prof">${esc(professional.full_name || '')}${reg ? ' — ' + esc(reg) : ''}</div>
-      ${b.tagline ? `<div class="tag">${esc(b.tagline)}</div>` : ''}</td></tr></table></div>`,
+      ${logo ? `<td style="width:1%;white-space:nowrap"><img class="logo" src="${logo}" alt=""></td>` : ''}
+      <td>${texto}</td></tr></table></div>`,
   };
 }
+const watermark = (layout) => {
+  const w = layout && layout.watermark; if (!w) return '';
+  if (w.image) return `<div class="wm"><img src="${w.image}" alt="" style="opacity:${Number(w.opacity) || 1}"></div>`;
+  return w.text ? `<div class="wm"><span>${esc(w.text)}</span></div>` : '';
+};
 
 const contactRows = (b) => {
   const c = b.contact || {};
@@ -58,17 +72,17 @@ const contactRows = (b) => {
   if (c.address) rows.push(esc(c.address));
   return rows.length ? `<div style="text-align:center;color:${b.accent || '#B83D6F'};font-size:9.5pt;margin-bottom:4px">${rows.join('<br>')}</div>` : '';
 };
-const footer = (b, ai) => `<div class="foot">${contactRows(b)}${(b.footer || settings.doc_footer) ? esc(b.footer || settings.doc_footer) + '<br>' : ''}${ai ? 'Documento elaborado com apoio de ferramenta de inteligência artificial e revisado pelo(a) profissional responsável. ' : ''}Documento confidencial, contém dados pessoais sensíveis de saúde (LGPD – Lei nº 13.709/2018).</div>`;
+const footer = (b, ai, layout) => `<div class="foot">${layout && layout.footer ? para(layout.footer) + '<br>' : contactRows(b) + ((b.footer || settings.doc_footer) ? esc(b.footer || settings.doc_footer) + '<br>' : '')}${ai ? 'Documento elaborado com apoio de ferramenta de inteligência artificial e revisado pelo(a) profissional responsável. ' : ''}Documento confidencial, contém dados pessoais sensíveis de saúde (LGPD – Lei nº 13.709/2018).</div>`;
 
 const signature = (professional, b, reg) => `<div class="sign">${b.signature ? `<img src="${b.signature}" alt="">` : ''}<div class="line">${esc(professional.full_name || '')}<br>${esc(reg)}</div></div>`;
 
 const whenOf = (r) => (r.kind === 'periodo' && r.period_start ? `${fmtDate(r.period_start)} a ${fmtDate(r.period_end)}` : fmtDate(r.session_date));
 
 /** report: { title, kind, session_date, period_start, period_end, ai_generated } */
-function buildHtml({ report, patientName, professional, sections }) {
-  const h = header(professional);
+function buildHtml({ report, patientName, professional, sections, layout }) {
+  const h = header(professional, layout);
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(report.title)}</title><style>${css(h.b.color, h.b)}</style></head><body>
-  ${h.html}
+  ${watermark(layout)}${h.html}
   <h1>${esc(report.title)}</h1>
   <table class="meta">
     <tr><td class="lab">Paciente:</td><td><b>${esc(patientName || '')}</b></td></tr>
@@ -76,7 +90,7 @@ function buildHtml({ report, patientName, professional, sections }) {
   </table>
   ${sections.map((s) => `${report && report.kind === 'documento' ? '' : `<h2>${esc(s.title)}</h2>`}<div class="rt">${bodyHtml(s)}</div>`).join('\n')}
   ${signature(professional, h.b, h.reg)}
-  ${footer(h.b, report.ai_generated)}
+  ${footer(h.b, report.ai_generated, layout)}
 </body></html>`;
 }
 
@@ -120,7 +134,7 @@ const toPdf = (html) => {
 };
 
 export const previewHtml = (args) => buildHtml(args);
-export const exportWord = (args) => toWord(buildHtml(args), args.report.title);
+export const exportWord = (args) => toWord(buildHtml({ ...args, layout: args.layout && { ...args.layout, watermark: null } }), args.report.title);
 export const exportPdf = (args) => toPdf(buildHtml(args));
 export const exportDossierWord = (args) => toWord(buildDossier(args), `Prontuario ${args.patient.name}`);
 export const exportDossierPdf = (args) => toPdf(buildDossier(args));

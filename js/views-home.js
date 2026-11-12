@@ -286,17 +286,80 @@ function showLinkModal(url, expires, msg, phone, note = '') {
   } });
 }
 
+/* Anamnese por link: o profissional parte dos campos essenciais e edita, remove ou acrescenta perguntas. */
+const AN_TIPOS = [['curto', 'Resposta curta'], ['longo', 'Resposta longa'], ['data', 'Data'], ['marcar', 'Sim / Não']];
+const AN_KEY = 'potira.anamnese.campos';
+const anEssenciais = (p) => [
+  { title: 'Nome completo', type: 'curto', value: p.name },
+  { title: 'Nomes dos pais ou responsáveis', type: 'curto' },
+  { title: 'Data de nascimento', type: 'data' },
+  { title: 'Diagnóstico', type: 'curto', hint: 'Se houver. Pode deixar em branco.' },
+  { title: 'Queixa principal', type: 'longo', hint: 'O que motivou a procura pelo atendimento?' },
+];
+const anSalvos = () => { try { const v = JSON.parse(localStorage.getItem(AN_KEY)); return Array.isArray(v) && v.length ? v : null; } catch { return null; } };
+
 async function anamneseLinkModal(p, id) {
   const tpls = api.templatesForMe(await api.listTemplates(), state.profile).filter((t) => t.kind === 'anamnese');
-  if (!tpls.length) return toast('Nenhum modelo de anamnese disponível. Crie um em Modelos.', 'err');
+  const salvos = anSalvos();
+  let fields = anEssenciais(p);
   const r = await openModal('Anamnese por link', `
     <p>O(a) paciente responde no próprio celular, sem login. A resposta entra na ficha como rascunho para você revisar.</p>
-    <label class="field">Modelo<select name="tpl">${tpls.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select></label>
-    ${daysSel(7)}`, { okText: 'Gerar link', onOk: (d) => ({ tpl: d.querySelector('[name=tpl]').value, days: Number(d.querySelector('[name=days]').value) }) });
+    ${tpls.length || salvos ? `<label class="field">Começar com<select id="an-base">
+      <option value="">Campos essenciais</option>
+      ${salvos ? '<option value="salvos">Minha última lista de perguntas</option>' : ''}
+      ${tpls.map((t) => `<option value="${t.id}">Essenciais + modelo: ${esc(t.name)}</option>`).join('')}</select></label>` : ''}
+    <div class="an-head"><b>Perguntas do formulário</b><span class="muted small">Edite o texto, mude o tipo, reordene ou remova.</span></div>
+    <div id="an-fields"></div>
+    <button type="button" class="btn quiet sm" id="an-add">${icon('plus')}Adicionar pergunta</button>
+    ${daysSel(7)}`,
+  { okText: 'Gerar link', wide: true,
+    onOpen: (d) => {
+      const box = $('#an-fields', d);
+      const draw = () => {
+        box.innerHTML = fields.map((f, i) => `<div class="an-row" data-i="${i}">
+          <input class="an-t" value="${esc(f.title)}" placeholder="Escreva a pergunta" aria-label="Pergunta ${i + 1}" maxlength="200">
+          <select class="an-ty" aria-label="Tipo de resposta">${(f.type === 'escolha' ? [...AN_TIPOS, ['escolha', 'Lista de opções']] : AN_TIPOS).map(([v, l]) => `<option value="${v}" ${v === (f.type || 'longo') ? 'selected' : ''}>${l}</option>`).join('')}</select>
+          <span class="an-act"><button type="button" class="icon-btn" data-up title="Subir" aria-label="Subir" ${i ? '' : 'disabled'}>${icon('up')}</button>
+          <button type="button" class="icon-btn" data-down title="Descer" aria-label="Descer" ${i < fields.length - 1 ? '' : 'disabled'}>${icon('down')}</button>
+          <button type="button" class="icon-btn" data-rm title="Remover" aria-label="Remover pergunta">${icon('trash')}</button></span></div>`).join('')
+          || '<p class="muted small">Nenhuma pergunta. Adicione ao menos uma.</p>';
+      };
+      draw();
+      box.addEventListener('input', (e) => { const row = e.target.closest('.an-row'); if (row && e.target.classList.contains('an-t')) fields[+row.dataset.i].title = e.target.value; });
+      box.addEventListener('change', (e) => { const row = e.target.closest('.an-row'); if (row && e.target.classList.contains('an-ty')) fields[+row.dataset.i].type = e.target.value; });
+      box.addEventListener('click', (e) => {
+        const row = e.target.closest('.an-row'); const b = e.target.closest('button'); if (!row || !b) return;
+        const i = +row.dataset.i;
+        if (b.hasAttribute('data-rm')) fields.splice(i, 1);
+        else if (b.hasAttribute('data-up') && i > 0) [fields[i - 1], fields[i]] = [fields[i], fields[i - 1]];
+        else if (b.hasAttribute('data-down') && i < fields.length - 1) [fields[i + 1], fields[i]] = [fields[i], fields[i + 1]];
+        else return;
+        draw();
+      });
+      $('#an-add', d).onclick = () => { fields.push({ title: '', type: 'longo' }); draw(); const ins = box.querySelectorAll('.an-t'); ins[ins.length - 1].focus(); };
+      const base = $('#an-base', d);
+      if (base) base.onchange = () => {
+        const ess = anEssenciais(p);
+        if (base.value === 'salvos') fields = salvos.map((f) => (/^nome completo$/i.test(f.title) ? { ...f, value: p.name } : { ...f }));
+        else if (base.value) {
+          const tem = new Set(ess.map((f) => f.title.toLowerCase()));
+          const t = tpls.find((x) => x.id === base.value);
+          fields = [...ess, ...(t.sections || []).filter((x) => !tem.has(String(x.title).toLowerCase())).map((x) => ({ title: x.title, type: x.type || 'longo', ...(x.hint ? { hint: x.hint } : {}), ...(x.options ? { options: x.options } : {}) }))];
+        } else fields = ess;
+        draw();
+      };
+    },
+    onOk: (d) => {
+      const limpos = fields.map((f) => ({ ...f, title: String(f.title || '').trim() })).filter((f) => f.title);
+      if (!limpos.length) { toast('Adicione ao menos uma pergunta.', 'err'); return false; }
+      if (limpos.length > 60) { toast('O formulário aceita até 60 perguntas.', 'err'); return false; }
+      return { fields: limpos, days: Number(d.querySelector('[name=days]').value) };
+    } });
   if (!r || r === true) return;
+  try { localStorage.setItem(AN_KEY, JSON.stringify(r.fields.map(({ value, ...f }) => f))); } catch { /* sem armazenamento: segue */ }
   const token = newToken(), expires = expiresIn(r.days);
-  await api.createShareLink({ token, kind: 'anamnese', patient_id: id, template_id: r.tpl, expires_at: expires });
-  await showLinkModal(linkUrl(token), expires, `Olá, ${p.name}! Segue o link para você preencher sua anamnese antes da nossa primeira conversa. Leva uns minutos e pode ser feito pelo celular.`, p.phone);
+  await api.createShareLink({ token, kind: 'anamnese', patient_id: id, fields: r.fields, expires_at: expires });
+  await showLinkModal(linkUrl(token), expires, `Olá! Segue o link para preencher a anamnese de ${p.name} antes da nossa primeira conversa. Leva uns minutos e pode ser feito pelo celular.`, p.phone);
   renderPatientDetail(id);
 }
 
