@@ -80,8 +80,10 @@ O desenho completo, com papéis, permissões, layout e as perguntas em aberto, e
 - **Dono da clínica:** acesso total à administração; não vê relatórios nem nada clínico.
 - **Secretária(o):** entra pela clínica e vê só o que o dono permitir.
 - **Profissional da clínica:** só o clínico dos pacientes dele; não vê valores nem administração.
-- Não existe cadastro de secretária avulso. "Criar conta" segue só com profissional e paciente.
-- **Não implementar antes de o James responder as perguntas do fim do CLINICA.md.**
+- Não existe cadastro de secretária avulso. "Criar conta" é só para profissional; o paciente entra pelo Portal do paciente.
+- O gestor pode não ser profissional de saúde. Um mesmo e-mail pode ter vários perfis, com um botão de troca no estilo do botão de tema.
+- O gestor cria o perfil da clínica e convida os profissionais.
+- **Não implementar antes de o James responder as perguntas em aberto (3, 4, 6 e 7) do CLINICA.md.**
 
 ## 3C. Ideias ainda não feitas
 

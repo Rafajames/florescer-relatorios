@@ -62,7 +62,7 @@ export async function renderPublicProfile(slug) {
     ${pg.bio ? `<section class="panel"><h2>Apresentação</h2><p style="white-space:pre-wrap;line-height:1.65">${esc(pg.bio)}</p></section>` : ''}
     ${(pg.areas || []).length ? `<section class="panel"><h2>Áreas de atuação</h2><div class="pp-areas">${pg.areas.map((a) => `<span>${esc(a)}</span>`).join('')}</div></section>` : ''}
     ${pg.city ? `<section class="panel"><h2>Atendimento</h2><p>${esc(pg.city)}</p></section>` : ''}
-    <p class="muted small" style="text-align:center">Já é paciente? <a href="#/c/${esc(slug)}">Entrar na área do paciente</a> · Página feita com a Potira</p>`;
+    <p class="muted small" style="text-align:center">Já é paciente? <a href="#/paciente/${esc(slug)}">Abrir o Portal do paciente</a> · Página feita com a Potira</p>`;
 }
 
 /** Topo com a marca de quem enviou o link (logo e nome); sem marca, fica a Potira. */

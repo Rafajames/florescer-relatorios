@@ -62,12 +62,14 @@ async function doRoute() {
     if (!session) {
       state.user = null; state.profile = null;
       // tela de login com a marca do profissional: pelo link próprio (#/c/nome) ou pelo último uso neste navegador
-      const slug = (location.hash.match(/^#\/c\/([\w-]+)/) || [])[1];
+      // #/c/nome = entrada do profissional com a marca; #/paciente (ou #/paciente/nome) = Portal do paciente
+      const paciente = /^#\/paciente(\/|$)/.test(location.hash);
+      const slug = (location.hash.match(/^#\/(?:c|paciente)\/([\w-]+)/) || [])[1];
       let brand = null;
       if (slug) { try { brand = await api.brandBySlug(slug); } catch { brand = null; } }
       if (brand) brand = { ...brand, slug }; else brand = cachedBrand();
       applyBrand(brand || DEFAULT_BRAND);
-      return renderAuth(brand);
+      return renderAuth(brand, paciente);
     }
     if (await api.mfaNeedsCode()) return renderMfaChallenge(session.user.email, () => route());
     if (!state.profile || (state.profile._uid || state.profile.id) !== session.user.id) {

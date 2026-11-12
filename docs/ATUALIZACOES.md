@@ -4,6 +4,13 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 12/11/2026 — Portal do paciente com entrada própria
+
+- "Criar conta" passou a ser **só para profissionais**. Saiu a escolha "Sou profissional / Sou paciente".
+- O paciente entra por uma página só dele, o **Portal do paciente** (`#/paciente`, ou `#/paciente/link-próprio` com a marca do profissional), com "Entrar" e "Primeiro acesso". No primeiro acesso ele usa o mesmo e-mail que informou ao profissional e cria a senha.
+- Na tela de entrada do profissional há o atalho "É paciente? Portal do paciente"; no portal, o atalho "Entrar como profissional".
+- A página pública do profissional passou a apontar para o Portal do paciente.
+
 ## 12/11/2026 — Cadastro só de profissional ou paciente
 
 - Por decisão do James, **não existe cadastro de secretária(o)**. Saíram a opção "Sou secretária(o)" em Criar conta e a aba Equipe em Configurações. Quem cria conta é profissional ou paciente.

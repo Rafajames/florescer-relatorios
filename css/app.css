@@ -1059,3 +1059,5 @@ a.stat:hover,a.dcard:hover,.tline .card:hover{transform:translateY(-2px);box-sha
 .tpl-del{position:absolute;top:8px;right:8px;opacity:.55}.tpl-del:hover{opacity:1}
 .tpl-campos{margin:10px 0 0;padding-left:22px;display:grid;gap:8px}
 @media (max-width:560px){.tpl-grid{grid-template-columns:1fr 1fr}.tpl-open{padding:14px 12px 12px}}
+.auth-outro{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:18px;padding:12px 14px;border-radius:12px;background:var(--petrol-tint,#e2eef1);font-size:14.5px;font-weight:500}
+:root[data-theme=dark] .auth-outro{background:rgba(255,255,255,.07)}

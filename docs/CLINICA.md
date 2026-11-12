@@ -53,11 +53,19 @@ Uma conta não vira a outra sem querer: o autônomo continua exatamente como est
 - **Secretária:** as mesmas telas administrativas, só com os módulos liberados.
 - **Profissional da clínica:** Início, Meus pacientes, Relatórios, Modelos de documento, Minha agenda. Sem Financeiro.
 
-## Como se entra
+## Como se entra (definido pelo James em 12/11/2026)
 
-- "Criar conta" continua só com **profissional** e **paciente**.
-- A clínica é criada por um caminho próprio (ver pergunta 1).
-- Profissionais e secretárias entram na clínica **por convite do dono**, pelo e-mail.
+- **Profissional autônomo:** "Criar conta" (só para profissionais).
+- **Paciente:** Portal do paciente, página própria. Já implementado.
+- **Gestor da clínica:** página própria "Para clínicas", que cria o **perfil da clínica**. Durante os testes, com código entregue pelo administrador da Potira. O gestor **pode não ser profissional de saúde**: o cadastro não pede conselho nem especialidade.
+- **Profissionais e secretárias:** por **convite do gestor**, pelo e-mail. Quem não tem conta faz um cadastro rápido pelo link do convite e cai direto na clínica.
+
+## Um e-mail, vários perfis
+
+- A mesma pessoa pode ter mais de um perfil **com o mesmo e-mail**: por exemplo, gestor da clínica e profissional que atende, ou profissional autônomo e profissional de uma clínica.
+- Quem tem mais de um perfil vê um **botão de troca** na moldura, no estilo do botão de tema (claro/escuro): "Gestor | Profissional". Para quem tem um perfil só, o botão não aparece.
+- Trocar de perfil troca o layout e os dados. Os dados **nunca se misturam**: no perfil de gestor não aparece nada clínico; no perfil de profissional não aparece a administração da clínica.
+- O gestor que também atende marca isso no perfil ("Também atendo pacientes"), informa conselho e registro, e passa a ter o perfil de profissional da clínica, com o clínico só dos pacientes dele.
 
 ## O que já existe e dá para reaproveitar
 
@@ -93,11 +101,15 @@ Uma conta não vira a outra sem querer: o autônomo continua exatamente como est
 
 Recomendação registrada: **E com F** durante os testes. Em qualquer opção, profissionais e secretárias entram por convite do dono.
 
-## Perguntas para o James antes de implementar
+## Perguntas
 
-1. **Como nasce a clínica?** Uma terceira opção em "Criar conta" ("Sou clínica"), ou um profissional já cadastrado cria a clínica dele em Configurações?
-2. **O dono também atende?** Se sim, ele teria os dois lados: a administração da clínica e o clínico só dos pacientes dele.
-3. **O profissional da clínica vê algum valor?** Por exemplo, quanto ele tem a receber de repasse, ou nada mesmo?
-4. **Quando um profissional sai da clínica**, o que acontece com os registros clínicos que ele escreveu?
-5. **A mesma pessoa pode ser autônoma e também atender numa clínica**, com o mesmo login, trocando de um para o outro?
-6. **Um paciente pode ser atendido por mais de um profissional da clínica?** Se sim, um vê o registro do outro?
+**Já respondidas**
+1. Como nasce a clínica: página própria "Para clínicas"; o gestor cria o perfil da clínica e convida os profissionais.
+2. O dono também atende: é opcional. O gestor pode não ser profissional; se atender, ganha também o perfil de profissional.
+5. Autônomo e clínica com o mesmo login: sim, com botão de troca de perfil.
+
+**Ainda em aberto**
+3. **O profissional da clínica vê algum valor?** Recomendação: só a contagem de sessões; repasse numa segunda etapa.
+4. **Quando um profissional sai da clínica**, o que acontece com os registros que ele escreveu? Recomendação: ficam trancados na clínica, transferíveis para quem assumir o paciente, e ele leva uma cópia. Confirmar com uma clínica real.
+6. **Paciente atendido por mais de um profissional:** um vê o registro do outro? Recomendação: só com consentimento registrado do paciente.
+7. **A clínica pode ter mais de um gestor?** Recomendação: um dono principal que nomeia outros administradores.

@@ -9,8 +9,21 @@ const logoTile = (b) => (b && b.logo
   : `<span class="mark">${icon('flower')}</span>`);
 
 // brand: marca do profissional (logo, nome, frase); sem marca, aparece a Potira
-const hero = (b) => {
+const hero = (b, paciente = false) => {
   const own = Boolean(b && (b.logo || b.org_name));
+  if (paciente) return `
+  <div class="auth-hero">
+    <a class="brand" href="#/paciente">${logoTile(b)}<b>${esc(own ? (b.org_name || '') : 'Potira')}</b></a>
+    <div>
+      <h1>Portal do paciente</h1>
+      <p style="margin-top:14px">Seus relatórios, suas próximas sessões e seus recibos, em um só lugar.</p>
+    </div>
+    <ul>
+      <li>${icon('shield')}Só você vê o que é seu</li>
+      <li>${icon('check')}Você vê apenas o que o(a) profissional revisou e liberou</li>
+      <li>${icon('calendar')}Confirme a presença ou peça para remarcar a sessão</li>
+    </ul>
+  </div>`;
   return `
   <div class="auth-hero">
     <a class="brand" href="#/">${logoTile(b)}<b>${esc(own ? (b.org_name || '') : 'Potira')}</b></a>
@@ -39,22 +52,27 @@ export function renderSetup() {
     </div>`;
 }
 
-export function renderAuth(brand = null) {
+/**
+ * Tela de entrada. Há duas, separadas:
+ * - profissional (padrão): Entrar e Criar conta, só para profissionais;
+ * - paciente (`paciente = true`, endereço #/paciente): o Portal do paciente, com Entrar e Primeiro acesso.
+ */
+export function renderAuth(brand = null, paciente = false) {
   let mode = 'login';
+  const slug = (brand && brand.slug) ? '/' + brand.slug : '';
   const draw = () => {
     $('#app').innerHTML = `
-    <div class="auth-wrap">${hero(brand)}<div class="auth-side"><div class="auth-card">${mobileBrand(brand)}
-      <h2 style="margin-bottom:14px">${mode === 'login' ? (brand && brand.org_name ? 'Entrar em ' + esc(brand.org_name) : 'Entrar na Potira') : 'Criar conta'}</h2>
+    <div class="auth-wrap">${hero(brand, paciente)}<div class="auth-side"><div class="auth-card">${mobileBrand(brand)}
+      <h2 style="margin-bottom:14px">${paciente ? 'Portal do paciente' : mode === 'login' ? (brand && brand.org_name ? 'Entrar em ' + esc(brand.org_name) : 'Entrar na Potira') : 'Criar conta'}</h2>
       <div class="tabs">
         <button class="tab ${mode === 'login' ? 'on' : ''}" data-mode="login">Entrar</button>
-        <button class="tab ${mode === 'signup' ? 'on' : ''}" data-mode="signup">Criar conta</button>
+        <button class="tab ${mode === 'signup' ? 'on' : ''}" data-mode="signup">${paciente ? 'Primeiro acesso' : 'Criar conta'}</button>
       </div>
       <form id="auth-form" class="stack">
-        ${mode === 'signup' ? `
-          <div class="seg" id="role-seg" style="margin-bottom:14px">
-            <label><input type="radio" name="role" value="professional" checked><span>Sou profissional</span></label>
-            <label><input type="radio" name="role" value="patient"><span>Sou paciente</span></label>
-          </div>
+        ${mode === 'signup' && paciente ? `
+          <p class="muted small" style="margin:0 0 4px">Use o <b>mesmo e-mail</b> que você informou ao(à) profissional. Crie uma senha e confirme o e-mail que vamos enviar.</p>
+          <label class="field">Seu nome<input name="full_name" required autocomplete="name"></label>` : ''}
+        ${mode === 'signup' && !paciente ? `
           <label class="field">Nome completo<input name="full_name" required autocomplete="name"></label>
           <div id="pro-fields" class="stack">
             <label class="field">Área de atuação<select name="specialty">${SPECIALTIES.map((s) => `<option>${esc(s)}</option>`).join('')}</select></label>
@@ -68,18 +86,16 @@ export function renderAuth(brand = null) {
           </div>` : ''}
         <label class="field">E-mail<input type="email" name="email" required autocomplete="email"></label>
         <label class="field">Senha<input type="password" name="password" required minlength="6" autocomplete="${mode === 'login' ? 'current-password' : 'new-password'}"></label>
-        <button class="btn lg" type="submit">${mode === 'login' ? 'Entrar' : 'Criar conta'}</button>
+        <button class="btn lg" type="submit">${mode === 'login' ? 'Entrar' : paciente ? 'Criar meu acesso' : 'Criar conta'}</button>
         ${mode === 'login' ? '<button type="button" class="link" id="forgot">Esqueci minha senha</button>' : ''}
-        ${mode === 'signup' ? '<p class="muted small">Pacientes: use o mesmo e-mail que seu profissional cadastrou para você. Você verá somente os relatórios que ele liberar.</p>' : ''}
       </form>
+      <div class="auth-outro">${paciente
+        ? `<span>É profissional de saúde?</span><a class="btn quiet sm" href="#/${slug ? 'c' + slug : ''}">Entrar como profissional</a>`
+        : `<span>É paciente?</span><a class="btn quiet sm" href="#/paciente${slug}">${icon('users')}Portal do paciente</a>`}</div>
       <p class="auth-credit">${mode === 'signup' ? 'Ao criar a conta, você concorda com os <a href="termos.html">Termos de Uso</a> e a <a href="privacidade.html">Política de Privacidade</a>.<br>' : ''}Feito com Potira - relatórios clínicos · <a href="privacidade.html">Privacidade</a> · <a href="termos.html">Termos</a></p>
     </div></div></div>`;
 
     document.querySelectorAll('.auth-card .tab').forEach((b) => (b.onclick = () => { mode = b.dataset.mode; draw(); }));
-    const seg = $('#role-seg');
-    if (seg) seg.addEventListener('change', () => {
-      $('#pro-fields').style.display = seg.querySelector('input:checked').value === 'professional' ? '' : 'none';
-    });
     const forgot = $('#forgot');
     if (forgot) forgot.onclick = async () => {
       const email = $('input[name=email]').value.trim();
@@ -96,7 +112,7 @@ export function renderAuth(brand = null) {
         if (mode === 'login') {
           await api.signIn(f.get('email'), f.get('password'));
         } else {
-          const role = f.get('role');
+          const role = paciente ? 'patient' : 'professional';
           const meta = { role, full_name: f.get('full_name') };
           if (role === 'professional') { meta.specialty = f.get('specialty'); meta.council_registry = f.get('council_registry'); if (f.get('invite_code')) meta.invite_code = f.get('invite_code'); }
           const res = await api.signUp(f.get('email'), f.get('password'), meta);
@@ -107,7 +123,7 @@ export function renderAuth(brand = null) {
           }
           if (!res.session) {
             mode = 'login'; draw();
-            toast('Conta criada! Confirme o e-mail que enviamos e depois entre.');
+            toast(paciente ? 'Acesso criado! Confirme o e-mail que enviamos e depois entre.' : 'Conta criada! Confirme o e-mail que enviamos e depois entre.');
           }
         }
       });

@@ -39,7 +39,7 @@ Regras que valem para qualquer mudança, feita por pessoa ou por IA. O objetivo 
 - **O áudio nunca é guardado.** Só o texto.
 - **Dados administrativos e financeiros ficam separados dos clínicos** (tabelas `appointments`, `patient_admin`, `expenses`). Não colocar informação clínica na agenda.
 - O paciente só vê o que foi **revisado e liberado**, e só as seções marcadas como visíveis.
-- **Quem cria conta é só profissional ou paciente.** Não há cadastro de secretária(o); o acesso de equipe só volta dentro de uma futura conta de clínica, com layout próprio.
+- **"Criar conta" é só para profissional.** O paciente não se cadastra ali: ele entra pelo **Portal do paciente** (`#/paciente`), uma página só dele, com "Primeiro acesso". Não há cadastro de secretária(o); equipe só dentro da futura conta de clínica, por convite do gestor.
 - Quando existir, **secretária(o) nunca vê nada clínico.** Só agenda e financeiro do profissional que liberou o e-mail dela (`staff`). As regras de acesso das tabelas administrativas usam `public.can_manage(professional_id)`; as clínicas (`reports`, `patients`, `goals`, `scales`…) continuam só do profissional. Paciente, para a secretária, é nome, telefone e e-mail.
 - Ao salvar `profiles.branding`, **sempre preservar o que já existe** (`{ ...branding, novoCampo }`). Ali ficam também pagamento, convênios, sequência de recibos e a página pública.
 - O log de auditoria não guarda conteúdo clínico.
