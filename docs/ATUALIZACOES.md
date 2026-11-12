@@ -4,6 +4,10 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 12/11/2026 — Sobre em página própria
+
+- "Sobre a Potira" saiu da Ajuda e virou uma página própria (`#/sobre`), aberta pelo link no rodapé do menu e pelo item em "Mais" no celular. A Ajuda ficou só com o passo a passo e o tour.
+
 ## 12/11/2026 — Secretária, página pública do profissional e portal do paciente
 
 Banco: schema **v15** (aplicado com a aprovação do James).

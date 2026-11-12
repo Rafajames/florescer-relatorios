@@ -91,24 +91,15 @@ export async function renderHelp() {
   const main = shell('ajuda');
   const H = resolvedHelp();
   const extra = Array.isArray(settings.help_extra) ? settings.help_extra.filter((x) => x && x.t && x.text) : [];
-  main.innerHTML = pageHeader('Ajuda', 'Onde fazer cada coisa, passo a passo.', `<button class="btn quiet" id="ver-tour">${icon('right')}Ver o tour</button><button class="btn quiet" id="ir-sobre">${icon('info')}Sobre a Potira</button>`) + `
+  main.innerHTML = pageHeader('Ajuda', 'Onde fazer cada coisa, passo a passo.', `<button class="btn quiet" id="ver-tour">${icon('right')}Ver o tour</button>`) + `
     <section class="panel"><h2>Primeiros passos</h2>
       <ol class="help-steps">${H.FIRST.map(([t, d, h]) => `<li><a href="${h}"><b>${esc(t)}</b></a><span class="muted">${esc(d)}</span></li>`).join('')}</ol></section>
     <label class="field">Procurar na ajuda<input id="hq" type="search" placeholder="Ex.: liberar, logo, microfone, tabela"></label>
     <div id="topics">${H.TOPICS.map((tp) => `<details class="panel help-topic" open><summary><h2>${esc(tp.t)}</h2><a class="btn quiet sm" href="${tp.link}">${icon('right')}${esc(tp.where)}</a></summary>
       <dl class="help-list">${tp.items.map(([k, v]) => `<div class="help-item"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl></details>`).join('')}</div>
     ${extra.map((x) => `<details class="panel help-topic" open><summary><h2>${esc(x.t)}</h2></summary><dl class="help-list"><div class="help-item"><dd style="white-space:pre-wrap">${esc(x.text)}</dd></div></dl></details>`).join('')}
-    <p id="hnone" class="muted hide">Nada encontrado. Tente outra palavra.</p>
-    <section class="panel" id="sobre"><h2>Sobre a Potira</h2>
-      <p>A Potira é uma plataforma para profissionais de saúde registrarem sessões, escreverem anamneses, evoluções e relatórios, cuidarem da agenda e das cobranças, e entregarem documentos ao paciente com segurança. A inteligência artificial é opcional: o sistema funciona sem ela.</p>
-      <p class="muted small">Cada profissional vê só os próprios pacientes. O áudio das sessões nunca é guardado. Dados de saúde são tratados conforme a LGPD.</p>
-      <div class="row"><a class="btn quiet sm" target="_blank" rel="noopener" href="https://github.com/Rafajames/florescer-relatorios/blob/main/docs/ATUALIZACOES.md">${icon('file')}Novidades e atualizações</a>
-      <a class="btn quiet sm" href="apresentacao.html" target="_blank" rel="noopener">Página de apresentação</a><a class="btn quiet sm" href="termos.html" target="_blank" rel="noopener">Termos de uso</a><a class="btn quiet sm" href="privacidade.html" target="_blank" rel="noopener">Privacidade</a></div>
-    </section>`;
-  const irSobre = () => $('#sobre').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  $('#ir-sobre').onclick = irSobre;
+    <p id="hnone" class="muted hide">Nada encontrado. Tente outra palavra.</p>`;
   $('#ver-tour').onclick = () => import('./tour.js').then((m) => m.startTour());
-  if (location.hash.includes('sobre=1')) setTimeout(irSobre, 80);
   $('#hq').oninput = (e) => {
     const q = e.target.value.trim().toLowerCase(); let any = false;
     $$('.help-topic').forEach((d) => {
@@ -118,4 +109,19 @@ export async function renderHelp() {
     });
     $('#hnone').classList.toggle('hide', any);
   };
+}
+
+/** Página própria "Sobre a Potira" (fora da Ajuda). */
+export function renderAbout() {
+  const main = shell('sobre');
+  main.innerHTML = pageHeader('Sobre a Potira', 'O que é a plataforma e como ela cuida dos dados.') + `
+    <section class="panel">
+      <p>A Potira é uma plataforma para profissionais de saúde registrarem sessões, escreverem anamneses, evoluções e relatórios, cuidarem da agenda e das cobranças, e entregarem documentos ao paciente com segurança. A inteligência artificial é opcional: o sistema funciona sem ela.</p>
+      <p class="muted small">Cada profissional vê só os próprios pacientes. O áudio das sessões nunca é guardado. Dados de saúde são tratados conforme a LGPD. A plataforma está em fase de testes.</p>
+    </section>
+    <section class="panel"><h2>Saiba mais</h2>
+      <div class="row"><a class="btn quiet sm" target="_blank" rel="noopener" href="https://github.com/Rafajames/florescer-relatorios/blob/main/docs/ATUALIZACOES.md">${icon('file')}Novidades e atualizações</a>
+      <a class="btn quiet sm" href="apresentacao.html" target="_blank" rel="noopener">Página de apresentação</a>
+      <a class="btn quiet sm" href="termos.html" target="_blank" rel="noopener">Termos de uso</a><a class="btn quiet sm" href="privacidade.html" target="_blank" rel="noopener">Privacidade</a></div>
+    </section>`;
 }

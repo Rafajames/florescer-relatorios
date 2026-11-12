@@ -8,7 +8,7 @@ import * as report from './views-report.js';
 import * as lists from './views-lists.js';
 import * as settings from './views-settings.js';
 import * as portal from './views-portal.js';
-import { renderHelp } from './views-help.js';
+import { renderHelp, renderAbout } from './views-help.js';
 import { renderOnboarding } from './views-onboarding.js';
 import { applySettings } from './state.js';
 import { PROVIDERS } from './ai.js';
@@ -30,12 +30,14 @@ const PRO_ROUTES = [
   [/^#\/financeiro$/, (m, q) => import('./views-financeiro.js').then((v) => v.renderFinanceiro(q))],
   [/^#\/mais$/, () => import('./views-administrativo.js').then((v) => v.renderMore())],
   [/^#\/ajuda$/, () => renderHelp()],
+  [/^#\/sobre$/, () => renderAbout()],
   [/^#\/admin$/, () => import('./views-admin.js').then((m) => m.renderAdmin())],
   [/^#\/config$/, (m, q) => settings.renderSettings(q)],
 ];
 const isStaffRole = (p) => p && p.role === 'secretary';
 const PATIENT_ROUTES = [
   [/^#\/portal$/, () => portal.renderPortal()],
+  [/^#\/sobre$/, () => renderAbout()],
   [/^#\/portal\/([\w-]+)$/, (m) => portal.renderPortalReport(m[1])],
 ];
 
@@ -101,10 +103,10 @@ async function doRoute() {
     const isStaff = state.profile.role === 'secretary';
     const home = isPatient ? '#/portal' : isStaff ? '#/administrativo' : state.profile.is_admin ? '#/admin' : '#/painel';
     const [path, query = ''] = (location.hash || home).split('?');
-    const routes = isPatient ? PATIENT_ROUTES : isStaff ? PRO_ROUTES.filter(([re]) => /administrativo|financeiro|ajuda/.test(re.source)) : PRO_ROUTES;
+    const routes = isPatient ? PATIENT_ROUTES : isStaff ? PRO_ROUTES.filter(([re]) => /administrativo|financeiro|ajuda|sobre/.test(re.source)) : PRO_ROUTES;
     const hit = routes.map(([re, fn]) => [path.match(re), fn]).find(([m]) => m);
     if (!hit) { location.hash = home; return; }
-    const TELAS = { painel: 'Início', pacientes: 'Pacientes', nova: 'Nova sessão', relatorios: 'Relatórios', relatorio: 'Relatório', periodo: 'Por período', modelos: 'Modelos', administrativo: 'Administrativo', financeiro: 'Financeiro', mais: 'Mais', ajuda: 'Ajuda', admin: 'Administração', config: 'Configurações', portal: 'Portal' };
+    const TELAS = { painel: 'Início', pacientes: 'Pacientes', nova: 'Nova sessão', relatorios: 'Relatórios', relatorio: 'Relatório', periodo: 'Por período', modelos: 'Modelos', administrativo: 'Administrativo', financeiro: 'Financeiro', mais: 'Mais', ajuda: 'Ajuda', sobre: 'Sobre', admin: 'Administração', config: 'Configurações', portal: 'Portal' };
     const tela = TELAS[path.split('/')[1]];
     if (tela) document.title = `${tela} · ${document.title}`; // document.title já traz a marca (applyBrand)
     await hit[1](hit[0], new URLSearchParams(query));

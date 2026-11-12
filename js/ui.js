@@ -143,7 +143,7 @@ export function shell(active) {
           ${nav.map(([k, h, ic, l]) => `${NAV_SEC[k] && nav === NAV ? `<span class="nav-sec">${NAV_SEC[k]}</span>` : ''}<a href="${h}" class="${k === active ? 'on' : ''}" ${k === active ? 'aria-current="page"' : ''}>${icon(ic)}${l}</a>`).join('')}
         </nav>
         <div class="theme-row"><span>${icon('sun')}Tema</span><span class="theme-tog" role="group" aria-label="Tema"><button type="button" data-theme-set="light" title="Claro" aria-label="Tema claro">${icon('sun')}</button><button type="button" data-theme-set="dark" title="Escuro" aria-label="Tema escuro">${icon('moon')}</button></span></div>
-        <a class="rail-credit" href="#/ajuda?sobre=1">${icon('info')}Sobre a Potira</a>
+        <a class="rail-credit" href="#/sobre">${icon('info')}Sobre a Potira</a>
         <div class="rail-foot">
           <span class="avatar">${esc(initials((isStaff ? p.staff_name : p?.full_name) || state.user?.email))}</span>
           <div class="who"><b>${esc((isStaff ? p.staff_name : p?.full_name) || state.user?.email || '')}</b><span>${esc(isPatient ? 'Paciente' : isStaff ? `Secretária(o) de ${p.full_name}` : isAdm ? 'Administrador' : (p?.specialty || 'Profissional'))}</span></div>
