@@ -75,6 +75,24 @@ Uma conta não vira a outra sem querer: o autônomo continua exatamente como est
 
 É a maior mudança do projeto até aqui. Sugestão: fazer em etapas, nessa ordem, testando cada uma com contas reais antes da seguinte.
 
+## Como outras plataformas fazem (pesquisa de 12/11/2026, pelas páginas de ajuda públicas)
+
+- **Mais Terapias:** planos individuais (um terapeuta) e plano Clínicas. Só o plano Clínicas convida colaboradores. O administrador convida por e-mail e escolhe a função (Administrador, Secretária ou Terapeuta); o link vale 30 dias. Quem já tem conta aceita o convite; quem não tem faz um cadastro rápido e entra na equipe, sem plano próprio. A secretária não vê conteúdo clínico. O acesso financeiro é liberado pessoa por pessoa. Diferente do que o James quer: lá o administrador vê todos os registros.
+- **iClinic:** o administrador cadastra os usuários direto (nome, e-mail e senha), como "profissional de saúde" ou "recepcionista". A recepcionista só vê a agenda dos profissionais marcados para ela. Uma conta pode ter mais de uma clínica.
+- **Clínica nas Nuvens:** todo cadastro começa como usuário; marca-se "profissional" para quem atende. Permissões por módulo e por clínica. Cada profissional pode ocultar os próprios prontuários dos colegas.
+
+## Opções para a pergunta 1 (como nasce a clínica)
+
+- **A.** Terceira opção "Sou clínica" em Criar conta.
+- **B.** O profissional já cadastrado cria a clínica em Configurações.
+- **C.** Só o administrador da Potira cria clínicas.
+- **D.** Pergunta no primeiro acesso: "Você atende sozinho ou tem uma clínica?". O cadastro continua com duas opções.
+- **E.** Página própria "Para clínicas", com cadastro de clínica separado, aberta por um link na tela de entrada e na página de apresentação.
+- **F.** Código de clínica: a criação da clínica só funciona com um código que o administrador da Potira entrega.
+- **G.** Toda conta é uma clínica de uma pessoa só; vira clínica de verdade quando o dono convida alguém.
+
+Recomendação registrada: **E com F** durante os testes. Em qualquer opção, profissionais e secretárias entram por convite do dono.
+
 ## Perguntas para o James antes de implementar
 
 1. **Como nasce a clínica?** Uma terceira opção em "Criar conta" ("Sou clínica"), ou um profissional já cadastrado cria a clínica dele em Configurações?
