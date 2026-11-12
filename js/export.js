@@ -301,9 +301,10 @@ export const exportAuditoriaPdf = (args) => toPdf(buildAuditoria(args));
 /** Documento de cobrança: quantidade de sessões em aberto, total, dados de pagamento e código PIX. */
 export function buildCobranca({ professional, patientName, items, payment, pixCode }) {
   const total = items.reduce((s, i) => s + Number(i.amount || 0), 0);
-  const body = `<p style="margin-top:14px;text-align:justify">Segue a cobrança referente às sessões realizadas de <b>${esc(patientName)}</b> que ainda não foram pagas.</p>
+  const body = `<p style="margin-top:14px;text-align:justify">Segue a cobrança de <b>${esc(patientName)}</b> referente ao que ainda não foi pago.</p>
   <table style="width:100%;border-collapse:collapse;margin-top:12px">
-    <tr><td style="border:1px solid #777;padding:6px">Quantidade de sessões</td><td style="border:1px solid #777;padding:6px">${items.length}</td></tr>
+    ${items.filter((i) => !i.label).length ? `<tr><td style="border:1px solid #777;padding:6px">Quantidade de sessões</td><td style="border:1px solid #777;padding:6px">${items.filter((i) => !i.label).length}</td></tr>` : ''}
+    ${items.filter((i) => i.label).map((i) => `<tr><td style="border:1px solid #777;padding:6px">${esc(i.label)}</td><td style="border:1px solid #777;padding:6px">${brl(i.amount)}</td></tr>`).join('')}
     <tr><td style="border:1px solid #777;padding:6px"><b>Total</b></td><td style="border:1px solid #777;padding:6px"><b>${brl(total)}</b></td></tr>
   </table>
   ${payBlock(payment)}

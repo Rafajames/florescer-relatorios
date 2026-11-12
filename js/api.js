@@ -225,6 +225,21 @@ export const ensureMonthlyCharges = async (month, label) => {
   if (novas.length) await sb.from('charges').insert(novas).then(unwrap);
   return novas.length;
 };
+/** Despesas fixas: copia para o mês as do mês anterior que ainda não existem nele (entram como "a pagar"). */
+export const ensureFixedExpenses = async (month) => {
+  const [y, m] = month.split('-').map(Number);
+  const pm = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
+  const fim = (mm) => { const [yy, mo] = mm.split('-').map(Number); return `${mm}-${String(new Date(yy, mo, 0).getDate()).padStart(2, '0')}`; };
+  const [antes, agora] = await Promise.all([
+    sb.from('expenses').select('*').eq('fixed', true).gte('date', `${pm}-01`).lte('date', fim(pm)).then(unwrap),
+    sb.from('expenses').select('description').eq('fixed', true).gte('date', `${month}-01`).lte('date', fim(month)).then(unwrap),
+  ]);
+  const tem = new Set(agora.map((e) => e.description));
+  const novas = antes.filter((e) => !tem.has(e.description)).map((e) => ({
+    date: `${month}-${String(Math.min(28, Number(e.date.slice(8, 10)))).padStart(2, '0')}`, description: e.description, category: e.category, amount: e.amount, fixed: true, paid: false }));
+  if (novas.length) await sb.from('expenses').insert(novas).then(unwrap);
+  return novas.length;
+};
 export const listReceipts = () => sb.from('receipts').select('*,patients(name)').order('numero', { ascending: false }).limit(200).then(unwrap);
 export const saveReceipt = (r) => sb.from('receipts').insert(r).select().single().then(unwrap);
 export const listSurveyAnswers = () => sb.from('survey_answers').select('*').order('created_at', { ascending: false }).limit(500).then(unwrap);

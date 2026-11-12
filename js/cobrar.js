@@ -35,7 +35,7 @@ export function abrirCobranca({ profile, patient, items }) {
   return openModal(`Cobrar ${patient.name}`, `
     ${semValor ? callout(`<p>${semValor} sessão(ões) estão sem valor. Ajuste o valor antes de enviar.</p>`, 'warn') : ''}
     <div class="table">${items.map((i) => `<div class="tr" style="display:flex;justify-content:space-between;gap:10px">
-      <span>${fmtDate(i.date)}${i.time ? ' · ' + esc(String(i.time).slice(0, 5)) : ''}</span><b>${brl(i.amount)}</b></div>`).join('')}
+      <span>${i.label ? esc(i.label) : fmtDate(i.date) + (i.time ? ' · ' + esc(String(i.time).slice(0, 5)) : '')}</span><b>${brl(i.amount)}</b></div>`).join('')}
       <div class="tr" style="display:flex;justify-content:space-between"><b>Total</b><b>${brl(total)}</b></div></div>
     ${chaves.length > 1 ? `<label class="field">Usar a chave PIX
       <select id="cb-chave">${chaves.map((c) => `<option value="${esc(c.key)}" ${c.key === chaveInicial ? 'selected' : ''}>${esc(c.label)} · ${esc(c.key)}</option>`).join('')}</select></label>` : ''}
@@ -122,7 +122,8 @@ async function lerComprovante(file) {
 }
 
 /**
- * patient: { id, name }. items: [{ id, date, time, amount }] em aberto, da mais antiga para a mais nova.
+ * patient: { id, name }. items: [{ id, date, time, amount, label? }] em aberto. Itens com id "c:<id>" são cobranças
+ * que não são sessão (mensalidade, pacote, avulsa); os demais são sessões.
  * O sistema lê o comprovante e propõe valor e data; nada é salvo antes de o profissional confirmar.
  * Resolve true se salvou.
  */
@@ -131,17 +132,18 @@ export function registrarPagamento({ patient, items }) {
   const total = ordenados.reduce((s, i) => s + Number(i.amount || 0), 0);
   return openModal(`Registrar pagamento de ${patient.name}`, `
     <label class="field">Comprovante (opcional)<input type="file" id="rp-file" accept="application/pdf,image/*">
-      <small>O sistema lê o valor e a data. O arquivo não é guardado. Confira antes de confirmar.</small></label>
+      <small>O sistema lê o valor, a data e quem pagou. O arquivo não é guardado, só essas informações. Confira antes de confirmar.</small></label>
     <p id="rp-lido" class="small" role="status"></p>
     <div class="grid2">
       <label class="field">Valor recebido (R$)<input type="number" step="0.01" min="0" id="rp-valor" value="${total ? total.toFixed(2) : ''}"></label>
       <label class="field">Data do pagamento<input type="date" id="rp-data" value="${todayISO()}"></label>
+      <label class="field">Quem pagou (opcional)<input id="rp-pagador" maxlength="120" placeholder="Nome que aparece no comprovante"></label>
       <label class="field">Forma<select id="rp-forma"><option value="pix">PIX</option><option value="dinheiro">Dinheiro</option><option value="cartao">Cartão</option><option value="transferencia">Transferência</option><option value="convenio">Convênio</option></select></label>
     </div>
-    <div class="field">Sessões que este pagamento quita
+    <div class="field">O que este pagamento quita
       <div class="table" id="rp-list">${ordenados.map((i) => `<label class="tr check" style="display:flex;gap:10px;align-items:center">
         <input type="checkbox" class="rp-it" value="${i.id}" data-v="${Number(i.amount || 0)}" checked>
-        <span class="grow">${fmtDate(i.date)}${i.time ? ' · ' + esc(String(i.time).slice(0, 5)) : ''}</span><b>${brl(i.amount)}</b></label>`).join('')}</div></div>
+        <span class="grow">${i.label ? esc(i.label) : fmtDate(i.date) + (i.time ? ' · ' + esc(String(i.time).slice(0, 5)) : '')}</span><b>${brl(i.amount)}</b></label>`).join('')}</div></div>
     <p id="rp-conf" class="small" role="status"></p>
     <label class="check"><input type="checkbox" id="rp-ok"> Conferi o valor e confirmo o pagamento</label>`,
   { okText: 'Marcar como pago',
@@ -151,9 +153,9 @@ export function registrarPagamento({ patient, items }) {
       const soma = () => marcadas().reduce((s, c) => s + Number(c.dataset.v), 0);
       const conferir = () => {
         const v = Number(valor.value) || 0, s = soma(), dif = Math.round((v - s) * 100) / 100;
-        conf.innerHTML = !marcadas().length ? 'Marque ao menos uma sessão.'
-          : dif === 0 ? `<b>Valor confere</b> com ${marcadas().length} sessão(ões): ${brl(s)}.`
-            : `As sessões marcadas somam ${brl(s)}. ${dif > 0 ? `Sobram ${brl(dif)} do valor recebido.` : `Faltam ${brl(-dif)} para quitar as marcadas.`}`;
+        conf.innerHTML = !marcadas().length ? 'Marque ao menos um item.'
+          : dif === 0 ? `<b>Valor confere</b> com ${marcadas().length} item(ns): ${brl(s)}.`
+            : `Os itens marcados somam ${brl(s)}. ${dif > 0 ? `Sobram ${brl(dif)} do valor recebido.` : `Faltam ${brl(-dif)} para quitar as marcadas.`}`;
       };
       // Marca as sessões mais antigas que cabem no valor recebido.
       const distribuir = () => {
@@ -171,6 +173,7 @@ export function registrarPagamento({ patient, items }) {
           const r = await lerComprovante(file);
           if (r.amount) { valor.value = r.amount.toFixed(2); }
           if (r.date) $('#rp-data', d).value = r.date;
+          if (r.payer) $('#rp-pagador', d).value = r.payer;
           lido.innerHTML = `Lido do comprovante: <b>${r.amount ? brl(r.amount) : 'valor não encontrado'}</b>${r.date ? ' em ' + fmtDate(r.date) : ''}${r.payer ? ' · pagador: ' + esc(r.payer) : ''}. Confira com o arquivo.`;
           distribuir();
         } catch (err) { lido.textContent = err.message || String(err); }
@@ -178,12 +181,17 @@ export function registrarPagamento({ patient, items }) {
     },
     onOk: async (d) => {
       const ids = $$('.rp-it:checked', d).map((c) => c.value);
-      if (!ids.length) { toast('Marque ao menos uma sessão.', 'err'); return false; }
+      if (!ids.length) { toast('Marque ao menos um item.', 'err'); return false; }
       if (!$('#rp-ok', d).checked) { toast('Marque a caixa de conferência para confirmar.', 'err'); return false; }
       const paid_on = $('#rp-data', d).value || todayISO(), payment_method = $('#rp-forma', d).value;
       const porId = Object.fromEntries(ordenados.map((i) => [i.id, i]));
-      for (const id of ids) await api.updateAppointment(id, { payment_status: 'pago', paid_on, payment_method, amount: Number(porId[id].amount || 0) });
-      toast(`${ids.length} sessão(ões) marcada(s) como paga(s).`);
+      const pagador = $('#rp-pagador', d).value.trim();
+      const payment_note = pagador ? `Pagador: ${pagador}` : null;
+      for (const id of ids) {
+        if (id.startsWith('c:')) await api.saveCharge({ id: id.slice(2), payment_status: 'pago', paid_on, payment_method, payment_note });
+        else await api.updateAppointment(id, { payment_status: 'pago', paid_on, payment_method, payment_note, amount: Number(porId[id].amount || 0) });
+      }
+      toast(`${ids.length} item(ns) marcado(s) como pago(s).`);
       return true;
     } });
 }

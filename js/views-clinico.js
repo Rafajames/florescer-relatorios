@@ -18,7 +18,7 @@ export async function metasPanel(box, patientId, reports) {
       const atrasada = g.status === 'em_andamento' && g.due_date && g.due_date < todayISO();
       return `<div class="tr meta-row">
         <span class="grow"><b>${esc(g.title)}</b>${g.description ? `<br><small class="muted">${esc(g.description)}</small>` : ''}
-          <br><small class="muted">${u.length ? `Trabalhada em ${u.length} sessão${u.length === 1 ? '' : 'ões'} · última em ${fmtDate(ult)}` : 'Ainda não trabalhada em sessão'}${g.due_date ? ` · prazo ${fmtDate(g.due_date)}` : ''}</small>
+          <br><small class="muted">${u.length ? `Trabalhada em ${u.length} ${u.length === 1 ? 'sessão' : 'sessões'} · última em ${fmtDate(ult)}` : 'Ainda não trabalhada em sessão'}${g.due_date ? ` · prazo ${fmtDate(g.due_date)}` : ''}</small>
           ${atrasada ? chip('Prazo vencido', 'warn') : ''}</span>
         <select data-meta-st="${g.id}" aria-label="Situação da meta" style="width:auto;margin:0;min-height:0;padding:5px 8px">${Object.entries(META_ST).map(([k, l]) => `<option value="${k}" ${k === g.status ? 'selected' : ''}>${l}</option>`).join('')}</select>
         <button class="icon-btn" data-meta-ed="${g.id}" title="Editar" aria-label="Editar meta">${icon('edit')}</button>

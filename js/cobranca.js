@@ -93,12 +93,18 @@ export function chavesPix(pay = {}) {
   return [...(pay.pix ? [{ label: 'Principal', key: pay.pix }] : []), ...extras];
 }
 
+/** Linhas do resumo: quantidade de sessões (sem datas nem valor unitário) e, se houver, mensalidade, pacote ou cobrança avulsa (itens com label). */
+export const resumoItens = (items) => {
+  const sess = items.filter((i) => !i.label).length;
+  return [sess ? `Quantidade de sessões: ${sess}` : '', ...items.filter((i) => i.label).map((i) => `${i.label}: ${brl(i.amount)}`)].filter(Boolean).join('\n');
+};
+
 export function cobrancaTexto({ patient, professional, items, pix, pixKey }) {
   const total = items.reduce((s, i) => s + Number(i.amount || 0), 0);
   const pag = pix
     ? `Chave PIX: ${pixKey || ''}\n\nPagamento por PIX (copia e cola):\n${pix}\n\nDepois do pagamento, pode me enviar o comprovante.`
     : 'Me avise a forma de pagamento de sua preferência e envio os dados.';
-  return `Olá, ${patient}! Tudo bem?\n\nSegue o resumo das sessões pendentes de pagamento:\nQuantidade de sessões: ${items.length}\nTotal: ${brl(total)}\n\n${pag}\n\nObrigada(o)!\n${professional}`;
+  return `Olá, ${patient}! Tudo bem?\n\nSegue o resumo do que está pendente de pagamento:\n${resumoItens(items)}\nTotal: ${brl(total)}\n\n${pag}\n\nObrigada(o)!\n${professional}`;
 }
 
 /** Valor por extenso em reais (ex.: "cento e cinquenta reais e vinte centavos"). */

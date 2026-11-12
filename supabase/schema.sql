@@ -1178,3 +1178,12 @@ revoke all on function public.public_confirm(text, text) from public;
 revoke all on function public.public_submit_survey(text, int, text) from public;
 grant execute on function public.public_confirm(text, text) to anon, authenticated;
 grant execute on function public.public_submit_survey(text, int, text) to anon, authenticated;
+
+-- ---------------------------------------------------------------------
+-- v14: controle de gastos (despesa fixa, paga ou a pagar) e informações
+-- do pagamento lidas do comprovante (o arquivo não é guardado)
+-- ---------------------------------------------------------------------
+alter table public.expenses add column if not exists fixed boolean not null default false; -- repete todo mês
+alter table public.expenses add column if not exists paid boolean not null default true;   -- false = a pagar
+alter table public.appointments add column if not exists payment_note text;                -- ex.: pagador lido do comprovante
+alter table public.charges add column if not exists payment_note text;

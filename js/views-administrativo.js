@@ -71,7 +71,7 @@ async function agenda(params, patients) {
         <button type="button" id="ag-bloquear">${icon('x')}Bloquear dia ou horário</button>
         <button type="button" id="ag-ics">${icon('download')}Levar para o calendário do celular</button></div></details>
       <span class="grow"></span>
-      <span class="small muted">${aps.length} sessão${aps.length === 1 ? '' : 'ões'}</span>
+      <span class="small muted">${aps.length} ${aps.length === 1 ? 'sessão' : 'sessões'}</span>
       ${['realizado', 'falta', 'falta_justificada', 'cancelado'].filter(count).map((s) => chip(`${ATT_STATUS[s]}: ${count(s)}`, STATUS_KIND[s])).join(' ')}
     </div>
     <div id="days"></div>`;
@@ -84,7 +84,7 @@ async function agenda(params, patients) {
       <h3>${WD[dt(d).getDay()]}, ${fmtDate(d)}${d === today ? ' ' + chip('Hoje', 'bloom') : ''}<span class="muted small ag-livre">sem sessões</span>
       <button class="link small" data-novo="${d}">Agendar</button></h3>${blocksHtml(d)}</section>`;
     return `<section class="ag-day ${d === today ? 'today' : ''}">
-      <h3>${WD[dt(d).getDay()]}, ${fmtDate(d)}${d === today ? ' ' + chip('Hoje', 'bloom') : ''}<span class="muted small ag-livre">${list.length} sessão${list.length === 1 ? '' : 'ões'}</span>
+      <h3>${WD[dt(d).getDay()]}, ${fmtDate(d)}${d === today ? ' ' + chip('Hoje', 'bloom') : ''}<span class="muted small ag-livre">${list.length} ${list.length === 1 ? 'sessão' : 'sessões'}</span>
       <button class="link small" data-novo="${d}">Agendar</button></h3>${blocksHtml(d)}
       ${list.length ? `<div class="table">${list.map((a) => {
         const conf = a.status !== 'agendado' ? '' : a.confirm_status === 'confirmado' ? chip('Confirmou', 'ok') : a.confirm_status === 'remarcar' ? chip('Pediu para remarcar', 'warn') : '';

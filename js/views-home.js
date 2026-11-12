@@ -436,12 +436,17 @@ export async function renderPatientDetail(id) {
   const main = shell('pacientes'); loading(main);
   const [p, consents, reports, apts, admin, links] = await Promise.all([api.getPatient(id), api.listConsents(id), api.listReports({ patientId: id }),
     api.listAppointments({ patientId: id }), api.getPatientAdmin(id), api.listShareLinks(id)]);
+  const avulsas = await api.listCharges({ open: true, patientId: id }).catch(() => []);
   const active = api.hasActiveConsent(consents);
   const payments = paymentsOf(apts, admin);
   const pendentes = apts.filter((a) => cobravel(a, state.profile) && a.payment_status !== 'pago');
   const precoPac = Number(admin?.session_price) || 0;
-  const itensPend = pendentes.map((a) => ({ id: a.id, date: a.date, time: a.time, amount: a.amount != null ? Number(a.amount) : precoPac }));
-  const agendaCob = cobrancaVencida(admin, todayISO()) && pendentes.length ? chip('Cobrar hoje', 'bloom')
+  const itensPend = [...pendentes.map((a) => ({ id: a.id, date: a.date, time: a.time, amount: a.amount != null ? Number(a.amount) : precoPac })),
+    ...avulsas.map((c) => ({ id: 'c:' + c.id, date: c.due_date, amount: Number(c.amount || 0), label: c.description }))];
+  payments.open += avulsas.reduce((s, c) => s + Number(c.amount || 0), 0);
+  const modoTxt = admin?.billing_mode === 'mensal' ? `Mensalidade de ${admin.monthly_fee != null ? brl(admin.monthly_fee) : 'valor não definido'}`
+    : admin?.billing_mode === 'pacote' ? `Pacote: restam ${admin.package_balance || 0} sessão(ões)` : '';
+  const agendaCob = cobrancaVencida(admin, todayISO()) && (pendentes.length || avulsas.length) ? chip('Cobrar hoje', 'bloom')
     : admin?.next_charge_on ? `Cobrança agendada para <b>${fmtDate(admin.next_charge_on)}</b>` : admin?.billing_day ? `Cobrança todo dia <b>${admin.billing_day}</b>` : 'Sem cobrança agendada';
   const hoje = todayISO();
   const proximas = apts.filter((a) => a.date >= hoje && a.status !== 'cancelado')
@@ -452,14 +457,16 @@ export async function renderPatientDetail(id) {
       <select data-pst="${a.id}" aria-label="Situação da sessão" style="width:auto;margin:0;min-height:0;padding:5px 8px">${Object.entries(ATT_STATUS).map(([k, l]) => `<option value="${k}" ${k === a.status ? 'selected' : ''}>${l}</option>`).join('')}</select>
       </div>`).join('')}</div>` : '<p class="muted small">Nenhuma sessão agendada. Use “Agendar sessão”.</p>'}`;
   const financeiroPanel = `<div class="panel">
-          <div class="panel-head"><h3>Financeiro</h3>${pendentes.length ? chip(`${pendentes.length} em aberto`, 'warn') : payments.realizados ? chip('Em dia', 'ok') : ''}</div>
+          <div class="panel-head"><h3>Financeiro</h3>${itensPend.length ? chip(`${itensPend.length} em aberto`, 'warn') : payments.realizados ? chip('Em dia', 'ok') : ''}</div>
           <dl class="fin-dl">
             <div><dt>A receber</dt><dd>${brl(payments.open)}</dd></div>
             <div><dt>Recebido</dt><dd>${brl(payments.paid)}</dd></div>
             <div><dt>Valor da sessão</dt><dd>${admin?.session_price != null ? brl(admin.session_price) : 'não definido'} <button class="link small" id="def-valor">${admin?.session_price != null ? 'Alterar' : 'Definir'}</button></dd></div>
+            ${modoTxt ? `<div><dt>Forma de cobrança</dt><dd>${modoTxt}</dd></div>` : ''}
           </dl>
+          <p class="small muted" style="margin:4px 0 0">Mensalidade e pacote: <a href="#/financeiro?aba=valores">Financeiro → Valores</a>.</p>
           <p class="small muted" style="margin:6px 0 10px">${agendaCob} <button class="link small" id="agendar-cob">${admin?.billing_day || admin?.next_charge_on ? 'Alterar' : 'Agendar cobrança'}</button></p>
-          <div class="row" style="gap:8px;flex-wrap:wrap">${pendentes.length ? `<button class="btn sm" id="cobrar-pac">Cobrar ${brl(payments.open)}</button><button class="btn quiet sm" id="pago-pac">Registrar pagamento</button>` : ''}<a class="btn quiet sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a></div>
+          <div class="row" style="gap:8px;flex-wrap:wrap">${itensPend.length ? `<button class="btn sm" id="cobrar-pac">Cobrar ${brl(payments.open)}</button><button class="btn quiet sm" id="pago-pac">Registrar pagamento</button>` : ''}<a class="btn quiet sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a></div>
         </div>`;
   const anamneses = reports.filter((r) => r.kind === 'anamnese');
   const evolucoes = reports.filter((r) => r.kind === 'sessao');
