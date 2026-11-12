@@ -7,7 +7,7 @@ Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do
 ## 12/11/2026 — Documentação, menu colorido e animações
 
 - Documentação do projeto no repositório: README (Sobre), diretrizes, atualizações, pendências e `CLAUDE.md`.
-- **Sobre a Potira** dentro do sistema, no fim da tela Ajuda.
+- **Sobre a Potira** dentro do sistema: link no rodapé do menu, item em "Mais" no celular e botão no topo da Ajuda.
 - **Menu colorido:** o menu lateral e a barra de baixo do celular usam a cor do tema do profissional (Configurações → Aparência e marca), com versão para tema escuro. Se a cor escolhida for clara, o texto do menu fica escuro.
 - **Animações discretas:** entrada das telas, abertura de janelas e menus, e resposta ao passar o mouse e ao tocar. Ficam desligadas para quem pede menos movimento no aparelho.
 

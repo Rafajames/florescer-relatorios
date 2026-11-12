@@ -357,5 +357,6 @@ async function declaracoes(patients) {
 export function renderMore() {
   const main = shell('mais');
   main.innerHTML = pageHeader('Mais') + `<nav class="table" aria-label="Mais opções">${NAV_MORE.map(([, h, ic, l]) => `<a class="tr more-item" href="${h}">${icon(ic)}<span class="grow t">${esc(l)}</span>${icon('right')}</a>`).join('')}
+    <a class="tr more-item" href="#/ajuda?sobre=1">${icon('info')}<span class="grow t">Sobre a Potira</span>${icon('right')}</a>
     <a class="tr more-item" href="#" data-logout>${icon('logout')}<span class="grow t">Sair</span></a></nav>`;
 }

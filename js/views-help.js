@@ -91,7 +91,7 @@ export async function renderHelp() {
   const main = shell('ajuda');
   const H = resolvedHelp();
   const extra = Array.isArray(settings.help_extra) ? settings.help_extra.filter((x) => x && x.t && x.text) : [];
-  main.innerHTML = pageHeader('Ajuda', 'Onde fazer cada coisa, passo a passo.') + `
+  main.innerHTML = pageHeader('Ajuda', 'Onde fazer cada coisa, passo a passo.', `<button class="btn quiet" id="ir-sobre">${icon('info')}Sobre a Potira</button>`) + `
     <section class="panel"><h2>Primeiros passos</h2>
       <ol class="help-steps">${H.FIRST.map(([t, d, h]) => `<li><a href="${h}"><b>${esc(t)}</b></a><span class="muted">${esc(d)}</span></li>`).join('')}</ol></section>
     <label class="field">Procurar na ajuda<input id="hq" type="search" placeholder="Ex.: liberar, logo, microfone, tabela"></label>
@@ -105,6 +105,9 @@ export async function renderHelp() {
       <div class="row"><a class="btn quiet sm" target="_blank" rel="noopener" href="https://github.com/Rafajames/florescer-relatorios/blob/main/docs/ATUALIZACOES.md">${icon('file')}Novidades e atualizações</a>
       <a class="btn quiet sm" href="termos.html" target="_blank" rel="noopener">Termos de uso</a><a class="btn quiet sm" href="privacidade.html" target="_blank" rel="noopener">Privacidade</a></div>
     </section>`;
+  const irSobre = () => $('#sobre').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('#ir-sobre').onclick = irSobre;
+  if (location.hash.includes('sobre=1')) setTimeout(irSobre, 80);
   $('#hq').oninput = (e) => {
     const q = e.target.value.trim().toLowerCase(); let any = false;
     $$('.help-topic').forEach((d) => {
