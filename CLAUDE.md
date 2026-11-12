@@ -7,7 +7,7 @@ Plataforma web de registro clínico, agenda e cobrança para profissionais de sa
 1. `docs/DIRETRIZES.md` — regras que não podem ser quebradas (identidade, vocabulário, privacidade, regras de negócio, interface).
 2. `docs/PENDENCIAS.md` — o que falta fazer, o que precisa de revisão e o que está aguardando decisão do James.
 3. `docs/ATUALIZACOES.md` — o que já foi feito.
-4. `docs/CLINICA.md` — desenho da conta de clínica (não implementado; há perguntas em aberto para o James).
+4. `docs/CLINICA.md` — desenho da conta de clínica (não implementado; uma pergunta em espera).
 
 ## Como entregar
 
@@ -25,7 +25,7 @@ Plataforma web de registro clínico, agenda e cobrança para profissionais de sa
 - `js/views-administrativo.js` agenda, frequência, declarações, convênios · `js/views-financeiro.js` cobranças, valores, despesas, documentos, dados de pagamento
 - `js/cobranca.js` PIX, WhatsApp, textos e regras de cobrança · `js/cobrar.js` janelas de cobrar, registrar pagamento e agendar cobrança
 - `js/pasta.js` pasta dos documentos no computador do profissional
-- `js/views-clinico.js` metas e escalas · `js/tour.js` tour de primeiro acesso · `apresentacao.html` página de apresentação
+- `js/views-clinico.js` metas e escalas · `js/tour.js` tour de primeiro acesso · `js/views-landing.js` apresentação (tela principal de quem não está logado; `apresentacao.html` só redireciona)
 - `js/export.js` PDF e Word de todos os documentos · `js/import-template.js` leitura de Word/PDF/foto para virar modelo
 - `js/views-public.js` páginas públicas por link e página pública do profissional · `js/views-portal.js` portal do paciente · `js/brand.js` e `js/theme.js` marca e tema · `css/app.css` estilos
 

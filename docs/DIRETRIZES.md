@@ -87,6 +87,7 @@ Regras que valem para qualquer mudança, feita por pessoa ou por IA. O objetivo 
 - **Pouco texto nas telas de lista.** Mostrar o essencial em cartões curtos e deixar o detalhe para quando a pessoa abre o item (como em Modelos de documento).
 - Ações destrutivas pedem confirmação. Não usar `alert()`/`confirm()` do navegador; usar `openModal` e `confirmBox`.
 - Depois de salvar, mostrar aviso curto (`toast`).
+- **A tela principal de quem não está logado é a apresentação** (`js/views-landing.js`), com Entrar e Portal do paciente no topo. Não voltar a abrir direto no login. Os links com a marca do profissional (`#/c/nome`, `#/paciente/nome`) continuam indo direto para a entrada.
 
 ## 7. Regras técnicas
 

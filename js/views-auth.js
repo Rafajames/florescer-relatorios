@@ -57,8 +57,8 @@ export function renderSetup() {
  * - profissional (padrão): Entrar e Criar conta, só para profissionais;
  * - paciente (`paciente = true`, endereço #/paciente): o Portal do paciente, com Entrar e Primeiro acesso.
  */
-export function renderAuth(brand = null, paciente = false) {
-  let mode = 'login';
+export function renderAuth(brand = null, paciente = false, modoInicial = 'login') {
+  let mode = modoInicial;
   const slug = (brand && brand.slug) ? '/' + brand.slug : '';
   const draw = () => {
     $('#app').innerHTML = `
@@ -90,8 +90,9 @@ export function renderAuth(brand = null, paciente = false) {
         ${mode === 'login' ? '<button type="button" class="link" id="forgot">Esqueci minha senha</button>' : ''}
       </form>
       <div class="auth-outro">${paciente
-        ? `<span>É profissional de saúde?</span><a class="btn quiet sm" href="#/${slug ? 'c' + slug : ''}">Entrar como profissional</a>`
+        ? `<span>É profissional de saúde?</span><a class="btn quiet sm" href="#/${slug ? 'c' + slug : 'entrar'}">Entrar como profissional</a>`
         : `<span>É paciente?</span><a class="btn quiet sm" href="#/paciente${slug}">${icon('users')}Portal do paciente</a>`}</div>
+      <p class="auth-voltar"><a href="#/">${icon('left')}Conhecer a Potira</a></p>
       <p class="auth-credit">${mode === 'signup' ? 'Ao criar a conta, você concorda com os <a href="termos.html">Termos de Uso</a> e a <a href="privacidade.html">Política de Privacidade</a>.<br>' : ''}Feito com Potira - relatórios clínicos · <a href="privacidade.html">Privacidade</a> · <a href="termos.html">Termos</a></p>
     </div></div></div>`;
 

@@ -34,6 +34,8 @@ Estes itens foram testados só no ambiente de teste (dados simulados). O que se 
 | Portal do paciente | Entrar como paciente (mesmo e-mail do cadastro), ver as próximas sessões, confirmar e conferir na agenda do profissional. Emitir um recibo e ver na lista. |
 | Pasta dos documentos | No Chrome ou Edge do computador: escolher a pasta, anexar um laudo, exportar um Word e conferir no Explorador de Arquivos. Fechar e reabrir o navegador e ver se a pasta continua lembrada (não foi possível testar o seletor de pastas nem a pasta lembrada fora de um computador real). |
 
+- **Tela principal de apresentação** (12/11/2026): testada só em ambiente simulado (computador e celular). Falta abrir o site publicado sem estar logado e conferir Entrar, Criar conta e Portal do paciente; conferir também o link antigo `apresentacao.html` e o botão "Página de apresentação" em Sobre.
+
 ## 2. Proposto e ainda não implementado
 
 **Cobrança enviada sozinha (automática de verdade)**
@@ -83,7 +85,9 @@ O desenho completo, com papéis, permissões, layout e as perguntas em aberto, e
 - Não existe cadastro de secretária avulso. "Criar conta" é só para profissional; o paciente entra pelo Portal do paciente.
 - O gestor pode não ser profissional de saúde. Um mesmo e-mail pode ter vários perfis, com um botão de troca no estilo do botão de tema.
 - O gestor cria o perfil da clínica e convida os profissionais.
-- **Não implementar antes de o James responder as perguntas em aberto (3, 4, 6 e 7) do CLINICA.md.**
+- Respondido em 12/11/2026 (noite): o profissional da clínica conta as próprias sessões e só vê o valor da sessão se o gestor permitir; nenhum profissional vê registro de outro (só o paciente vê os seus, de todos); um dono principal, que pode habilitar outro administrador.
+- **Em espera:** o que acontece com os registros quando um profissional sai da clínica (pergunta 4 do CLINICA.md).
+- **Continua sem implementar: o James pediu só o mapeamento.** Programar apenas quando ele pedir.
 
 ## 3C. Ideias ainda não feitas
 

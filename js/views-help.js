@@ -121,7 +121,7 @@ export function renderAbout() {
     </section>
     <section class="panel"><h2>Saiba mais</h2>
       <div class="row"><a class="btn quiet sm" target="_blank" rel="noopener" href="https://github.com/Rafajames/florescer-relatorios/blob/main/docs/ATUALIZACOES.md">${icon('file')}Novidades e atualizações</a>
-      <a class="btn quiet sm" href="apresentacao.html" target="_blank" rel="noopener">Página de apresentação</a>
+      <a class="btn quiet sm" href="./?apresentacao" target="_blank" rel="noopener">Página de apresentação</a>
       <a class="btn quiet sm" href="termos.html" target="_blank" rel="noopener">Termos de uso</a><a class="btn quiet sm" href="privacidade.html" target="_blank" rel="noopener">Privacidade</a></div>
     </section>`;
 }

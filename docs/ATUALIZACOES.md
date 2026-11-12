@@ -4,6 +4,15 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 12/11/2026 — Apresentação como tela principal
+
+- Quem abre o site sem estar logado vê a **apresentação da Potira**: recursos, como funciona, para quem é, dúvidas frequentes e rodapé com Termos e Privacidade.
+- No topo ficam **Entrar** e **Portal do paciente**. "Criar minha conta" e "Já tenho conta" ficam no destaque.
+- Endereços de entrada: `#/entrar`, `#/criar-conta`, `#/paciente` e, com a marca do profissional, `#/c/nome` e `#/paciente/nome` (estes continuam abrindo direto a tela de login). A tela de login ganhou o link "Conhecer a Potira".
+- O arquivo `apresentacao.html` virou só um redirecionamento para a tela principal (uma única apresentação para manter). Em Sobre, o botão abre `./?apresentacao`, que mostra a apresentação mesmo para quem está logado.
+- Código: `js/views-landing.js`.
+- Clínica: respostas do James registradas em `docs/CLINICA.md` (nada implementado).
+
 ## 12/11/2026 — Portal do paciente com entrada própria
 
 - "Criar conta" passou a ser **só para profissionais**. Saiu a escolha "Sou profissional / Sou paciente".

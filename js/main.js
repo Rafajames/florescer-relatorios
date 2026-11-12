@@ -56,6 +56,8 @@ async function doRoute() {
   // página pública do profissional (#/p/link-proprio): apresentação e contato, sem login
   const pag = (location.hash.match(/^#\/p\/([\w-]+)/) || [])[1];
   if (pag) return import('./views-public.js').then((m) => m.renderPublicProfile(pag));
+  // ?apresentacao: mostra a apresentação mesmo para quem está logado (link da página Sobre)
+  if (/[?&]apresentacao\b/.test(location.search) && /^#?\/?$/.test(location.hash)) return import('./views-landing.js').then((m) => m.renderLanding());
   try {
     if (!state.settingsLoaded) { try { applySettings(await api.loadSettings(), PROVIDERS); } catch { /* tabela ainda não criada */ } state.settingsLoaded = true; }
     const session = await api.getSession();
@@ -65,12 +67,17 @@ async function doRoute() {
       // #/c/nome = entrada do profissional com a marca; #/paciente (ou #/paciente/nome) = Portal do paciente
       const paciente = /^#\/paciente(\/|$)/.test(location.hash);
       const slug = (location.hash.match(/^#\/(?:c|paciente)\/([\w-]+)/) || [])[1];
+      // Sem endereço de entrada, a tela principal é a apresentação (com Entrar no topo).
+      const entrada = paciente || slug || /^#\/(entrar|criar-conta)(\/|$)/.test(location.hash);
+      if (!entrada) { applyBrand(DEFAULT_BRAND); return import('./views-landing.js').then((m) => m.renderLanding()); }
       let brand = null;
       if (slug) { try { brand = await api.brandBySlug(slug); } catch { brand = null; } }
       if (brand) brand = { ...brand, slug }; else brand = cachedBrand();
       applyBrand(brand || DEFAULT_BRAND);
-      return renderAuth(brand, paciente);
+      return renderAuth(brand, paciente, /^#\/criar-conta/.test(location.hash) ? 'signup' : 'login');
     }
+    // já logado num endereço de entrada: segue para o Início
+    if (/^#\/(entrar|criar-conta)(\/|$)/.test(location.hash)) history.replaceState(null, '', location.pathname + '#/');
     if (await api.mfaNeedsCode()) return renderMfaChallenge(session.user.email, () => route());
     if (!state.profile || (state.profile._uid || state.profile.id) !== session.user.id) {
       state.user = session.user;

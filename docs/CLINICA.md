@@ -108,8 +108,9 @@ Recomendação registrada: **E com F** durante os testes. Em qualquer opção, p
 2. O dono também atende: é opcional. O gestor pode não ser profissional; se atender, ganha também o perfil de profissional.
 5. Autônomo e clínica com o mesmo login: sim, com botão de troca de perfil.
 
-**Ainda em aberto**
-3. **O profissional da clínica vê algum valor?** Recomendação: só a contagem de sessões; repasse numa segunda etapa.
-4. **Quando um profissional sai da clínica**, o que acontece com os registros que ele escreveu? Recomendação: ficam trancados na clínica, transferíveis para quem assumir o paciente, e ele leva uma cópia. Confirmar com uma clínica real.
-6. **Paciente atendido por mais de um profissional:** um vê o registro do outro? Recomendação: só com consentimento registrado do paciente.
-7. **A clínica pode ter mais de um gestor?** Recomendação: um dono principal que nomeia outros administradores.
+3. O profissional da clínica vê valores? Ele sempre pode **contar as próprias sessões**. Ver o **valor da sessão** fica a critério do gestor (uma permissão que o gestor liga ou desliga). Ele não acessa a administração de valores.
+6. Paciente atendido por mais de um profissional: **nenhum profissional vê o registro de outro**. Só o paciente vê, no portal dele, os registros liberados de todos os profissionais que o atendem.
+7. Mais de um gestor: a clínica tem **um dono principal**, que pode habilitar outro administrador.
+
+**Em espera (James ainda não decidiu)**
+4. **Quando um profissional sai da clínica**, o que acontece com os registros que ele escreveu? Os dados são, em tese, da clínica e também do profissional. Recomendação anterior: ficam trancados na clínica, transferíveis para quem assumir o paciente, e ele leva uma cópia. Confirmar com uma clínica real antes de construir.
