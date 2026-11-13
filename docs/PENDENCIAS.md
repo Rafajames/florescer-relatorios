@@ -114,7 +114,7 @@ O desenho completo, com papéis, permissões, layout e as perguntas em aberto, e
 **Telas que ainda têm texto demais ou não foram revisadas**
 4. ~~Ficha do paciente longa~~ **Feito em 13/11/2026:** abas Resumo, Clínico, Financeiro e Arquivos e links. Testado no simulado; conferir com um paciente real cheio de registros.
 5. ~~Configurações com muito texto~~ **Feito em 13/11/2026:** página inicial em cartões (uma linha cada, com estado: registro completo, marca personalizada, IA conectada) e o detalhe ao abrir, com "voltar". Os textos dentro de cada seção ainda podem ser enxugados.
-6. **Relatórios e Pacientes:** listas ainda no formato antigo.
+6. ~~Listas no formato antigo~~ **Feito em 13/11/2026:** Pacientes em cartões (iniciais coloridas, última sessão, avisos) e filtros em pílulas; Relatórios em cartões com faixa por tipo, pílulas de situação e "Mais filtros" (paciente, tipo, datas). Testado no simulado.
 7. **Editor do relatório:** é a tela mais usada e não foi revisada.
 
 **Funcionalidades**

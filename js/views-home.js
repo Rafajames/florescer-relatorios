@@ -240,36 +240,39 @@ export async function renderPatients() {
   let all = await api.listPatients(false);
   let showArchived = false;
 
-  main.innerHTML = pageHeader('Pacientes', 'Quem você atende.', `<button class="btn quiet" id="demo">${all.some(isDemo) ? 'Remover paciente de teste' : 'Criar paciente de teste'}</button><button class="btn" id="add">${icon('plus')}Novo paciente</button>`) + `
-    <div class="row" style="margin-bottom:14px">
+  main.innerHTML = pageHeader('Pacientes', `${all.filter((x) => !x.archived).length} em atendimento`, `<button class="btn quiet" id="demo">${all.some(isDemo) ? 'Remover paciente de teste' : 'Criar paciente de teste'}</button><button class="btn" id="add">${icon('plus')}Novo paciente</button>`) + `
+    <div class="row lista-busca">
       <input id="q" type="search" placeholder="Buscar por nome ou e-mail" style="max-width:340px;margin:0" aria-label="Buscar paciente">
-      <select id="filter" style="width:auto;margin:0" aria-label="Filtro">
-        <option value="">Todos</option><option value="semconsent">Sem consentimento</option><option value="rascunho">Com rascunhos</option></select>
+      <div class="pilulas" role="group" aria-label="Filtro">${[['', 'Todos'], ['semconsent', 'Sem consentimento'], ['rascunho', 'Com rascunhos']].map(([v, t], i) => `<button type="button" class="pilula${i ? '' : ' on'}" data-f="${v}">${t}</button>`).join('')}</div>
+      <span class="grow"></span>
       <select id="sort" style="width:auto;margin:0" aria-label="Ordenar">
         <option value="nome">Ordenar por nome</option><option value="recente">Atendidos recentemente</option></select>
       <label class="check" style="margin:0"><input type="checkbox" id="arch">Mostrar arquivados</label>
     </div>
-    <div class="table" id="ptable"></div>`;
+    <div class="pac-grade" id="ptable"></div>`;
 
+  let f = '';
   const draw = () => {
-    const q = $('#q').value.toLowerCase(), f = $('#filter').value, s = $('#sort').value;
+    const q = $('#q').value.toLowerCase(), s = $('#sort').value;
     let rows = all.filter((p) => (!q || p.name.toLowerCase().includes(q) || (p.email || '').toLowerCase().includes(q))
       && (f !== 'semconsent' || !api.hasActiveConsent(p.consents))
       && (f !== 'rascunho' || (p.reports || []).some((r) => r.status === 'rascunho')));
     rows = [...rows].sort((a, b) => s === 'recente' ? lastSession(b).localeCompare(lastSession(a)) : a.name.localeCompare(b.name, 'pt-BR'));
-    $('#ptable').innerHTML = `<div class="tr th cols-patients"><span>Nome</span><span>Última sessão</span><span>Relatórios</span><span>Consentimento</span><span></span></div>` +
+    $('#ptable').innerHTML =
       (rows.length ? rows.map((p) => {
-        const reps = p.reports || [], dr = reps.filter((r) => r.status === 'rascunho').length;
-        return `<a class="tr cols-patients" href="#/pacientes/${p.id}">
-          <span class="ellip"><span class="t">${esc(p.name)}</span>${p.archived ? ' ' + chip('Arquivado') : ''}<br><span class="muted small">${esc(p.email || 'sem e-mail')}</span></span>
-          <span>${lastSession(p) ? fmtDate(lastSession(p)) : '<span class="muted">Nenhuma</span>'}</span>
-          <span>${reps.length}${dr ? ' ' + chip(`${dr} rascunho${dr > 1 ? 's' : ''}`, 'warn') : ''}</span>
-          <span>${api.hasActiveConsent(p.consents) ? chip('Registrado', 'ok') : chip('Pendente', 'warn')}</span>
-          <span class="go">${icon('right')}</span></a>`;
+        const reps = p.reports || [], dr = reps.filter((r) => r.status === 'rascunho').length, ult = lastSession(p);
+        const ini = p.name.split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+        const cor = [...p.name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+        return `<a class="pac-card" href="#/pacientes/${p.id}">
+          <span class="pac-av" style="--h:${cor}">${esc(ini)}</span>
+          <span class="grow"><b class="ellip">${esc(p.name)}</b><small>${ult ? 'Última sessão ' + fmtDate(ult) : 'Nenhuma sessão ainda'} · ${reps.length} registro${reps.length === 1 ? '' : 's'}</small>
+            <span class="pac-chips">${p.archived ? chip('Arquivado') : ''}${!api.hasActiveConsent(p.consents) ? chip('Sem consentimento', 'warn') : ''}${dr ? chip(`${dr} rascunho${dr > 1 ? 's' : ''}`, 'warn') : ''}${isDemo(p) ? chip('Teste') : ''}</span></span>
+          ${icon('right')}</a>`;
       }).join('') : emptyState(all.length ? 'Nenhum paciente encontrado' : 'Você ainda não cadastrou pacientes', all.length ? 'Tente outro termo ou limpe o filtro.' : 'Cadastre o primeiro para registrar consentimento e iniciar uma sessão.', all.length ? '' : `<button class="btn" id="add2">${icon('plus')}Cadastrar paciente</button>`));
   };
   draw();
-  ['#q', '#filter', '#sort'].forEach((id) => ($(id).oninput = draw));
+  ['#q', '#sort'].forEach((id) => ($(id).oninput = draw));
+  $$('.pilula[data-f]').forEach((b) => (b.onclick = () => { f = b.dataset.f; $$('.pilula[data-f]').forEach((x) => x.classList.toggle('on', x === b)); draw(); }));
   $('#arch').onchange = async (e) => { showArchived = e.target.checked; all = await api.listPatients(showArchived); draw(); };
   const addP = async () => { const p = await patientModal(); if (p && p.id) goto(`#/pacientes/${p.id}`); };
   $('#add').onclick = addP;

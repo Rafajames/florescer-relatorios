@@ -17,19 +17,19 @@ export async function renderReports(params) {
   const f0 = { status: params.get('status') || '', paciente: params.get('paciente') || '' };
 
   main.innerHTML = pageHeader('Relatórios', 'Todos os registros. Selecione vários para agir de uma vez.', `<a class="btn bloom" href="#/nova">${icon('plus')}Nova sessão</a>`) + `
-    <div class="row" style="margin-bottom:14px">
+    <div class="row lista-busca">
       <input id="q" type="search" placeholder="Buscar por título ou paciente" style="max-width:290px;margin:0" aria-label="Buscar">
+      <input type="hidden" id="fs" value="${esc(f0.status)}">
+      <div class="pilulas" role="group" aria-label="Situação">${[['', 'Todos'], ['rascunho', 'Rascunho'], ['revisado', 'Revisado'], ['liberado', 'Liberado']].map(([v, t]) => `<button type="button" class="pilula${v === f0.status ? ' on' : ''}" data-st="${v}">${t}</button>`).join('')}</div>
+      <span class="grow"></span>
+      <details class="menu mais-filtros"${f0.paciente ? ' open' : ''}><summary class="btn quiet sm">${icon('sliders')}Mais filtros</summary><div class="menu-list filtros-box">
       <select id="fp" style="width:auto;margin:0" aria-label="Paciente"><option value="">Todos os pacientes</option>
         ${patients.map((p) => `<option value="${p.id}" ${p.id === f0.paciente ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
       <select id="fk" style="width:auto;margin:0" aria-label="Tipo"><option value="">Todos os tipos</option><option value="sessao">Evoluções</option><option value="anamnese">Anamneses</option><option value="documento">Documentos</option><option value="periodo">Por período</option></select>
-      <select id="fs" style="width:auto;margin:0" aria-label="Situação">
-        <option value="">Qualquer situação</option>
-        <option value="rascunho" ${f0.status === 'rascunho' ? 'selected' : ''}>Rascunho</option>
-        <option value="revisado" ${f0.status === 'revisado' ? 'selected' : ''}>Revisado</option>
-        <option value="liberado">Liberado ao paciente</option></select>
       <input type="date" id="from" style="width:auto;margin:0" aria-label="De"><input type="date" id="to" style="width:auto;margin:0" aria-label="Até">
+      </div></details>
     </div>
-    <div class="table" id="rtable"></div>
+    <div class="rel-lista" id="rtable"></div>
     <div id="bulk"></div>`;
 
   let rows = [], selected = new Set();
@@ -50,17 +50,16 @@ export async function renderReports(params) {
     return rows.filter((r) => !q || r.title.toLowerCase().includes(q) || (r.patients?.name || '').toLowerCase().includes(q));
   };
 
+  const KIND = { sessao: 'Evolução', anamnese: 'Anamnese', periodo: 'Relatório por período', documento: 'Documento' };
   const draw = () => {
     const list = visibleRows();
     const all = list.length > 0 && list.every((r) => selected.has(r.id));
-    $('#rtable').innerHTML = `<div class="tr th cols-reports"><span><input type="checkbox" id="all" ${all ? 'checked' : ''} aria-label="Selecionar todos"></span><span>Relatório</span><span>Paciente</span><span>Data</span><span>Situação</span></div>` +
+    $('#rtable').innerHTML = (list.length ? `<label class="check rel-todos"><input type="checkbox" id="all" ${all ? 'checked' : ''}>Selecionar todos (${list.length})</label>` : '<span id="all" hidden></span>') +
       (list.length ? list.map((r) => `
-        <div class="tr cols-reports ${selected.has(r.id) ? 'sel' : ''}">
-          <span><input type="checkbox" data-id="${r.id}" ${selected.has(r.id) ? 'checked' : ''} aria-label="Selecionar"></span>
-          <a href="#/relatorio/${r.id}" class="ellip t" style="text-decoration:none;color:inherit">${esc(r.title)}${r.kind === 'periodo' ? ' ' + chip('Período') : r.kind === 'anamnese' ? ' ' + chip('Anamnese', 'petrol') : ''}</a>
-          <span class="ellip">${esc(r.patients?.name || '')}</span>
-          <span>${fmtDate(r.session_date)}</span>
-          <span>${statusChip(r)}</span>
+        <div class="rel-item k-${r.kind} ${selected.has(r.id) ? 'sel' : ''}">
+          <input type="checkbox" data-id="${r.id}" ${selected.has(r.id) ? 'checked' : ''} aria-label="Selecionar">
+          <a href="#/relatorio/${r.id}" class="grow"><b class="ellip">${esc(r.title)}</b><small>${esc(KIND[r.kind] || 'Registro')} · ${esc(r.patients?.name || '')} · ${fmtDate(r.session_date)}</small></a>
+          ${statusChip(r)}
         </div>`).join('')
         : '<div class="empty"><b>Nenhum relatório encontrado</b>Ajuste os filtros ou inicie uma nova sessão.</div>');
     $('#all').onchange = (e) => { list.forEach((r) => (e.target.checked ? selected.add(r.id) : selected.delete(r.id))); draw(); };
@@ -108,7 +107,8 @@ export async function renderReports(params) {
   };
 
   $('#q').oninput = draw;
-  ['#fp', '#fk', '#fs', '#from', '#to'].forEach((id) => ($(id).onchange = load));
+  ['#fp', '#fk', '#from', '#to'].forEach((id) => ($(id).onchange = load));
+  $$('.pilula[data-st]').forEach((b) => (b.onclick = () => { $('#fs').value = b.dataset.st; $$('.pilula[data-st]').forEach((x) => x.classList.toggle('on', x === b)); load(); }));
   await load();
 }
 

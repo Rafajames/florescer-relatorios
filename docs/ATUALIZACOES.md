@@ -4,6 +4,11 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 13/11/2026 — Pacientes e Relatórios em cartões
+
+- **Pacientes:** cartões com as iniciais em círculo colorido, última sessão, número de registros e avisos (sem consentimento, rascunhos, arquivado, teste). Filtros viraram pílulas; o topo mostra quantos estão em atendimento.
+- **Relatórios:** cada registro é um cartão com faixa colorida por tipo (evolução, anamnese, período, documento), paciente e data numa linha. A situação (Todos, Rascunho, Revisado, Liberado) virou pílulas; paciente, tipo e datas ficam em "Mais filtros". A seleção de vários continua igual.
+
 ## 13/11/2026 — Configurações em cartões
 
 - Configurações abre com um cartão por seção (Perfil e timbre, Aparência e marca, Preferências, Chaves de IA, Consentimento, Segurança, Dados e privacidade): ícone, uma linha de descrição e um estado curto ("Completo", "Falta o registro", "Personalizada", "Sem IA", "1 conectada").
