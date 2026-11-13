@@ -320,3 +320,4 @@ Admin: uso (só totais), convites (exigência opcional, desligada por padrão), 
 - Saiu o botão Dia. Na Lista, cada dia tem "Ver dia" ao lado de "Agendar", que abre só aquele dia.
 - Na tela de um dia, "Voltar para a lista" leva de volta à semana.
 - No celular, a agenda abre na Lista (antes abria no Dia).
+- Menu "Ações" da agenda abre alinhado à direita do botão, sem cortar.

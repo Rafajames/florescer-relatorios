@@ -1213,7 +1213,8 @@ polyline.desenha{stroke-dasharray:1;stroke-dashoffset:1;animation:traca .9s .15s
 /* editor: barra fixa com o próximo passo */
 .ed-barra{position:sticky;top:8px;z-index:25;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:16px;padding:10px 14px;margin:6px 0 16px;box-shadow:0 10px 24px -20px rgba(10,40,50,.5)}
 .ed-barra .ed-quem{display:flex;align-items:center;gap:8px;min-width:0}.ed-barra .save-state{margin:0;font-size:13px}
-.ed-barra .menu-list{right:0;left:auto}.ed-barra .perigo{color:var(--danger,#B42318)}
+.ed-barra .menu-list{right:0;left:auto}
+.ag-acoes .menu-list{right:0;left:auto}.ed-barra .perigo{color:var(--danger,#B42318)}
 .title-input{font-family:var(--display,var(--sans));font-weight:700;font-size:30px}
 .ed-metas{margin-top:16px}
 .status-rail .flow li.done .dot svg path{stroke-dasharray:30;stroke-dashoffset:30;animation:tracaPx .5s .15s ease-out forwards}

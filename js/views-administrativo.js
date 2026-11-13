@@ -122,7 +122,7 @@ async function agenda(params, patients) {
       <a class="btn quiet sm" href="${week(1)}" aria-label="${umDia ? 'Próximo dia' : 'Próxima semana'}">${icon('right')}</a>
       <a class="btn quiet sm" href="#/administrativo?ver=${ver}">Hoje</a>
       ${umDia ? `<a class="btn quiet sm" href="#/administrativo?ver=lista&semana=${start}">Voltar para a lista</a>` : verPills(ver, start)}
-      <details class="menu"><summary class="btn quiet sm">${icon('more')}Ações</summary><div class="menu-list">
+      <details class="menu ag-acoes"><summary class="btn quiet sm">${icon('more')}Ações</summary><div class="menu-list">
         <button type="button" id="ag-lembretes">${icon('calendar')}Lembretes de amanhã</button>
         <button type="button" id="ag-bloquear">${icon('x')}Bloquear dia ou horário</button>
         <button type="button" id="ag-ics">${icon('download')}Levar para o calendário do celular</button></div></details>
