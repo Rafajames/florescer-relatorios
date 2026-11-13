@@ -10,6 +10,7 @@ import { metasPanel, escalasPanel } from './views-clinico.js';
 import {
   $, $$, esc, fmtDate, fmtDateTime, toast, openModal, confirmBox, busy, statusChip, chip, meta, callout,
   shell, loading, pageHeader, backLink, icon, greeting, longDate, emptyState, todayISO,
+  celebrar,
 } from './ui.js';
 
 const goto = (h) => { location.hash = h; };
@@ -218,7 +219,7 @@ async function patientModal(existing = {}) {
         ...(existing.id ? { id: existing.id } : {}),
         name: g('name'), email: g('email') || null, phone: g('phone') || null,
         birth_date: g('birth_date') || null, notes: g('notes') || null,
-      });
+      }).then((r) => { if (!existing.id) celebrar('paciente', 'Primeiro paciente cadastrado. Que floresça!'); return r; });
     },
   });
 }

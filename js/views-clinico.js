@@ -69,7 +69,7 @@ function grafico(scores, max) {
   const pts = scores.map((s, i) => `${x(i).toFixed(1)},${y(Number(s.total)).toFixed(1)}`).join(' ');
   return `<svg class="esc-graf" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução da pontuação: de ${Number(scores[0].total)} para ${Number(scores[scores.length - 1].total)}, de um máximo de ${max}">
     <line x1="${P}" y1="${H - P}" x2="${W - P}" y2="${H - P}" stroke="currentColor" opacity=".18"/>
-    <polyline points="${pts}" fill="none" stroke="var(--petrol)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline class="desenha" pathLength="1" points="${pts}" fill="none" stroke="var(--petrol)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
     ${scores.map((s, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(Number(s.total)).toFixed(1)}" r="3.5" fill="var(--petrol)"><title>${fmtDate(s.date)}: ${Number(s.total)}</title></circle>`).join('')}</svg>`;
 }
 

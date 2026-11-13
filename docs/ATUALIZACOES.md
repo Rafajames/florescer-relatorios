@@ -4,6 +4,14 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 13/11/2026 — Animações pela plataforma
+
+- Aviso de "salvo" com um check que se desenha; janelas abrem subindo e fecham mais rápido; painéis e números aparecem em sequência.
+- Números dos resumos do Financeiro sobem contando; barras do resumo crescem; a linha do gráfico de escalas se desenha.
+- Agenda desliza para o lado ao trocar de semana; o chip "confirmado" dá um pulinho; um gasto excluído encolhe antes de sumir.
+- Comemoração com uma flor que se abre no primeiro paciente cadastrado e no primeiro relatório liberado (uma vez só, neste navegador).
+- Tudo desligado para quem pede menos movimento. Funções novas em `js/ui.js`: `celebrar()` e `sumir()`.
+
 ## 13/11/2026 — "Por que Potira?" e animações na apresentação
 
 - Nova seção no fim da apresentação, também no menu do topo ("O nome"): o significado de Potira (tupi, "flor"), por que o nome foi escolhido e curiosidades. Resumo também em Sobre.

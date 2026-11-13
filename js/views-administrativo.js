@@ -89,7 +89,7 @@ async function agenda(params, patients) {
       <span class="small muted">${aps.length} ${aps.length === 1 ? 'sessão' : 'sessões'}</span>
       ${['realizado', 'falta', 'falta_justificada', 'cancelado'].filter(count).map((s) => chip(`${ATT_STATUS[s]}: ${count(s)}`, STATUS_KIND[s])).join(' ')}
     </div>
-    <div id="days"></div>`;
+    <div id="days" class="${(() => { const ant = sessionStorage.getItem('ag-sem'); sessionStorage.setItem('ag-sem', start); return !ant || ant === start ? '' : start > ant ? 'vai-dir' : 'vai-esq'; })()}"></div>`;
 
   const days = [...Array(7)].map((_, i) => addDays(start, i));
   $('#days').innerHTML = days.map((d) => {

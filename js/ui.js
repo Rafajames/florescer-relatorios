@@ -32,11 +32,43 @@ export const wordCount = (s) => (String(s || '').trim().match(/\S+/g) || []).len
 export function toast(msg, kind = 'ok') {
   let t = $('#toast');
   if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
-  t.textContent = msg;
+  t.innerHTML = (kind === 'ok' ? '<svg class="t-check" viewBox="0 0 24 24" aria-hidden="true"><path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : '') + esc(msg);
   t.setAttribute('role', kind === 'err' ? 'alert' : 'status');
   t.className = 'show ' + kind;
   clearTimeout(toast._t);
   toast._t = setTimeout(() => (t.className = ''), kind === 'err' ? 5500 : 2600);
+}
+
+const calmo = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Comemoração discreta: uma flor que se abre (primeiro paciente, primeiro relatório liberado). Uma vez por marco, neste navegador. */
+export function celebrar(marco, texto) {
+  try { if (localStorage.getItem('potira-marco-' + marco)) return; localStorage.setItem('potira-marco-' + marco, '1'); } catch { /* sem armazenamento: comemora mesmo assim */ }
+  const el = document.createElement('div'); el.className = 'celebra'; el.setAttribute('role', 'status');
+  el.innerHTML = `<div class="celebra-flor">${'<i></i>'.repeat(6)}<b></b></div><p>${esc(texto)}</p>`;
+  document.body.appendChild(el); setTimeout(() => el.classList.add('sai'), 2600); setTimeout(() => el.remove(), 3200);
+}
+
+/** Item apagado encolhe e some antes de sair da lista. */
+export function sumir(el) {
+  if (!el || calmo()) { el && el.remove(); return Promise.resolve(); }
+  el.style.height = el.offsetHeight + 'px'; el.classList.add('sumindo');
+  return new Promise((ok) => setTimeout(() => { el.remove(); ok(); }, 320));
+}
+
+/** Números dos resumos (R$ e contagens) sobem contando quando aparecem. */
+function contar(b) {
+  const txt = b.textContent; const m = txt.match(/-?\d{1,3}(?:\.\d{3})*(?:,\d{2})?|-?\d+/); if (!m) return;
+  const dec = m[0].includes(','); const alvo = Number(m[0].replace(/\./g, '').replace(',', '.')); if (!alvo) return;
+  const fmt = (v) => dec ? v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : String(Math.round(v));
+  const t0 = performance.now(), dur = 650;
+  const passo = (t) => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+    b.textContent = txt.replace(m[0], fmt(alvo * e)); if (k < 1) requestAnimationFrame(passo); else b.textContent = txt; };
+  requestAnimationFrame(passo);
+}
+if (typeof MutationObserver !== 'undefined') {
+  new MutationObserver(() => { if (calmo()) return; document.querySelectorAll('.stat b:not([data-contou]), .stats b:not([data-contou])').forEach((b) => { b.dataset.contou = '1'; contar(b); }); })
+    .observe(document.documentElement, { childList: true, subtree: true });
 }
 
 export function openModal(title, bodyHtml, { okText = 'Salvar', cancelText = 'Cancelar', onOk, onOpen, wide = false } = {}) {
@@ -52,7 +84,7 @@ export function openModal(title, bodyHtml, { okText = 'Salvar', cancelText = 'Ca
         ${onOk ? `<button type="submit" class="btn" data-ok>${esc(okText)}</button>` : ''}
       </div></form>`;
     document.body.appendChild(d);
-    const close = (v) => { d.close(); d.remove(); resolve(v); };
+    const close = (v) => { resolve(v); if (calmo()) { d.close(); d.remove(); return; } d.classList.add('fechando'); setTimeout(() => { d.close(); d.remove(); }, 160); };
     $('[data-cancel]', d).onclick = () => close(null);
     d.addEventListener('cancel', (e) => { e.preventDefault(); close(null); });
     $('[data-x]', d).onclick = () => close(null);

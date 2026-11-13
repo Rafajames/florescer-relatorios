@@ -9,6 +9,7 @@ import {
 } from './export.js';
 import {
   $, $$, esc, fmtDate, todayISO, toast, confirmBox, busy, shell, loading, pageHeader, icon, chip, emptyState, callout, openModal,
+  sumir,
 } from './ui.js';
 
 const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -304,7 +305,7 @@ async function expensesTab(pane, mes, from, to) {
   $$('[data-del]').forEach((b) => (b.onclick = async () => {
     if (!(await confirmBox('Excluir este gasto?', 'Excluir'))) return;
     await api.deleteExpense(b.dataset.del); toast('Gasto excluído.');
-    refresh();
+    await sumir(b.closest('.tr') || null); refresh();
   }));
 }
 

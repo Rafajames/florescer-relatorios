@@ -9,6 +9,7 @@ import { KIND_LABEL } from './export.js';
 import {
   $, $$, esc, fmtDate, fmtDateTime, fmtTime, toast, openModal, confirmBox, busy, autosize, debounce, wordCount,
   chip, statusChip, meta, callout, shell, loading, backLink, icon,
+  celebrar,
 } from './ui.js';
 
 const goto = (h) => { location.hash = h; };
@@ -294,7 +295,7 @@ export async function renderReport(id) {
   if ($('#release')) $('#release').onclick = async (e) => {
     const n = sections.filter(visible).length;
     if (!(await confirmBox(`Liberar para o paciente? Ele verá ${n} de ${sections.length} seção(ões) no portal. A transcrição nunca é exibida.`, 'Liberar'))) return;
-    await busy(e.target, 'Salvando…', async () => { await save({ released_to_patient: true, released_at: new Date().toISOString() }); toast('Liberado ao paciente.'); reload(); });
+    await busy(e.target, 'Salvando…', async () => { await save({ released_to_patient: true, released_at: new Date().toISOString() }); celebrar('liberado', 'Primeiro relatório liberado ao paciente!'); toast('Liberado ao paciente.'); reload(); });
   };
   if ($('#unrelease')) $('#unrelease').onclick = (e) => busy(e.target, 'Salvando…', async () => {
     await save({ released_to_patient: false, released_at: null }); toast('Retirado do portal.'); reload();
