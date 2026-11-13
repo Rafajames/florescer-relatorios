@@ -171,6 +171,19 @@ export async function renderPeriod(params) {
             options: { detail: prefs.detail, flagUncertain: prefs.flagUncertain, instructions: prefs.instructions },
           })).map((s) => ({ ...s, patient_visible: vis }));
         }
+        // progresso das metas e das escalas no período, montado a partir dos registros (sem IA)
+        try {
+          const ini = $('#from').value, fim = $('#to').value;
+          const [metas, escalas, notas] = await Promise.all([api.listGoals(patientId).catch(() => []), api.listScales().catch(() => []), api.listScores(patientId).catch(() => [])]);
+          const ST = { em_andamento: 'em andamento', alcancada: 'alcançada', pausada: 'pausada' };
+          const evol = picked.filter((x) => x.kind === 'sessao');
+          const lin = metas.map((g) => { const n = evol.filter((x) => (x.goal_ids || []).includes(g.id)).length;
+            return `• ${g.title}: ${ST[g.status] || 'em andamento'}; trabalhada em ${n} de ${evol.length} ${evol.length === 1 ? 'sessão' : 'sessões'}.`; });
+          escalas.forEach((e) => { const m = notas.filter((x) => x.scale_id === e.id && x.date >= ini && x.date <= fim);
+            if (!m.length) return; const a = m[0], z = m[m.length - 1];
+            lin.push(m.length === 1 ? `• ${e.name}: ${Number(a.total)} pontos em ${fmtDate(a.date)}.` : `• ${e.name}: de ${Number(a.total)} (${fmtDate(a.date)}) para ${Number(z.total)} (${fmtDate(z.date)}).`); });
+          if (lin.length) sections.push({ title: 'Progresso das metas e escalas', text: lin.join('\n'), patient_visible: vis });
+        } catch { /* sem metas ou escalas: segue sem a seção */ }
         const rep = await api.createReport({
           patient_id: patientId, template_id: tpl.id, kind: 'periodo',
           title: `Relatório de acompanhamento, ${pname}`, session_date: todayISO(),

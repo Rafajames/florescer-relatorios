@@ -4,6 +4,11 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 13/11/2026 — Busca mais completa e progresso no relatório por período
+
+- **Busca (Ctrl K)** agora acha também sessões (por nome do paciente ou data, 60 dias para trás e para frente, levando à semana certa da agenda), cobranças em aberto por paciente (quantidade e total) e as páginas do Financeiro e da Agenda.
+- **Relatório por período** ganha a seção "Progresso das metas e escalas": a situação de cada meta, em quantas das sessões escolhidas ela foi trabalhada, e a primeira e a última pontuação de cada escala no período. É montada a partir dos registros, sem IA, e pode ser editada como qualquer seção.
+
 ## 13/11/2026 — Editor do relatório revisado
 
 - **Barra fixa no topo** que acompanha a rolagem: paciente, situação, "Tudo salvo" e o botão do próximo passo (Marcar como revisado ou Liberar ao paciente). No celular, fica numa linha só.

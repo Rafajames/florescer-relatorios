@@ -100,7 +100,6 @@ O desenho completo, com papéis, permissões, layout e as perguntas em aberto, e
 - **Instalar como aplicativo** (ícone na tela do celular). O James pediu para **não fazer ainda**.
 - **PDF gravado direto na pasta.** Hoje o PDF sai pela janela de impressão do navegador, então a plataforma só prepara a pasta e avisa onde salvar. Gravar sozinho exigiria gerar o PDF dentro do site com uma biblioteca, com risco de perder qualidade. Não decidido.
 - A tabela `attachments` e a pasta privada `anexos` do Supabase existem, vazias e sem uso: o James decidiu guardar laudos e exames **na pasta do computador**, não no servidor. Podem ser removidas numa limpeza.
-- **Relatório por período com o progresso das metas.** Hoje as metas aparecem na ficha e na evolução, não no relatório por período.
 - **Agenda em grade semanal.**
 - **Cobrança enviada sozinha** (por e-mail), ver seção 2.
 
@@ -118,8 +117,8 @@ O desenho completo, com papéis, permissões, layout e as perguntas em aberto, e
 7. ~~Editor do relatório não revisado~~ **Feito em 13/11/2026:** barra fixa com o próximo passo, "Exportar" e "⋯" (excluir, voltar para rascunho, retirar do portal, levar ao cadastro); metas abaixo do texto. Testado no simulado; conferir com relatórios reais longos e no celular.
 
 **Funcionalidades**
-8. Relatório por período trazer o progresso das metas e das escalas.
-9. Busca (Ctrl K) achar também sessões e cobranças.
+8. ~~Relatório por período com metas e escalas~~ **Feito em 13/11/2026:** seção "Progresso das metas e escalas" montada sem IA (situação de cada meta, em quantas sessões foi trabalhada, primeira e última pontuação das escalas no período). Não testado com dados reais.
+9. ~~Busca sem sessões e cobranças~~ **Feito em 13/11/2026:** a busca acha sessões (60 dias para trás e para frente), cobranças em aberto por paciente e as páginas do Financeiro e da Agenda.
 10. Agenda em grade semanal; PDF gravado direto na pasta; cobrança automática por e-mail (ver seções acima).
 
 ## 4. Segurança (adiado pelo James por estar em fase de testes)
