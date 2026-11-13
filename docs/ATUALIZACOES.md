@@ -4,6 +4,18 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 13/11/2026 — Crítica das telas novas, tudo corrigido
+
+- **Agenda:** a grade começa uma hora antes da primeira sessão e termina uma depois da última (mínimo de 8 horas); linha rosa do "agora" no dia de hoje; clicar num espaço livre já abre o agendamento com o horário (arredondado para meia hora); no celular a visão padrão é **Dia**; etiquetas das horas não cortam; setas com o nome certo na visão Dia.
+- **Editor:** a situação aparece uma vez só (o caminho Rascunho → Revisado → Liberado, agora na horizontal acima do texto, sem coluna vazia à direita); no celular os botões viram "Revisar"/"Liberar" e "Tudo salvo" cabe inteiro.
+- **Ficha do paciente:** Arquivar e Excluir saíram do Resumo e foram para o menu **Mais** (junto com as exportações); cada paciente abre sempre no Resumo; no computador o Resumo usa duas colunas.
+- **Pacientes:** formato **Cartões ou Lista** compacta (lembra a escolha; com mais de 24 pacientes começa em Lista); "Arquivados" virou pílula; as cores das iniciais ficam entre o petróleo e o rosa da marca.
+- **Relatórios:** "Mais filtros" abre por cima da barra de seleção.
+- **Configurações:** todos os cartões têm estado (salvamento automático, texto do termo, autenticador, pasta); dentro da seção ficou só o "voltar".
+- **Apresentação:** prévia da tela da plataforma no destaque; atalhos das seções rolam de lado no celular; seção **Fale com a gente** (WhatsApp e e-mail) que só aparece se o administrador preencher o contato em Administração → Convites (`app_settings`: `contato_whatsapp`, `contato_email`).
+- **Novidades:** o "visto" fica no perfil (`preferences.novidades_visto`) e vale em todos os aparelhos.
+- **Animações:** as de entrada (painéis em sequência, números contando, gráficos) só na primeira visita do dia; check, janelas e flor continuam sempre.
+
 ## 13/11/2026 — Acertos no Financeiro e na Agenda (migração v17 aplicada)
 
 - **Anular o último recibo:** em Financeiro → Documentos, o recibo mais recente tem "Anular"; ele sai da lista e do portal, e o número volta a ficar livre (função `undo_receipt_number`, só devolve se for o último e não houver recibo com aquele número).

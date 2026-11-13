@@ -1,6 +1,7 @@
 // Tela principal para quem não está logado: apresentação da Potira, com Entrar no topo.
 // As entradas ficam separadas: profissional (#/entrar e #/criar-conta) e paciente (#/paciente).
-import { $, icon } from './ui.js';
+import { $, icon, esc } from './ui.js';
+import { settings } from './state.js';
 
 const RECURSOS = [
   ['file', 'Registro clínico', 'Anamnese, evolução, relatório por período e documento livre, com modelos por área ou a partir do seu próprio Word.'],
@@ -26,7 +27,10 @@ const FAQ = [
 
 export function renderLanding() {
   document.title = 'Potira · registro clínico, agenda e cobrança para profissionais de saúde';
-  const ic = (n) => { try { return icon(n); } catch { return icon('file'); } };
+  const ic = icon;
+  // contato público: definido pelo administrador (Administração → Convites); sem ele, a seção não aparece
+  const wa = String(settings.contato_whatsapp || '').replace(/\D/g, ''), mail = String(settings.contato_email || '').trim();
+  const contato = Boolean(wa || mail);
   $('#app').innerHTML = `
   <div class="land">
     <header class="land-top"><div class="land-wrap land-nav">
@@ -37,6 +41,7 @@ export function renderLanding() {
         <button type="button" data-ir="quem">Para quem</button>
         <button type="button" data-ir="duvidas">Dúvidas</button>
         <button type="button" data-ir="nome">O nome</button>
+        ${contato ? '<button type="button" data-ir="contato">Contato</button>' : ''}
       </nav>
       <div class="land-acoes">
         <a class="btn quiet sm land-pac" href="#/paciente">${icon('users')}Portal do paciente</a>
@@ -50,6 +55,16 @@ export function renderLanding() {
         <h1>O consultório inteiro em um só lugar.</h1>
         <p>Anamnese, evolução de cada sessão, relatórios, agenda e cobrança. Para profissionais de saúde que querem escrever menos, organizar melhor e entregar documentos com a própria marca.</p>
         <div class="land-cta"><a class="btn bloom lg" href="#/criar-conta">Criar minha conta</a><a class="btn lg land-ghost" href="#/entrar">Já tenho conta</a></div>
+        <div class="land-tela" aria-hidden="true">
+          <div class="lt-menu"><i></i><span class="on"></span><span></span><span></span><span></span></div>
+          <div class="lt-corpo">
+            <b>Bom dia, Ana</b>
+            <div class="lt-cards"><div><small>Sessões de hoje</small><strong>5</strong></div><div><small>A receber</small><strong>R$ 840</strong></div><div><small>Rascunhos</small><strong>2</strong></div></div>
+            <div class="lt-linha"><em>09:00</em><span>Pedro L.</span><u class="ok">Confirmou</u></div>
+            <div class="lt-linha"><em>10:00</em><span>Marina S.</span><u>Agendada</u></div>
+            <div class="lt-linha"><em>14:00</em><span>João V.</span><u class="bl">Evolução</u></div>
+          </div>
+        </div>
       </section>
 
       <section id="recursos"><h2>O que a Potira faz</h2>
@@ -100,6 +115,9 @@ export function renderLanding() {
           </ul>
         </div>
       </section>
+
+      ${contato ? `<section id="contato" class="land-contato"><div><h2>Fale com a gente</h2><p class="land-sub">Dúvidas antes de criar a conta? Respondemos por aqui.</p></div>
+        <div class="land-cta">${wa ? `<a class="btn lg" target="_blank" rel="noopener" href="https://wa.me/${wa}">WhatsApp</a>` : ''}${mail ? `<a class="btn quiet lg" href="mailto:${esc(mail)}">${esc(mail)}</a>` : ''}</div></section>` : ''}
 
       <section class="land-fim">
         <h2>Quer testar com os seus pacientes?</h2>

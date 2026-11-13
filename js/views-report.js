@@ -37,11 +37,11 @@ export async function renderReport(id) {
   const queueBar = qi >= 0 && queue.length > 1 ? `<div class="callout">${icon('info')}<div class="grow"><p>Editando ${qi + 1} de ${queue.length} relatórios selecionados.</p></div>${nextId ? `<a class="btn sm" href="#/relatorio/${nextId}">Próximo →</a>` : '<a class="btn sm quiet" href="#/relatorios">Voltar à lista</a>'}</div>` : '';
   main.innerHTML = backLink(`#/pacientes/${r.patients.id}`, r.patients.name) + queueBar + `
     <div class="ed-barra">
-      <span class="ed-quem ellip"><b>${esc(r.patients.name)}</b> ${statusChip(r)}</span>
+      <span class="ed-quem ellip"><b>${esc(r.patients.name)}</b></span>
       <div class="save-state" id="savestate"></div>
       <span class="grow"></span>
-      ${!reviewed ? `<button class="btn bloom sm" id="review">${icon('check')}Marcar como revisado</button>` : ''}
-      ${reviewed && !r.released_to_patient ? `<button class="btn bloom sm" id="release" ${canRelease ? '' : 'disabled'} ${canRelease ? '' : 'title="Cadastre o e-mail do paciente para poder liberar"'}>${icon('eye')}Liberar ao paciente</button>` : ''}
+      ${!reviewed ? `<button class="btn bloom sm" id="review">${icon('check')}<span class="so-d">Marcar como revisado</span><span class="so-m">Revisar</span></button>` : ''}
+      ${reviewed && !r.released_to_patient ? `<button class="btn bloom sm" id="release" ${canRelease ? '' : 'disabled'} ${canRelease ? '' : 'title="Cadastre o e-mail do paciente para poder liberar"'}>${icon('eye')}<span class="so-d">Liberar ao paciente</span><span class="so-m">Liberar</span></button>` : ''}
       <details class="menu"><summary class="btn quiet sm" aria-label="Exportar">${icon('download')}<span class="rot">Exportar</span></summary><div class="menu-list">
         <button type="button" id="preview">${icon('eye')}Prévia do portal</button>
         <button type="button" id="word">${icon('download')}Word (para editar)</button>
@@ -58,7 +58,7 @@ export async function renderReport(id) {
         <input id="title" class="title-input" value="${esc(r.title)}" aria-label="Título do relatório">
         ${meta([
           r.kind === 'periodo' ? `Período ${fmtDate(r.period_start)} a ${fmtDate(r.period_end)}` : `<input type="date" id="date" class="inline-date" value="${esc(r.session_date)}" aria-label="Data">`,
-          chip(KIND_LABEL[r.kind] || 'Registro', 'petrol'), statusChip(r), r.ai_generated ? chip('Esboço com IA', 'bloom') : '',
+          chip(KIND_LABEL[r.kind] || 'Registro', 'petrol'), r.ai_generated ? chip('Esboço com IA', 'bloom') : '',
           `<span id="wc"></span>`,
           r.transcript || r.notes ? `<button type="button" class="link" id="side-toggle" aria-pressed="false">Ver transcrição ao lado</button>` : '',
         ])}

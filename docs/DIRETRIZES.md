@@ -87,6 +87,8 @@ Regras que valem para qualquer mudança, feita por pessoa ou por IA. O objetivo 
 - **Pouco texto nas telas de lista.** Mostrar o essencial em cartões curtos e deixar o detalhe para quando a pessoa abre o item (como em Modelos de documento).
 - Ações destrutivas pedem confirmação. Não usar `alert()`/`confirm()` do navegador; usar `openModal` e `confirmBox`.
 - Depois de salvar, mostrar aviso curto (`toast`).
+- **Animações de entrada só na primeira visita do dia** (classe `ja-viu` no `<html>`); as de resposta (check, janelas, flor, item que some) valem sempre.
+- **Ações perigosas** (excluir, arquivar) ficam dentro de menus "Mais"/"⋯", nunca soltas na primeira tela.
 - **Animações onde couber:** toda tela nova ou revisada deve ganhar animação discreta onde fizer sentido (entrada de página e de blocos, cartões que sobem ao passar o mouse, aberturas de janela, gráficos que crescem). Regras: curtas (até ~0,6 s), sem atrapalhar o clique (usar `backwards`, nunca `both`, em animações de entrada), e desligadas para quem pede menos movimento (`prefers-reduced-motion`).
 - **O nome Potira** (tupi, "flor") e a história do nome aparecem na apresentação (seção "Por que Potira?") e em Sobre. Manter os dois textos coerentes.
 - **A tela principal de quem não está logado é a apresentação** (`js/views-landing.js`), com Entrar e Portal do paciente no topo. Não voltar a abrir direto no login. Os links com a marca do profissional (`#/c/nome`, `#/paciente/nome`) continuam indo direto para a entrada.

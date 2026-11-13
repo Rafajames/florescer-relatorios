@@ -51,15 +51,21 @@ export async function renderSettings(params) {
       perfil: p0.council_registry ? ['Completo', 'ok'] : ['Falta o registro', 'warn'],
       aparencia: b0.logo || b0.slug ? ['Personalizada', 'ok'] : ['Padrão da Potira', ''],
       chaves: nKeys ? [`${nKeys} conectada${nKeys > 1 ? 's' : ''}`, 'ok'] : ['Sem IA', ''],
+      preferencias: getPrefs().autosave ? ['Salva sozinho', 'ok'] : ['Salvar à mão', ''],
+      consentimento: p0.consent_text && p0.consent_text !== DEFAULT_CONSENT ? ['Texto seu', 'ok'] : ['Texto padrão', ''],
+      seguranca: ['…', ''], dados: ['…', ''],
     };
     main.innerHTML = pageHeader('Configurações', '', `<a class="btn quiet" href="#/ajuda">${icon('info')}Ajuda</a><button class="btn quiet" data-logout>${icon('logout')}Sair da conta</button>`) + `
       <div class="cfg-grade">${TABS.map(([k, l]) => { const [ic, d] = CARD[k]; const e = estado[k];
-        return `<a class="cfg-card" href="#/config?aba=${k}"><span class="cfg-ic">${icon(ic)}</span><span class="grow"><b>${l}</b><small>${d}</small>${e ? chip(e[0], e[1]) : ''}</span>${icon('right')}</a>`; }).join('')}</div>`;
+        return `<a class="cfg-card" data-k="${k}" href="#/config?aba=${k}"><span class="cfg-ic">${icon(ic)}</span><span class="grow"><b>${l}</b><small>${d}</small>${e ? chip(e[0], e[1]) : ''}</span>${icon('right')}</a>`; }).join('')}</div>`;
+    // estados que dependem de consulta: autenticador e pasta no computador
+    const poe = (k, txt, tipo) => { const c = $(`.cfg-card[data-k=${k}] .chip`); if (c) c.outerHTML = chip(txt, tipo); };
+    api.mfaFactors().then((f) => poe('seguranca', f.some((x) => x.status === 'verified') ? 'Autenticador ligado' : 'Só senha', f.some((x) => x.status === 'verified') ? 'ok' : '')).catch(() => poe('seguranca', 'Só senha', ''));
+    import('./pasta.js').then((m) => m.estado()).then((st) => poe('dados', st === 'sem' ? 'Sem pasta' : 'Pasta escolhida', st === 'sem' ? '' : 'ok')).catch(() => poe('dados', 'Sem pasta', ''));
     return;
   }
   main.innerHTML = (adm ? '' : backLink('#/config', 'Configurações')) + pageHeader(TABS.find(([k]) => k === tab)[1], '', `<a class="btn quiet" href="#/ajuda">${icon('info')}Ajuda</a><button class="btn quiet" data-logout>${icon('logout')}Sair da conta</button>`) + `
-    <div class="settings">
-      <nav class="subnav" aria-label="Seções">${TABS.map(([k, l]) => `<a href="#/config?aba=${k}" class="${k === tab ? 'on' : ''}">${l}</a>`).join('')}</nav>
+    <div class="settings so">
       <div id="pane"></div>
     </div>`;
   const pane = $('#pane');

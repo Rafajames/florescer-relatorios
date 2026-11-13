@@ -39,7 +39,12 @@ export function toast(msg, kind = 'ok') {
   toast._t = setTimeout(() => (t.className = ''), kind === 'err' ? 5500 : 2600);
 }
 
-const calmo = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Animações de entrada (painéis em sequência, números contando) só na primeira visita do dia; depois, a tela aparece direto.
+let jaViuHoje = false;
+try { const hoje = new Date().toISOString().slice(0, 10); jaViuHoje = localStorage.getItem('potira-anim-dia') === hoje;
+  if (jaViuHoje) document.documentElement.classList.add('ja-viu'); else setTimeout(() => { try { localStorage.setItem('potira-anim-dia', hoje); } catch { /* sem armazenamento */ } }, 8000);
+} catch { /* sem armazenamento */ }
+const calmo = () => jaViuHoje || matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** Comemoração discreta: uma flor que se abre (primeiro paciente, primeiro relatório liberado). Uma vez por marco, neste navegador. */
 export function celebrar(marco, texto) {
@@ -51,7 +56,7 @@ export function celebrar(marco, texto) {
 
 /** Item apagado encolhe e some antes de sair da lista. */
 export function sumir(el) {
-  if (!el || calmo()) { el && el.remove(); return Promise.resolve(); }
+  if (!el || matchMedia('(prefers-reduced-motion: reduce)').matches) { el && el.remove(); return Promise.resolve(); }
   el.style.height = el.offsetHeight + 'px'; el.classList.add('sumindo');
   return new Promise((ok) => setTimeout(() => { el.remove(); ok(); }, 320));
 }
@@ -84,7 +89,7 @@ export function openModal(title, bodyHtml, { okText = 'Salvar', cancelText = 'Ca
         ${onOk ? `<button type="submit" class="btn" data-ok>${esc(okText)}</button>` : ''}
       </div></form>`;
     document.body.appendChild(d);
-    const close = (v) => { resolve(v); if (calmo()) { d.close(); d.remove(); return; } d.classList.add('fechando'); setTimeout(() => { d.close(); d.remove(); }, 160); };
+    const close = (v) => { resolve(v); if (matchMedia('(prefers-reduced-motion: reduce)').matches) { d.close(); d.remove(); return; } d.classList.add('fechando'); setTimeout(() => { d.close(); d.remove(); }, 160); };
     $('[data-cancel]', d).onclick = () => close(null);
     d.addEventListener('cancel', (e) => { e.preventDefault(); close(null); });
     $('[data-x]', d).onclick = () => close(null);

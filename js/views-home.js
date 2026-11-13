@@ -106,7 +106,8 @@ export async function renderDashboard() {
   } catch { cobHoje = 0; }
   // Novidades vindas dos pacientes; "visto" fica guardado neste navegador.
   let nov = []; try { nov = await api.listNovidades(); } catch { nov = []; }
-  let visto = ''; try { visto = localStorage.getItem('potira-novidades-visto') || ''; } catch { /* sem armazenamento */ }
+  // "visto" fica no perfil (vale no computador e no celular); o navegador guarda uma cópia para o caso de falhar
+  let visto = state.profile?.preferences?.novidades_visto || ''; try { const l = localStorage.getItem('potira-novidades-visto') || ''; if (l > visto) visto = l; } catch { /* sem armazenamento */ }
   const novas = nov.filter((n) => n.quando > visto);
   const novHtml = novas.length ? `<section class="panel novidades" style="margin-bottom:16px"><div class="panel-head"><h3>${icon('sparkle')}Novidades <span class="nov-n">${novas.length}</span></h3><button class="btn quiet sm" id="nov-ok">Marcar como visto</button></div>
     ${novas.slice(0, 8).map((n) => `<a class="nov${n.alerta ? ' alerta' : ''}" href="${n.h}"><span class="grow"><b>${esc(n.nome)}</b> ${esc(n.txt)}</span><small class="muted">${fmtDateTime(n.quando)}</small></a>`).join('')}
@@ -187,7 +188,12 @@ export async function renderDashboard() {
   if (!p.is_admin) import('./tour.js').then((m) => m.maybeTour()).catch(() => {});
   if ($('#h-lembretes')) $('#h-lembretes').onclick = () => lembretesModal({ aps: amanhaAps, patients, title: `Lembretes de amanhã (${fmtDate(amanhaISO)})` });
   const novOk = $('#nov-ok');
-  if (novOk) novOk.onclick = () => { try { localStorage.setItem('potira-novidades-visto', novas[0].quando); } catch { /* sem armazenamento */ } const sec = novOk.closest('.novidades'); sumir(sec); };
+  if (novOk) novOk.onclick = () => {
+    const ate = novas[0].quando;
+    try { localStorage.setItem('potira-novidades-visto', ate); } catch { /* sem armazenamento */ }
+    api.updateProfile(state.profile.id, { preferences: { ...(state.profile.preferences || {}), novidades_visto: ate } }).then((np) => { if (np) state.profile = np; }).catch(() => {});
+    sumir(novOk.closest('.novidades'));
+  };
   $$('[data-hfalta]').forEach((b) => (b.onclick = async () => {
     const a = todayAps.find((x) => x.id === b.dataset.hfalta);
     if (!(await confirmBox(`Marcar falta de ${a.patients?.name || 'paciente'} na sessão de hoje?`, 'Marcar falta'))) return;
@@ -247,7 +253,8 @@ export async function renderPatients() {
       <span class="grow"></span>
       <select id="sort" style="width:auto;margin:0" aria-label="Ordenar">
         <option value="nome">Ordenar por nome</option><option value="recente">Atendidos recentemente</option></select>
-      <label class="check" style="margin:0"><input type="checkbox" id="arch">Mostrar arquivados</label>
+      <button type="button" class="pilula" id="arch" aria-pressed="false">Arquivados</button>
+      <div class="pilulas" role="group" aria-label="Formato">${[['cartoes', 'Cartões'], ['lista', 'Lista']].map(([v, t]) => `<button type="button" class="pilula" data-fmt="${v}">${t}</button>`).join('')}</div>
     </div>
     <div class="pac-grade" id="ptable"></div>`;
 
@@ -262,7 +269,7 @@ export async function renderPatients() {
       (rows.length ? rows.map((p) => {
         const reps = p.reports || [], dr = reps.filter((r) => r.status === 'rascunho').length, ult = lastSession(p);
         const ini = p.name.split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
-        const cor = [...p.name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+        const cor = [...p.name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 5, 3) * 25; // 5 tons entre o petróleo e o rosa da marca
         return `<a class="pac-card" href="#/pacientes/${p.id}">
           <span class="pac-av" style="--h:${cor}">${esc(ini)}</span>
           <span class="grow"><b class="ellip">${esc(p.name)}</b><small>${ult ? 'Última sessão ' + fmtDate(ult) : 'Nenhuma sessão ainda'} · ${reps.length} registro${reps.length === 1 ? '' : 's'}</small>
@@ -273,7 +280,12 @@ export async function renderPatients() {
   draw();
   ['#q', '#sort'].forEach((id) => ($(id).oninput = draw));
   $$('.pilula[data-f]').forEach((b) => (b.onclick = () => { f = b.dataset.f; $$('.pilula[data-f]').forEach((x) => x.classList.toggle('on', x === b)); draw(); }));
-  $('#arch').onchange = async (e) => { showArchived = e.target.checked; all = await api.listPatients(showArchived); draw(); };
+  $('#arch').onclick = async (e) => { showArchived = !showArchived; e.currentTarget.classList.toggle('on', showArchived); e.currentTarget.setAttribute('aria-pressed', showArchived); all = await api.listPatients(showArchived); draw(); };
+  // formato da lista: cartões ou lista compacta (lembrado neste navegador; com muitos pacientes começa compacta)
+  const setFmt = (v, lembrar) => { $('#ptable').classList.toggle('compacta', v === 'lista'); $$('[data-fmt]').forEach((x) => x.classList.toggle('on', x.dataset.fmt === v)); if (lembrar) { try { localStorage.setItem('pac-fmt', v); } catch { /* sem armazenamento */ } } };
+  let fmt0 = null; try { fmt0 = localStorage.getItem('pac-fmt'); } catch { /* sem armazenamento */ }
+  setFmt(fmt0 || (all.length > 24 ? 'lista' : 'cartoes'), false);
+  $$('[data-fmt]').forEach((b) => (b.onclick = () => setFmt(b.dataset.fmt, true)));
   const addP = async () => { const p = await patientModal(); if (p && p.id) goto(`#/pacientes/${p.id}`); };
   $('#add').onclick = addP;
   $('#demo').onclick = async (e) => {
@@ -549,10 +561,12 @@ export async function renderPatientDetail(id) {
         <button type="button" id="link-anamnese">${icon('file')}Anamnese para responder</button>
         <button type="button" id="link-rel">${icon('file')}Relatório para ler e baixar</button>
         <button type="button" id="link-ori">${icon('file')}Orientações para casa</button></div></details>
-      <details class="menu"><summary class="btn quiet">${icon('download')}Exportar</summary><div class="menu-list">
-        <button type="button" id="dossier">${icon('download')}Prontuário completo</button>
-        <button type="button" id="audit">${icon('shield')}Auditoria (PDF)</button></div></details>
-      <button class="btn quiet" id="edit">${icon('edit')}Editar cadastro</button>`) +
+      <button class="btn quiet" id="edit">${icon('edit')}Editar cadastro</button>
+      <details class="menu"><summary class="btn quiet">${icon('more')}Mais</summary><div class="menu-list">
+        <button type="button" id="dossier">${icon('download')}Exportar prontuário completo</button>
+        <button type="button" id="audit">${icon('shield')}Exportar auditoria (PDF)</button>
+        <button type="button" id="archive">${icon('eyeoff')}${p.archived ? 'Desarquivar paciente' : 'Arquivar paciente'}</button>
+        <button type="button" id="del" class="perigo">${icon('trash')}Excluir paciente e relatórios</button></div></details>`) +
     (isDemo(p) ? callout('<p><b>Paciente de teste.</b> Dados fictícios para você experimentar. Remova em Pacientes quando não precisar mais.</p>', 'warn') : '') +
     meta([p.email ? esc(p.email) : '', p.phone ? esc(p.phone) : 'sem telefone', p.birth_date ? 'nascimento ' + fmtDate(p.birth_date) : '', admin?.guardian ? 'responsável: ' + esc(admin.guardian) : '']) +
     '<div style="height:20px"></div>' +
@@ -587,25 +601,17 @@ export async function renderPatientDetail(id) {
             ? `<p class="small">O paciente entra pelo <b>Portal do paciente</b> em <code>${esc(siteUrl())}</code> e, no primeiro acesso, cria a senha com o e-mail <b>${esc(p.email)}</b>. Ele vê só o que você revisar e liberar.</p>`
             : '<p class="muted small">Cadastre o e-mail do paciente para ativar o portal.</p>'}
         </div>
-        <div class="panel flat" data-aba="resumo">
-          <h3>Ações com cuidado</h3>
-          <div class="stack-btns" style="margin-top:8px">
-            <button class="btn quiet sm" id="archive">${p.archived ? 'Desarquivar paciente' : 'Arquivar paciente'}</button>
-            <button class="btn danger sm" id="del">Excluir paciente e relatórios</button>
-          </div>
-        </div>
       </aside>
     </div>`;
 
-  // abas da ficha: lembra a última aberta nesta visita
+  // abas da ficha
   const ficha = $('.pac-ficha');
   const abrirAba = (k) => {
-    ficha.dataset.at = k; try { sessionStorage.setItem('pac-aba', k); } catch { /* sem armazenamento */ }
+    ficha.dataset.at = k;
     $$('[data-aba-btn]').forEach((b) => { const on = b.dataset.abaBtn === k; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
   };
   $$('[data-aba-btn]').forEach((b) => (b.onclick = () => abrirAba(b.dataset.abaBtn)));
-  let abaIni = 'resumo'; try { abaIni = sessionStorage.getItem('pac-aba') || 'resumo'; } catch { /* sem armazenamento */ }
-  abrirAba(abaIni);
+  abrirAba('resumo'); // cada paciente abre no Resumo
 
   const editIt = async () => { if (await patientModal(p)) renderPatientDetail(id); };
   $('#edit').onclick = editIt;

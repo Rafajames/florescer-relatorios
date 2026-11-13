@@ -37,6 +37,10 @@ Estes itens foram testados só no ambiente de teste (dados simulados). O que se 
 - **Animações de 13/11/2026:** testadas no simulado (aviso com check, flor de comemoração, janela fechando). Conferir no site real: agenda trocando de semana, gráfico de escalas, números do resumo e excluir gasto. O teste antigo `run-fin.js` está desatualizado (procura um campo que não existe mais).
 - **Tela principal de apresentação** (12/11/2026): testada só em ambiente simulado (computador e celular). Falta abrir o site publicado sem estar logado e conferir Entrar, Criar conta e Portal do paciente; conferir também o link antigo `apresentacao.html` e o botão "Página de apresentação" em Sobre.
 
+- **Melhorias da crítica de 13/11/2026** (agenda, editor, ficha, listas, configurações, apresentação): testadas só no simulado. Conferir no site: clicar num horário vazio da grade, visão Dia no celular, menu Mais da ficha, lista compacta de pacientes.
+- **Contato da apresentação:** o James precisa preencher WhatsApp e/ou e-mail em Administração → Convites (conta de administrador) para a seção "Fale com a gente" aparecer.
+- Ainda não tratado da crítica: textos longos dentro de Aparência e marca e de Dados e privacidade.
+
 ## 2. Proposto e ainda não implementado
 
 - **Animações: referências e ideias** (pesquisa de 13/11/2026). Feitas em 13/11: check no aviso de salvo, janelas abrindo e fechando, painéis em sequência, números do resumo contando, gráfico de escalas se desenhando, barras do resumo crescendo, agenda deslizando ao trocar de semana, chip "confirmado" com pulinho, gasto excluído encolhendo, flor no primeiro paciente e no primeiro relatório liberado, blocos em cinza ao carregar (já existia).

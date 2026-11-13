@@ -189,6 +189,12 @@ const VIEWS = {
       <div class="list">${list.map((i) => `<div class="li"><div class="grow"><div class="t"><code>${esc(i.code)}</code> ${i.used_by ? chip('Usado', 'ok') : i.active ? chip('Disponível', 'petrol') : chip('Cancelado')}</div>
         <div class="muted small">${esc(i.note || 'Sem observação')} · criado em ${esc(fmtDate(i.created_at))}${i.used_at ? ' · usado em ' + esc(fmtDate(i.used_at)) : ''}</div></div>
         ${i.used_by ? '' : `<button class="btn quiet sm ${i.active ? 'danger' : ''}" data-c="${i.code}" data-a="${i.active ? '' : '1'}">${i.active ? 'Cancelar' : 'Reativar'}</button>`}</div>`).join('') || '<p class="muted">Nenhum código ainda.</p>'}</div></section>`;
+    box.insertAdjacentHTML('beforeend', `<section class="panel"><h2>Contato na página de apresentação</h2>
+      <p class="muted small">Aparece em "Fale com a gente" para quem ainda não tem conta. Deixe em branco para esconder.</p>
+      <div class="grid2"><label class="field">WhatsApp (com DDD)<input id="ct-wa" inputmode="tel" value="${esc(settings.contato_whatsapp || '')}" placeholder="55 95 99999-0000"></label>
+      <label class="field">E-mail<input id="ct-mail" type="email" value="${esc(settings.contato_email || '')}"></label></div>
+      <button class="btn" id="ct-save">Salvar contato</button></section>`);
+    $('#ct-save').onclick = async () => { await save('contato_whatsapp', $('#ct-wa').value.trim()); await save('contato_email', $('#ct-mail').value.trim()); toast('Contato salvo.'); };
     $('#req').onchange = (e) => save('invite_required', e.target.checked);
     $('#gen').onclick = async () => {
       const code = Array.from(crypto.getRandomValues(new Uint8Array(8)), (n) => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[n % 32]).join('');
