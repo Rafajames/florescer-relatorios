@@ -36,6 +36,23 @@ export async function renderReport(id) {
   const qi = queue.indexOf(id), nextId = qi >= 0 ? queue[qi + 1] : null;
   const queueBar = qi >= 0 && queue.length > 1 ? `<div class="callout">${icon('info')}<div class="grow"><p>Editando ${qi + 1} de ${queue.length} relatórios selecionados.</p></div>${nextId ? `<a class="btn sm" href="#/relatorio/${nextId}">Próximo →</a>` : '<a class="btn sm quiet" href="#/relatorios">Voltar à lista</a>'}</div>` : '';
   main.innerHTML = backLink(`#/pacientes/${r.patients.id}`, r.patients.name) + queueBar + `
+    <div class="ed-barra">
+      <span class="ed-quem ellip"><b>${esc(r.patients.name)}</b> ${statusChip(r)}</span>
+      <div class="save-state" id="savestate"></div>
+      <span class="grow"></span>
+      ${!reviewed ? `<button class="btn bloom sm" id="review">${icon('check')}Marcar como revisado</button>` : ''}
+      ${reviewed && !r.released_to_patient ? `<button class="btn bloom sm" id="release" ${canRelease ? '' : 'disabled'} ${canRelease ? '' : 'title="Cadastre o e-mail do paciente para poder liberar"'}>${icon('eye')}Liberar ao paciente</button>` : ''}
+      <details class="menu"><summary class="btn quiet sm" aria-label="Exportar">${icon('download')}<span class="rot">Exportar</span></summary><div class="menu-list">
+        <button type="button" id="preview">${icon('eye')}Prévia do portal</button>
+        <button type="button" id="word">${icon('download')}Word (para editar)</button>
+        <button type="button" id="pdf">${icon('download')}PDF</button>
+        <label class="check small" style="padding:8px 12px;margin:0"><input type="checkbox" id="onlyvis">Só as seções visíveis ao paciente</label></div></details>
+      <details class="menu"><summary class="btn quiet sm" aria-label="Mais ações">${icon('more')}</summary><div class="menu-list">
+        ${r.released_to_patient ? `<button type="button" id="unrelease">${icon('eyeoff')}Retirar do portal</button>` : ''}
+        ${reviewed ? `<button type="button" id="reopen">${icon('edit')}Voltar para rascunho</button>` : ''}
+        ${r.kind === 'anamnese' ? `<button type="button" id="to-cad">${icon('users')}Levar dados para o cadastro</button>` : ''}
+        <button type="button" id="del" class="perigo">${icon('trash')}Excluir relatório</button></div></details>
+    </div>
     <div class="editor">
       <div>
         <input id="title" class="title-input" value="${esc(r.title)}" aria-label="Título do relatório">
@@ -53,42 +70,19 @@ export async function renderReport(id) {
           <button class="tab" data-tab="historico" role="tab">Histórico e versões</button>
         </div>
         <div id="split"><div id="pane"></div><aside class="side-ts hide" id="side" aria-label="Transcrição ao lado"></aside></div>
+        ${r.kind === 'sessao' ? '<div class="panel ed-metas" id="pl-metas-sessao"></div>' : ''}
       </div>
 
       <aside class="status-rail">
         <div class="panel">
           <ol class="flow">
-            <li class="done"><span class="dot">${icon('check')}</span><div><b>Rascunho</b><span>Criado em ${fmtDate(r.created_at)}</span></div></li>
+            <li class="done"><span class="dot">${icon('check')}</span><div><b>Rascunho</b><span>${r.created_at ? 'Criado em ' + fmtDate(r.created_at) : 'Criado'}</span></div></li>
             <li class="${reviewed ? 'done' : 'cur'}"><span class="dot">${reviewed ? icon('check') : ''}</span><div><b>Revisado</b><span>${reviewed ? 'Conferido por você' : 'Falta sua conferência'}</span></div></li>
             <li class="${r.released_to_patient ? 'done' : reviewed ? 'cur' : ''}"><span class="dot">${r.released_to_patient ? icon('check') : ''}</span><div><b>Liberado ao paciente</b><span>${r.released_to_patient ? 'Visível no portal' : 'Só você vê por enquanto'}</span></div></li>
           </ol>
-          <div class="stack-btns">
-            ${!reviewed ? `<button class="btn bloom" id="review">${icon('check')}Marcar como revisado</button>` : ''}
-            ${reviewed && !r.released_to_patient ? `<button class="btn bloom" id="release" ${canRelease ? '' : 'disabled'}>${icon('eye')}Liberar ao paciente</button>` : ''}
-            ${r.released_to_patient ? `<button class="btn quiet" id="unrelease">${icon('eyeoff')}Retirar do portal</button>` : ''}
-            ${reviewed ? `<button class="btn quiet" id="reopen">${icon('edit')}Voltar para rascunho</button>` : ''}
-          </div>
           ${reviewed && !r.patients?.email ? '<p class="small muted" style="margin-top:8px">Cadastre o e-mail do paciente para poder liberar.</p>' : ''}
-          <div class="save-state" id="savestate"></div>
         </div>
-        ${r.kind === 'anamnese' ? `<div class="panel">
-          <h3>Cadastro do paciente</h3>
-          <p class="small muted">Leva nascimento, responsáveis e diagnóstico desta anamnese para a ficha do paciente. Você confere antes.</p>
-          <button class="btn quiet" id="to-cad">${icon('users')}Atualizar cadastro</button>
-        </div>` : ''}
-        ${r.kind === 'sessao' ? '<div class="panel" id="pl-metas-sessao"></div>' : ''}
-        <div class="panel">
-          <h3>Entrega</h3>
-          <div class="stack-btns" style="margin-top:8px">
-            <button class="btn quiet" id="preview">${icon('eye')}Prévia do portal</button>
-            <button class="btn quiet" id="word">${icon('download')}Exportar Word</button>
-            <button class="btn quiet" id="pdf">${icon('download')}Exportar PDF</button>
-          </div>
-          <label class="check small" style="margin-top:10px"><input type="checkbox" id="onlyvis">Exportar só as seções visíveis ao paciente</label>
-        </div>
-        <div class="panel flat">
-          <button class="btn danger sm" id="del">${icon('trash')}Excluir relatório</button>
-        </div>
+        ${r.kind === 'anamnese' ? `<div class="panel"><h3>Cadastro do paciente</h3><p class="small muted">Em <b>⋯</b>, "Levar dados para o cadastro" passa nascimento, responsáveis e diagnóstico para a ficha. Você confere antes.</p></div>` : ''}
       </aside>
     </div>`;
 
@@ -129,7 +123,7 @@ export async function renderReport(id) {
       <div class="sheet-foot">${r.ai_generated ? 'Elaborado com apoio de ferramenta de inteligência artificial e revisado pelo(a) profissional responsável. ' : ''}Documento confidencial, com dados sensíveis de saúde (LGPD).</div>
     </article>
     <div class="row add-sec"><button class="btn quiet sm" id="add-sec" ${r.kind === 'documento' ? 'hidden' : ''}>${icon('plus')}Adicionar campo</button>
-      <button class="btn quiet sm" id="save">Salvar agora</button></div>`;
+      <span class="grow"></span><button class="link small" id="save">Salvar agora</button></div>`;
 
   const secHtml = (s, i) => `
     <div class="sec ${collapse && i !== openSec ? 'collapsed' : ''}" data-i="${i}">

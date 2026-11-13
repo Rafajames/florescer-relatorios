@@ -4,6 +4,13 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 13/11/2026 — Editor do relatório revisado
+
+- **Barra fixa no topo** que acompanha a rolagem: paciente, situação, "Tudo salvo" e o botão do próximo passo (Marcar como revisado ou Liberar ao paciente). No celular, fica numa linha só.
+- **Exportar** virou um menu (prévia do portal, Word para editar, PDF, só seções visíveis). **⋯** reúne retirar do portal, voltar para rascunho, levar dados da anamnese ao cadastro e excluir.
+- **Metas trabalhadas** foram para logo abaixo do texto. O lado direito ficou só com o caminho Rascunho → Revisado → Liberado, com o check se desenhando.
+- Correções: "Criado em" sem data, título com a mesma fonte da plataforma, "Salvar agora" virou link discreto (o salvamento automático continua).
+
 ## 13/11/2026 — Pacientes e Relatórios em cartões
 
 - **Pacientes:** cartões com as iniciais em círculo colorido, última sessão, número de registros e avisos (sem consentimento, rascunhos, arquivado, teste). Filtros viraram pílulas; o topo mostra quantos estão em atendimento.
