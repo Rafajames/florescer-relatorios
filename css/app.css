@@ -1113,3 +1113,16 @@ a.stat:hover,a.dcard:hover,.tline .card:hover{transform:translateY(-2px);box-sha
 @media (max-width:560px){.land-grade,.land-grade.tres,.land-passos{grid-template-columns:1fr}.land-wrap{padding:0 16px}.land-pac{padding-left:10px;padding-right:10px}.land-pac svg{display:none}.land-hero p{font-size:17px}}
 .land .btn.bloom{background:var(--bloom);border-color:transparent;color:#fff}.land .btn.bloom:hover{filter:brightness(1.08);color:#fff}
 .land .btn.lg{padding:13px 24px;font-size:16.5px;width:auto;display:inline-flex}
+.land-nome{background:var(--paper);border-radius:22px;padding:36px;margin-top:46px;display:grid;grid-template-columns:120px 1fr;gap:30px;align-items:start}
+.land-nome h2{margin-top:6px}.land-nome p{color:var(--ink-2);max-width:68ch}
+.land-nome-flor{display:grid;place-items:center;width:120px;height:120px;border-radius:32px;background:linear-gradient(140deg,var(--bloom),var(--petrol));color:#fff;animation:flor 6s ease-in-out infinite}
+.land-nome-flor svg{width:60px;height:60px}
+@keyframes flor{0%,100%{transform:rotate(0) scale(1)}50%{transform:rotate(8deg) scale(1.04)}}
+.land-selo.escuro{background:var(--petrol-tint,#e2eef1);color:var(--petrol);margin:0}
+.land-curios{list-style:none;padding:0;margin:18px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.land-curios li{background:var(--mist,#ECF1F3);border-radius:14px;padding:14px 16px;color:var(--ink-2);font-size:15px}
+.land-curios b{display:block;color:var(--ink);margin-bottom:2px}
+.land .revela{opacity:0;transform:translateY(18px);transition:opacity .55s ease,transform .55s cubic-bezier(.2,.7,.2,1)}
+.land .revela.visto{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.land-nome-flor{animation:none}}
+@media (max-width:700px){.land-nome{grid-template-columns:1fr;padding:24px}.land-nome-flor{width:80px;height:80px;border-radius:22px}.land-nome-flor svg{width:40px;height:40px}.land-curios{grid-template-columns:1fr}}

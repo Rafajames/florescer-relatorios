@@ -36,6 +36,7 @@ export function renderLanding() {
         <button type="button" data-ir="como">Como funciona</button>
         <button type="button" data-ir="quem">Para quem</button>
         <button type="button" data-ir="duvidas">Dúvidas</button>
+        <button type="button" data-ir="nome">O nome</button>
       </nav>
       <div class="land-acoes">
         <a class="btn quiet sm land-pac" href="#/paciente">${icon('users')}Portal do paciente</a>
@@ -84,6 +85,22 @@ export function renderLanding() {
         <div class="land-faq">${FAQ.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join('')}</div>
       </section>
 
+      <section id="nome" class="land-nome">
+        <div class="land-nome-flor">${icon('flower')}</div>
+        <div>
+          <span class="land-selo escuro">Sobre o nome</span>
+          <h2>Por que Potira?</h2>
+          <p><b>Potira</b> é uma palavra de origem tupi que quer dizer <b>flor</b>. Também é usada no Brasil como nome próprio feminino.</p>
+          <p>A plataforma nasceu como <i>Florescer Relatórios</i>. Na hora de ganhar um nome próprio, a ideia de florescer ficou: trocamos por uma palavra curta, brasileira e fácil de lembrar, que guarda o mesmo sentido. Uma flor cresce aos poucos, com cuidado e constância, como o paciente ao longo das sessões.</p>
+          <ul class="land-curios">
+            <li><b>A marca é uma flor.</b> O símbolo no topo da página é a flor da Potira.</li>
+            <li><b>O rosa é de flor.</b> As cores são o petróleo, que traz calma e confiança, e o rosa, a cor da flor que se abre.</li>
+            <li><b>O repositório guarda o nome antigo.</b> O código ainda se chama florescer-relatorios, a semente da Potira.</li>
+            <li><b>Feita no Brasil, em português.</b> Do vocabulário (sessão, evolução, anamnese) ao PIX e à LGPD.</li>
+          </ul>
+        </div>
+      </section>
+
       <section class="land-fim">
         <h2>Quer testar com os seus pacientes?</h2>
         <p>Crie a sua conta, use o paciente de teste e conte o que precisa melhorar.</p>
@@ -98,5 +115,11 @@ export function renderLanding() {
     const alvo = document.getElementById(b.dataset.ir);
     if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }));
+  // animação: cada bloco aparece suavemente ao entrar na tela (nada some para quem pede menos movimento)
+  if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const blocos = document.querySelectorAll('.land-card, .land-passos > div, .land-faixa, .land-faq details, .land-nome, .land-fim, .land section > h2');
+    const obs = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('visto'); obs.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
+    blocos.forEach((b, i) => { b.classList.add('revela'); b.style.transitionDelay = `${(i % 3) * 70}ms`; obs.observe(b); });
+  }
   window.scrollTo(0, 0);
 }

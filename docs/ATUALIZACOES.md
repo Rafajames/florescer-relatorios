@@ -4,6 +4,12 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 13/11/2026 — "Por que Potira?" e animações na apresentação
+
+- Nova seção no fim da apresentação, também no menu do topo ("O nome"): o significado de Potira (tupi, "flor"), por que o nome foi escolhido e curiosidades. Resumo também em Sobre.
+- Os blocos da apresentação aparecem suavemente ao rolar a página, e a flor da seção do nome se mexe devagar. Tudo desligado para quem pede menos movimento.
+- Regra de animações registrada em DIRETRIZES; telas que ainda não têm animação, listadas em PENDENCIAS.
+
 ## 12/11/2026 — Apresentação como tela principal
 
 - Quem abre o site sem estar logado vê a **apresentação da Potira**: recursos, como funciona, para quem é, dúvidas frequentes e rodapé com Termos e Privacidade.

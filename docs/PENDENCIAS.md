@@ -38,6 +38,9 @@ Estes itens foram testados só no ambiente de teste (dados simulados). O que se 
 
 ## 2. Proposto e ainda não implementado
 
+- **Animações onde ainda não há** (pedido do James, 13/11/2026): revisar telas sem movimento e acrescentar animações discretas seguindo a regra em DIRETRIZES (agenda, financeiro, ficha do paciente, gráficos de escalas, janelas). Já têm: entrada de página, menu, apresentação (blocos aparecem ao rolar e flor animada).
+- **Confirmar com o James a história do nome:** o texto diz que Potira (tupi, "flor") manteve o sentido de Florescer. Se houver outro motivo ou curiosidade, acrescentar.
+
 **Cobrança enviada sozinha (automática de verdade)**
 Hoje a cobrança agendada fica pronta e o profissional envia. Enviar sem ninguém tocar exige um serviço externo:
 - por e-mail: função agendada no Supabase mais um serviço de envio (há plano gratuito), usando o e-mail do paciente. É o caminho possível sem custo;

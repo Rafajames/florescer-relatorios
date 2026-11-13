@@ -119,6 +119,9 @@ export function renderAbout() {
       <p>A Potira é uma plataforma para profissionais de saúde registrarem sessões, escreverem anamneses, evoluções e relatórios, cuidarem da agenda e das cobranças, e entregarem documentos ao paciente com segurança. A inteligência artificial é opcional: o sistema funciona sem ela.</p>
       <p class="muted small">Cada profissional vê só os próprios pacientes. O áudio das sessões nunca é guardado. Dados de saúde são tratados conforme a LGPD. A plataforma está em fase de testes.</p>
     </section>
+    <section class="panel"><h2>Por que Potira?</h2>
+      <p><b>Potira</b> é uma palavra de origem tupi que quer dizer <b>flor</b>. A plataforma nasceu como Florescer Relatórios; no nome novo, a ideia de florescer ficou, numa palavra curta e brasileira. A flor da marca e o rosa das cores vêm daí.</p>
+    </section>
     <section class="panel"><h2>Saiba mais</h2>
       <div class="row"><a class="btn quiet sm" target="_blank" rel="noopener" href="https://github.com/Rafajames/florescer-relatorios/blob/main/docs/ATUALIZACOES.md">${icon('file')}Novidades e atualizações</a>
       <a class="btn quiet sm" href="./?apresentacao" target="_blank" rel="noopener">Página de apresentação</a>
