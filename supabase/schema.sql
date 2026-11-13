@@ -1417,3 +1417,38 @@ begin
 end $$;
 revoke all on function public.undo_receipt_number(int) from public, anon;
 grant execute on function public.undo_receipt_number(int) to authenticated;
+
+-- ===================== v18 (13/11/2026): bloqueios fixos da agenda e encaixes =====================
+-- 1) Bloqueio que se repete toda semana (ex.: almoço, seg a sex). Vale para todos os dias escolhidos, até o profissional apagar.
+create table if not exists public.agenda_rules (
+  id uuid primary key default gen_random_uuid(),
+  professional_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  weekdays smallint[] not null default '{1,2,3,4,5}',
+  start_time time not null, end_time time not null, reason text,
+  created_at timestamptz not null default now(),
+  constraint agenda_rules_hora_check check (end_time > start_time)
+);
+alter table public.agenda_rules enable row level security;
+drop policy if exists agenda_rules_all_own on public.agenda_rules;
+create policy agenda_rules_all_own on public.agenda_rules for all to authenticated
+  using (professional_id = auth.uid() and public.is_professional())
+  with check (professional_id = auth.uid() and public.is_professional());
+grant select, insert, update, delete on public.agenda_rules to authenticated;
+
+-- 2) "Liberar neste dia": o bloqueio fixo deixa de valer só naquela data. Apagar a linha volta a bloquear.
+create table if not exists public.agenda_rule_releases (
+  id uuid primary key default gen_random_uuid(),
+  professional_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  rule_id uuid not null references public.agenda_rules(id) on delete cascade,
+  date date not null,
+  unique (rule_id, date)
+);
+alter table public.agenda_rule_releases enable row level security;
+drop policy if exists agenda_rule_releases_all_own on public.agenda_rule_releases;
+create policy agenda_rule_releases_all_own on public.agenda_rule_releases for all to authenticated
+  using (professional_id = auth.uid() and public.is_professional())
+  with check (professional_id = auth.uid() and public.is_professional());
+grant select, insert, update, delete on public.agenda_rule_releases to authenticated;
+
+-- 3) Sessão marcada dentro de um horário bloqueado (encaixe), para aparecer diferente na agenda.
+alter table public.appointments add column if not exists encaixe boolean not null default false;

@@ -176,7 +176,7 @@ export const listAuditAll = () =>
 /* ---------- backup dos dados do profissional ---------- */
 export async function exportEverything() {
   // tudo o que é do profissional; tabela que não existir ou falhar vai vazia, sem travar o backup
-  const T = ['patients', 'consents', 'reports', 'report_versions', 'appointments', 'agenda_blocks', 'waitlist', 'patient_admin',
+  const T = ['patients', 'consents', 'reports', 'report_versions', 'appointments', 'agenda_blocks', 'agenda_rules', 'agenda_rule_releases', 'waitlist', 'patient_admin',
     'charges', 'receipts', 'expenses', 'goals', 'scales', 'scale_scores', 'share_links', 'survey_answers'];
   const pega = (t) => sb.from(t).select('*').then((r) => (r.error ? [] : r.data || []), () => []);
   const out = { exported_at: new Date().toISOString(), versao: 2 };
@@ -237,6 +237,16 @@ export const listBlocks = async ({ from, to } = {}) => {
 };
 export const saveBlock = upsertRow('agenda_blocks');
 export const deleteBlock = delRow('agenda_blocks');
+/** Bloqueios que se repetem (almoço, seg a sex) e os dias em que foram liberados. */
+export const listRules = () => sb.from('agenda_rules').select('*').order('start_time').then(unwrap);
+export const saveRule = upsertRow('agenda_rules');
+export const deleteRule = delRow('agenda_rules');
+export const listRuleReleases = async ({ from, to } = {}) => {
+  const rows = await sb.from('agenda_rule_releases').select('*').then(unwrap);
+  return rows.filter((r) => (!to || r.date <= to) && (!from || r.date >= from));
+};
+export const releaseRuleDay = (rule_id, date) => sb.from('agenda_rule_releases').insert(own({ rule_id, date })).select().single().then(unwrap);
+export const unreleaseRuleDay = (rule_id, date) => sb.from('agenda_rule_releases').delete().eq('rule_id', rule_id).eq('date', date).then(unwrap);
 export const listWaitlist = () => sb.from('waitlist').select('*').order('created_at').then(unwrap);
 export const saveWaitlist = upsertRow('waitlist');
 export const deleteWaitlist = delRow('waitlist');

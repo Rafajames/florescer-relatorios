@@ -137,3 +137,7 @@ Avisos do Supabase que continuam abertos. **Tratar antes de abrir a plataforma p
 2. Os dados de pagamento devem sair também do Word de orçamento e recibo? (Na cobrança, o Word já foi removido.)
 3. A janela de cobrança ainda mostra a lista de sessões com data e horário para conferência do profissional. Deixar assim ou mostrar só quantidade e total?
 4. Quais achados da seção 3 entram primeiro?
+
+## 6. Anotações de 13/11/2026
+- Bloqueios que se repetem e encaixes: a secretária não consegue criar esses bloqueios (igual aos bloqueios comuns, que são só do profissional). Perguntar ao James se ela deve poder.
+- O teste automático da agenda (run-a.js) falha na parte da lista de espera também antes desta entrega. Revisar o teste, não o código.

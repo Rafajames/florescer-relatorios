@@ -100,14 +100,21 @@ async function agenda(params, patients) {
   const pane = $('#pane');
   const start = umDia ? (params.get('semana') || todayISO()) : mondayOf(params.get('semana') || todayISO());
   const end = umDia ? start : addDays(start, 6);
-  const [aps, reps, blocks] = await Promise.all([
+  const janela = umDia ? [start] : [...Array(7)].map((_, i) => addDays(start, i));
+  const [aps, reps, blocks, regras, liberos] = await Promise.all([
     api.listAppointments({ from: start, to: end }),
     api.listReports({ kind: 'sessao', from: start, to: end, limit: 500 }),
     api.listBlocks({ from: start, to: end }).catch(() => []),
+    api.listRules().catch(() => []),
+    api.listRuleReleases({ from: start, to: end }).catch(() => []),
   ]);
-  const blocksOf = (d) => blocks.filter((b) => b.date <= d && (b.end_date || b.date) >= d);
+  const fixos = regrasEm(janela, regras, liberos);
+  const blocksOf = (d) => [...blocks, ...fixos.filter((f) => !f.liberado)].filter((b) => b.date <= d && (b.end_date || b.date) >= d);
   const blockTxt = (b) => `${b.start_time ? `${hhmm(b.start_time)}–${hhmm(b.end_time)}` : 'Dia todo'}${b.reason ? ' · ' + esc(b.reason) : ''}`;
-  const blocksHtml = (d) => blocksOf(d).map((b) => `<span class="ag-block">${icon('x')}Bloqueado: ${blockTxt(b)} <button class="link small" data-unblock="${b.id}">Liberar</button></span>`).join('');
+  const blocksHtml = (d) => blocksOf(d).map((b) => b.regra
+    ? `<span class="ag-block">${icon('x')}Bloqueio fixo: ${blockTxt(b)} <button class="link small" data-liberar-dia="${b.regra}|${d}">Liberar neste dia</button></span>`
+    : `<span class="ag-block">${icon('x')}Bloqueado: ${blockTxt(b)} <button class="link small" data-unblock="${b.id}">Liberar</button></span>`).join('')
+    + fixos.filter((f) => f.liberado && f.date === d).map((f) => `<span class="ag-block">${icon('calendar')}Liberado neste dia (bloqueio fixo${f.reason ? ': ' + esc(f.reason) : ''}, ${hhmm(f.start_time)}–${hhmm(f.end_time)}) <button class="link small" data-travar-dia="${f.regra}|${d}">Bloquear de novo</button></span>`).join('');
   const amanha = addDays(todayISO(), 1);
   const evoAp = new Map(reps.filter((r) => r.appointment_id).map((r) => [r.appointment_id, r.id]));
   const evo = new Map(reps.filter((r) => !r.appointment_id).map((r) => [`${r.patient_id}|${r.session_date}`, r.id]));
@@ -125,6 +132,7 @@ async function agenda(params, patients) {
       <details class="menu ag-acoes"><summary class="btn quiet sm">${icon('more')}Ações</summary><div class="menu-list">
         <button type="button" id="ag-lembretes">${icon('calendar')}Lembretes de amanhã</button>
         <button type="button" id="ag-bloquear">${icon('x')}Bloquear dia ou horário</button>
+        <button type="button" id="ag-fixos">${icon('calendar')}Bloqueios que se repetem</button>
         <button type="button" id="ag-ics">${icon('download')}Levar para o calendário do celular</button></div></details>
       <span class="grow"></span>
       <span class="small muted">${aps.length} ${aps.length === 1 ? 'sessão' : 'sessões'}</span>
@@ -150,7 +158,7 @@ async function agenda(params, patients) {
           : a.status === 'realizado' && state.profile?.role !== 'secretary' ? `<a class="small" href="#/nova?paciente=${a.patient_id}&sessao=${a.id}">${icon('plus')}Registrar evolução</a>` : '';
         return `<div class="tr cols-agenda">
           <span class="t">${esc(hhmm(a.time) || '—')}</span>
-          <span class="ellip">${state.profile?.role === 'secretary' ? esc(a.patients?.name || '') : `<a href="#/pacientes/${a.patient_id}" style="color:inherit">${esc(a.patients?.name || '')}</a>`}<small class="muted"> · ${a.duration_min} min${a.notes ? ' · ' + esc(a.notes) : ''}</small> ${conf}</span>
+          <span class="ellip">${state.profile?.role === 'secretary' ? esc(a.patients?.name || '') : `<a href="#/pacientes/${a.patient_id}" style="color:inherit">${esc(a.patients?.name || '')}</a>`}<small class="muted"> · ${a.duration_min} min${a.notes ? ' · ' + esc(a.notes) : ''}</small> ${conf}${a.encaixe ? ' ' + chip('Encaixe', 'warn') : ''}</span>
           <span class="ag-meta"><select class="ag-st st-${a.status}" data-st="${a.id}" aria-label="Situação">${statusOpts(a.status)}</select>${evoLink}</span>
           <span class="row" style="gap:2px;flex-wrap:nowrap">${a.status === 'agendado' ? `<button class="btn quiet sm" data-lem="${a.id}" title="Enviar lembrete pelo WhatsApp">Lembrete</button>` : ''}${remarcar}<button class="icon-btn" data-ed="${a.id}" title="Editar" aria-label="Editar">${icon('edit')}</button><button class="icon-btn" data-del="${a.id}" title="Excluir" aria-label="Excluir">${icon('trash')}</button></span>
         </div>`;
@@ -202,12 +210,15 @@ async function agenda(params, patients) {
     await lembretesModal({ aps: lista, patients, title: `Lembretes de amanhã (${fmtDate(amanha)})` });
   };
   $('#ag-bloquear').onclick = async () => { if (await blockModal(start <= todayISO() && todayISO() <= end ? todayISO() : start)) again(); };
+  $('#ag-fixos').onclick = async () => { await fixosModal(); again(); };
   $('#ag-ics').onclick = async () => {
     const fut = (await api.listAppointments({ from: todayISO(), to: addDays(todayISO(), 90) })).filter((x) => x.status === 'agendado');
     if (!fut.length) return toast('Não há sessões agendadas nos próximos 90 dias.', 'err');
     baixarIcs(fut); toast(`${fut.length} sessões no arquivo. Abra o arquivo no celular para adicionar ao calendário.`);
   };
   $$('[data-unblock]').forEach((b) => (b.onclick = async () => { await api.deleteBlock(b.dataset.unblock); toast('Bloqueio removido.'); again(); }));
+  $$('[data-liberar-dia]').forEach((b) => (b.onclick = async () => { const [rid, dia] = b.dataset.liberarDia.split('|'); await api.releaseRuleDay(rid, dia); toast('Liberado neste dia. Os outros dias continuam bloqueados.'); again(); }));
+  $$('[data-travar-dia]').forEach((b) => (b.onclick = async () => { const [rid, dia] = b.dataset.travarDia.split('|'); await api.unreleaseRuleDay(rid, dia); toast('Bloqueado de novo neste dia.'); again(); }));
   $$('[data-remarcar]').forEach((b) => (b.onclick = () => {
     const o = aps.find((x) => x.id === b.dataset.remarcar);
     appointmentModal({ patients: patients.filter((p) => !p.archived), date: addDays(o.date < todayISO() ? todayISO() : o.date, 7), preset: o }).then((ok) => ok && again());
@@ -260,15 +271,20 @@ export function appointmentModal({ patients, appointment: a0, date, preset, hora
     okText: 'Salvar',
     onOk: async (d) => {
       const f = (n) => $(`[name=${n}]`, d).value;
-      const base = { patient_id: f('patient_id'), time: f('time') || null, duration_min: Number(f('duration_min')) || 50, status: f('status'), notes: f('notes').trim() || null };
+      const base = { patient_id: f('patient_id'), time: f('time') || null, duration_min: Number(f('duration_min')) || 50, status: f('status'), notes: f('notes').trim() || null, encaixe: false };
       // Aviso de conflito: outra sessão (não cancelada) no mesmo dia com horário sobreposto.
       const conflito = async (dates) => {
         if (!base.time || ['cancelado', 'falta', 'falta_justificada'].includes(base.status)) return true;
         const min = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
         const ini = min(base.time), fim = ini + base.duration_min;
-        const [outras, bloqueios] = await Promise.all([api.listAppointments({ from: dates[0], to: dates[dates.length - 1] }), api.listBlocks({ from: dates[0], to: dates[dates.length - 1] }).catch(() => [])]);
-        const preso = bloqueios.find((b) => dates.some((dia) => b.date <= dia && (b.end_date || b.date) >= dia) && (!b.start_time || (min(b.start_time) < fim && ini < min(b.end_time || '23:59'))));
-        if (preso && !(await confirmBox(`Este horário está bloqueado${preso.reason ? ` (${preso.reason})` : ''}. Agendar mesmo assim?`, 'Agendar mesmo assim'))) return false;
+        const ate = dates[dates.length - 1];
+        const [outras, bloqueios, regras, liberos] = await Promise.all([api.listAppointments({ from: dates[0], to: ate }), api.listBlocks({ from: dates[0], to: ate }).catch(() => []), api.listRules().catch(() => []), api.listRuleReleases({ from: dates[0], to: ate }).catch(() => [])]);
+        const todos = [...bloqueios, ...regrasEm(dates, regras, liberos).filter((f) => !f.liberado)];
+        const preso = todos.find((b) => dates.some((dia) => b.date <= dia && (b.end_date || b.date) >= dia) && (!b.start_time || (min(b.start_time) < fim && ini < min(b.end_time || '23:59'))));
+        if (preso) {
+          if (!(await confirmBox(`Este horário está bloqueado${preso.reason ? ` (${preso.reason})` : ''}. Agendar mesmo assim? A sessão ficará marcada como encaixe.`, 'Agendar mesmo assim'))) return false;
+          base.encaixe = true;
+        }
         const bate = outras.filter((o) => o.id !== a0?.id && dates.includes(o.date) && o.time && o.status !== 'cancelado'
           && min(o.time) < fim && ini < min(o.time) + (o.duration_min || 50));
         if (!bate.length) return true;
@@ -327,6 +343,44 @@ export async function lembretesModal({ aps, patients, title }) {
   return openModal(title, `<p class="muted small">Cada mensagem leva um link para o paciente confirmar a presença ou pedir para remarcar. A resposta aparece na agenda.</p>
     <div class="table">${aps.map(linha).join('')}</div>`,
   { cancelText: 'Fechar', onOpen: (d) => d.querySelectorAll('[data-sent]').forEach((el) => el.addEventListener('click', () => { el.textContent = 'Enviado ✓'; el.classList.add('quiet'); })) });
+}
+
+/** Bloqueios que se repetem, expandidos em cada dia. `liberado` = o profissional liberou aquele dia. */
+const regrasEm = (dias, regras, liberos) => dias.flatMap((d) => regras
+  .filter((r) => (r.weekdays || []).includes(dt(d).getDay()))
+  .map((r) => ({ date: d, end_date: d, start_time: r.start_time, end_time: r.end_time, reason: r.reason, regra: r.id,
+    liberado: liberos.some((x) => x.rule_id === r.id && x.date === d) })));
+
+/* ---------- Bloqueios que se repetem (ex.: almoço, seg a sex) ---------- */
+const DIAS_SEMANA = [[1, 'Seg'], [2, 'Ter'], [3, 'Qua'], [4, 'Qui'], [5, 'Sex'], [6, 'Sáb'], [0, 'Dom']];
+async function fixosModal() {
+  const regras = await api.listRules().catch(() => []);
+  return openModal('Bloqueios que se repetem', `
+    <p class="muted small">Ex.: almoço, seg a sex, 12:00 às 13:30. Vale em todos os dias escolhidos até você apagar. Para um dia só, use "Liberar neste dia" na agenda.</p>
+    ${regras.length ? `<div class="table">${regras.map((r) => `<div class="tr"><span class="ellip"><b>${esc(r.reason || 'Bloqueio')}</b> · ${hhmm(r.start_time)}–${hhmm(r.end_time)} · ${DIAS_SEMANA.filter(([n]) => (r.weekdays || []).includes(n)).map(([, t]) => t).join(', ')}</span><button type="button" class="icon-btn" data-apagar-regra="${r.id}" aria-label="Apagar" title="Apagar">${icon('trash')}</button></div>`).join('')}</div>` : '<p class="muted small">Nenhum bloqueio que se repete.</p>'}
+    <h4 style="margin:14px 0 8px">Novo bloqueio</h4>
+    <div class="grid2">
+      <label class="field">Das<input type="time" name="start_time"></label>
+      <label class="field">Às<input type="time" name="end_time"></label>
+    </div>
+    <label class="field">Motivo (opcional)<input name="reason" placeholder="Ex.: almoço" maxlength="80"></label>
+    <div class="field">Dias da semana
+      <div class="row" style="gap:10px;margin-top:4px">${DIAS_SEMANA.map(([n, t]) => `<label class="check small"><input type="checkbox" name="wd" value="${n}" ${n >= 1 && n <= 5 ? 'checked' : ''}> ${t}</label>`).join('')}</div>
+    </div>`, {
+    okText: 'Salvar bloqueio', cancelText: 'Fechar',
+    onOpen: (d) => d.querySelectorAll('[data-apagar-regra]').forEach((b) => (b.onclick = async () => {
+      if (!(await confirmBox('Apagar este bloqueio? Ele deixa de valer em todos os dias.', 'Apagar'))) return;
+      await api.deleteRule(b.dataset.apagarRegra); toast('Bloqueio apagado.'); b.closest('.tr').remove();
+    })),
+    onOk: async (d) => {
+      const f = (n) => d.querySelector(`[name=${n}]`).value;
+      const wds = [...d.querySelectorAll('[name=wd]:checked')].map((c) => Number(c.value));
+      if (!f('start_time') || !f('end_time')) { toast('Informe o início e o fim do bloqueio.', 'err'); return false; }
+      if (f('end_time') <= f('start_time')) { toast('O fim precisa ser depois do início.', 'err'); return false; }
+      if (!wds.length) { toast('Escolha pelo menos um dia da semana.', 'err'); return false; }
+      await api.saveRule({ weekdays: wds, start_time: f('start_time'), end_time: f('end_time'), reason: f('reason').trim() || null });
+      toast('Bloqueio que se repete salvo.'); return true;
+    } });
 }
 
 /* ---------- Bloqueio de dia ou horário (feriado, folga) ---------- */

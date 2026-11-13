@@ -321,3 +321,10 @@ Admin: uso (só totais), convites (exigência opcional, desligada por padrão), 
 - Na tela de um dia, "Voltar para a lista" leva de volta à semana.
 - No celular, a agenda abre na Lista (antes abria no Dia).
 - Menu "Ações" da agenda abre alinhado à direita do botão, sem cortar.
+
+### Bloqueios que se repetem (almoço, seg a sex) e encaixes
+- Em Ações → "Bloqueios que se repetem", o profissional cria uma regra: horário, motivo e dias da semana. A regra vale em todos esses dias, na grade e na lista, e avisa ao tentar agendar por cima.
+- Na faixa de cada dia: "Liberar neste dia" libera só aquela data. Depois aparece "Bloquear de novo" para voltar atrás. Os outros dias continuam bloqueados.
+- Agendar dentro de um horário bloqueado continua permitido após confirmar. A sessão fica marcada como "Encaixe" na lista.
+- Migração v18 (tabelas `agenda_rules` e `agenda_rule_releases`, coluna `appointments.encaixe`), aplicada no Supabase e conferida. A exportação de backup inclui as duas tabelas novas.
+- Testado no ambiente simulado: criar a regra (5 dias), liberar um dia, bloquear de novo e agendar com encaixe. Não testado com dados reais.
