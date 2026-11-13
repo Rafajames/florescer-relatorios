@@ -4,10 +4,10 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
-## 13/11/2026 — Recibo em PDF no portal do paciente (aguarda migração v16)
+## 13/11/2026 — Recibo em PDF no portal do paciente
 
 - No Portal do paciente, cada recibo ganha o botão **PDF**, com o mesmo conteúdo, número e timbre da segunda via do profissional.
-- Banco: migração **v16** troca `portal_overview()` para enviar também o conteúdo do recibo e os dados do profissional usados no documento (nome, especialidade, registro, consultório e marca, sem convênios nem configurações internas). Só o próprio paciente (mesmo e-mail) recebe. **Ainda não aplicada**: a conexão com o Supabase estava fora do ar.
+- Banco: migração **v16** troca `portal_overview()` para enviar também o conteúdo do recibo e os dados do profissional usados no documento (nome, especialidade, registro, consultório e marca, sem convênios nem configurações internas). Só o próprio paciente (mesmo e-mail) recebe. Aplicada em 13/11/2026; o visitante sem login continua sem acesso à função.
 
 ## 13/11/2026 — Agenda em grade semanal e visão do mês
 

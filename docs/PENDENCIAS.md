@@ -63,7 +63,7 @@ O James quer emissão de nota fiscal no futuro. Fica para depois.
 
 **Financeiro**
 - O número do recibo avança mesmo se o profissional cancelar a impressão (o recibo fica guardado, com segunda via).
-- **Recibo em PDF no portal: código pronto em 13/11/2026, falta aplicar a migração v16** (fim de `supabase/schema.sql`, só troca a função `portal_overview`). Enquanto não for aplicada, o portal continua sem o botão PDF e mostra "peça ao(à) profissional". Recibos emitidos antes também têm o conteúdo guardado, então ganham o botão.
+- **Recibo em PDF no portal:** feito e migração v16 aplicada em 13/11/2026. Ainda não há nenhum recibo emitido no banco: conferir emitindo um recibo para um paciente de teste com e-mail e abrindo o portal com esse e-mail.
 - A secretária não vê a aba Pesquisa nem Convênios, e não usa a pasta de documentos por paciente com dados clínicos (só os administrativos).
 - Controle de convênio é simples: separa o que o convênio deve, sem guias nem faturamento por lote.
 - O recibo considera as sessões pagas pelo mês da sessão, não pelo mês do pagamento.
