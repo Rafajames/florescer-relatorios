@@ -4,6 +4,12 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 13/11/2026 — Ficha do paciente em abas
+
+- A ficha do paciente ganhou abas: **Resumo** (próximas sessões, observações, consentimento, portal, arquivar/excluir), **Clínico** (plano terapêutico, linha do tempo, escalas), **Financeiro** e **Arquivos e links**. A última aba aberta é lembrada durante a visita.
+- Os botões do topo (Nova evolução, Agendar, Registrar, Enviar por link, Exportar, Editar) continuam visíveis em todas as abas.
+- O texto do Portal do paciente na ficha foi corrigido: o paciente entra pelo Portal e cria a senha no primeiro acesso (não existe mais "criar conta como Paciente").
+
 ## 13/11/2026 — Backup completo e Novidades no Início
 
 - "Baixar backup completo" passou a levar tudo: pacientes, consentimentos, relatórios e versões, sessões, bloqueios, lista de espera, valores e forma de cobrança, cobranças, recibos, gastos, metas, escalas e pontuações, links enviados, respostas da pesquisa, modelos e o perfil.

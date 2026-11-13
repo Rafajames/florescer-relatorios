@@ -555,20 +555,22 @@ export async function renderPatientDetail(id) {
     '<div style="height:20px"></div>' +
     (!active ? callout('<p><b>Falta o consentimento deste paciente.</b> Sem ele, a gravação e o envio de áudio ficam bloqueados.</p>', 'warn', '<button class="btn sm" id="consent-top">Registrar agora</button>') : '') +
     (!p.email ? callout('<p>Sem e-mail cadastrado, não é possível liberar relatórios no portal do paciente.</p>', '', '<button class="btn sm quiet" id="edit-mail">Adicionar e-mail</button>') : '') + `
-    <div class="cols">
+    <nav class="tabs pac-tabs" role="tablist">${[['resumo', 'Resumo'], ['clinico', 'Clínico'], ['financeiro', 'Financeiro'], ['arquivos', 'Arquivos e links']].map(([k, t]) => `<button type="button" class="tab" role="tab" data-aba-btn="${k}">${t}</button>`).join('')}</nav>
+    <div class="cols pac-ficha">
       <section>
-        ${proximasHtml}
-        <div id="pl-metas"></div>
-        <div class="panel-head" style="margin-top:22px"><h2>Linha do tempo</h2><span class="muted small">${anamneses.length} anamnese · ${evolucoes.length} evoluções · ${periodos.length} por período</span></div>
+        <div data-aba="resumo">${proximasHtml}</div>
+        <div id="pl-metas" data-aba="clinico"></div>
+        <div data-aba="clinico"><div class="panel-head" style="margin-top:22px"><h2>Linha do tempo</h2><span class="muted small">${anamneses.length} anamnese · ${evolucoes.length} evoluções · ${periodos.length} por período</span></div>
         ${timeline || emptyState('Nenhum registro ainda', 'Comece pela anamnese (entrevista inicial) ou registre a primeira evolução.', `<div class="row"><a class="btn quiet" href="#/nova?paciente=${p.id}&tipo=anamnese">${icon('file')}Fazer anamnese</a><a class="btn bloom" href="#/nova?paciente=${p.id}">${icon('mic')}Nova evolução</a></div>`)}
-        ${p.notes ? `<h3 style="margin-top:26px">Observações</h3><p class="pre">${esc(p.notes)}</p>` : ''}
+        </div>
+        ${p.notes ? `<div data-aba="resumo"><h3 style="margin-top:26px">Observações</h3><p class="pre">${esc(p.notes)}</p></div>` : ''}
       </section>
       <aside>
-        ${financeiroPanel}
-        <div id="pl-escalas"></div>
-        <div id="pl-arquivos"></div>
-        ${linksPanel(links)}
-        <div class="panel">
+        <div data-aba="financeiro">${financeiroPanel}</div>
+        <div id="pl-escalas" data-aba="clinico"></div>
+        <div id="pl-arquivos" data-aba="arquivos"></div>
+        <div data-aba="arquivos">${linksPanel(links)}</div>
+        <div class="panel" data-aba="resumo">
           <div class="panel-head"><h3>Consentimento (LGPD)</h3>${active ? chip('Ativo', 'ok') : chip('Pendente', 'warn')}</div>
           ${consents.length ? consents.map((c) => `
             <div class="small" style="margin-bottom:8px">${fmtDateTime(c.granted_at)}, ${esc(c.channel)}${c.revoked_at
@@ -576,13 +578,13 @@ export async function renderPatientDetail(id) {
             : '<p class="muted small">Nenhum registro.</p>'}
           <button class="btn quiet sm" id="consent">Registrar consentimento</button>
         </div>
-        <div class="panel">
+        <div class="panel" data-aba="resumo">
           <h3>Portal do paciente</h3>
           ${p.email
-            ? `<p class="small">O paciente cria uma conta como <b>Paciente</b> em <code>${esc(siteUrl())}</code> com o e-mail <b>${esc(p.email)}</b>. Ele vê só o que você revisar e liberar.</p>`
+            ? `<p class="small">O paciente entra pelo <b>Portal do paciente</b> em <code>${esc(siteUrl())}</code> e, no primeiro acesso, cria a senha com o e-mail <b>${esc(p.email)}</b>. Ele vê só o que você revisar e liberar.</p>`
             : '<p class="muted small">Cadastre o e-mail do paciente para ativar o portal.</p>'}
         </div>
-        <div class="panel flat">
+        <div class="panel flat" data-aba="resumo">
           <h3>Ações com cuidado</h3>
           <div class="stack-btns" style="margin-top:8px">
             <button class="btn quiet sm" id="archive">${p.archived ? 'Desarquivar paciente' : 'Arquivar paciente'}</button>
@@ -591,6 +593,16 @@ export async function renderPatientDetail(id) {
         </div>
       </aside>
     </div>`;
+
+  // abas da ficha: lembra a última aberta nesta visita
+  const ficha = $('.pac-ficha');
+  const abrirAba = (k) => {
+    ficha.dataset.at = k; try { sessionStorage.setItem('pac-aba', k); } catch { /* sem armazenamento */ }
+    $$('[data-aba-btn]').forEach((b) => { const on = b.dataset.abaBtn === k; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+  };
+  $$('[data-aba-btn]').forEach((b) => (b.onclick = () => abrirAba(b.dataset.abaBtn)));
+  let abaIni = 'resumo'; try { abaIni = sessionStorage.getItem('pac-aba') || 'resumo'; } catch { /* sem armazenamento */ }
+  abrirAba(abaIni);
 
   const editIt = async () => { if (await patientModal(p)) renderPatientDetail(id); };
   $('#edit').onclick = editIt;

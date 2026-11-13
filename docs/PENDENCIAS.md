@@ -112,7 +112,7 @@ O desenho completo, com papéis, permissões, layout e as perguntas em aberto, e
 3. ~~Avisos para o profissional~~ **Feito em 13/11/2026:** bloco "Novidades" no Início (anamnese respondida, presença confirmada, pedido de remarcação, orientação e relatório abertos, pesquisa respondida, dos últimos 14 dias). O "visto" fica guardado no navegador. Testado só no simulado; conferir com um link real. Ainda não avisa por e-mail nem por notificação.
 
 **Telas que ainda têm texto demais ou não foram revisadas**
-4. **Ficha do paciente** ficou longa (próximas sessões, metas, linha do tempo, financeiro, escalas, arquivos, links). Esperado: abas dentro da ficha (Resumo, Clínico, Financeiro, Arquivos e links).
+4. ~~Ficha do paciente longa~~ **Feito em 13/11/2026:** abas Resumo, Clínico, Financeiro e Arquivos e links. Testado no simulado; conferir com um paciente real cheio de registros.
 5. **Configurações:** muitas abas e muito texto explicativo. Mesmo tratamento dos Modelos: cartões curtos, detalhe ao abrir.
 6. **Relatórios e Pacientes:** listas ainda no formato antigo.
 7. **Editor do relatório:** é a tela mais usada e não foi revisada.
