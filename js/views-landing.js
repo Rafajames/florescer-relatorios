@@ -59,14 +59,29 @@ export function renderLanding() {
         <div class="land-cta"><a class="btn bloom lg" href="#/criar-conta">Criar minha conta</a><a class="btn lg land-ghost" href="#/entrar">Já tenho conta</a></div>
         <div class="land-tela" aria-hidden="true">
           <div class="lt-menu"><i></i><span class="on"></span><span></span><span></span><span></span></div>
-          <div class="lt-corpo">
-            <b>Bom dia, Ana</b>
-            <div class="lt-cards"><div><small>Sessões de hoje</small><strong>5</strong></div><div><small>A receber</small><strong>R$ 840</strong></div><div><small>Rascunhos</small><strong>2</strong></div></div>
-            <div class="lt-linha"><em>09:00</em><span>Pedro L.</span><u class="ok">Confirmou</u></div>
-            <div class="lt-linha"><em>10:00</em><span>Marina S.</span><u class="lt-troca"><i>Agendada</i><i>Confirmou</i></u></div>
-            <div class="lt-linha"><em>14:00</em><span>João V.</span><u class="bl">Evolução</u></div>
-            <div class="lt-aviso">${icon('check')}Tudo salvo</div>
+          <div class="lt-slides">
+            <div class="lt-corpo on" data-m="0">
+              <b>Bom dia, Ana</b>
+              <div class="lt-cards"><div><small>Sessões de hoje</small><strong>5</strong></div><div><small>A receber</small><strong>R$ 840</strong></div><div><small>Rascunhos</small><strong>2</strong></div></div>
+              <div class="lt-linha"><em>09:00</em><span>Pedro L.</span><u class="ok">Confirmou</u></div>
+              <div class="lt-linha"><em>10:00</em><span>Marina S.</span><u class="lt-troca"><i>Agendada</i><i>Confirmou</i></u></div>
+              <div class="lt-linha"><em>14:00</em><span>João V.</span><u class="bl">Evolução</u></div>
+              <div class="lt-aviso">${icon('check')}Tudo salvo</div>
+            </div>
+            <div class="lt-corpo" data-m="2">
+              <b>Agenda da semana</b>
+              <div class="lt-pilulas"><u>Dia</u><u>Lista</u><u class="on">Semana</u><u>Mês</u></div>
+              <div class="lt-grade">${['Seg', 'Ter', 'Qua', 'Qui', 'Sex'].map((d, i) => `<div><small>${d}</small>${[[1, 0], [0, 2], [1, 3], [2, 0], [0, 1]][i].map((t, k) => `<span class="s${t}" style="margin-top:${k ? 6 : [4, 22, 10, 30, 4][i]}px">${['Pedro', 'Marina', 'João', 'Lia', 'Caio', 'Bia', 'Téo', 'Nina', 'Ravi', 'Sol'][i * 2 + k]}</span>`).join('')}</div>`).join('')}<i class="lt-agora"></i></div>
+              <div class="lt-linha"><em>Lembrete</em><span>enviado pelo WhatsApp</span><u class="ok">Confirmou</u></div>
+            </div>
+            <div class="lt-corpo" data-m="3">
+              <b>Financeiro · novembro</b>
+              <div class="lt-cards"><div><small>Recebido</small><strong>R$ 3.240</strong></div><div><small>A receber</small><strong>R$ 840</strong></div><div><small>Gastos</small><strong>R$ 910</strong></div></div>
+              <div class="lt-barras">${[42, 58, 50, 71, 64, 88].map((h, i) => `<span style="--a:${h}%;animation-delay:${i * 0.08}s"><small>${['jun', 'jul', 'ago', 'set', 'out', 'nov'][i]}</small></span>`).join('')}</div>
+              <div class="lt-linha"><em>PIX</em><span>Marina S. · 4 sessões</span><u class="lt-troca"><i>Cobrar</i><i>Pago</i></u></div>
+            </div>
           </div>
+          <div class="lt-pontos"><i class="on"></i><i></i><i></i></div>
         </div>
       </section>
 
@@ -142,6 +157,16 @@ export function renderLanding() {
     const blocos = document.querySelectorAll('.land-card, .land-passos > div, .land-faixa, .land-faq details, .land-nome, .land-fim, .land section > h2');
     const obs = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('visto'); obs.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
     blocos.forEach((b, i) => { b.classList.add('revela'); b.style.transitionDelay = `${(i % 3) * 70}ms`; obs.observe(b); });
+  }
+  // prévia do produto: alterna Início, Agenda e Financeiro (dados fictícios); para sozinha ao sair da página
+  const tela = document.querySelector('.land-tela');
+  if (tela) {
+    const slides = [...tela.querySelectorAll('.lt-corpo')], pontos = [...tela.querySelectorAll('.lt-pontos i')], menu = [...tela.querySelectorAll('.lt-menu span')];
+    let at = 0;
+    const mostra = (n) => { at = n; slides.forEach((x, i) => x.classList.toggle('on', i === n)); pontos.forEach((x, i) => x.classList.toggle('on', i === n)); menu.forEach((x, i) => x.classList.toggle('on', i === Number(slides[n].dataset.m))); };
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const t = setInterval(() => { if (!tela.isConnected) return clearInterval(t); if (!document.hidden) mostra((at + 1) % slides.length); }, 5200);
+    }
   }
   window.scrollTo(0, 0);
 }

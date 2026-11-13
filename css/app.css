@@ -1323,3 +1323,28 @@ polyline.desenha{stroke-dasharray:1;stroke-dashoffset:1;animation:traca .9s .15s
 @keyframes icBalanca{0%,100%{transform:none}50%{transform:translateY(-4px) rotate(-4deg)}}
 @media (prefers-reduced-motion:reduce){.land-hero::after,.land-petalas i,.land-tela,.lt-menu span,.lt-linha,.lt-troca,.lt-troca i,.lt-aviso,.land-passos div::before,.land-ic{animation:none!important}.lt-menu span.on{background:#fff}.lt-troca i:last-child{opacity:0}.land-petalas{display:none}}
 .lt-aviso{bottom:auto;top:12px}
+/* apresentação: prévia alternando Início, Agenda e Financeiro */
+.land-tela{position:relative}
+.lt-menu span{animation:none!important;transition:background-color .4s}.lt-menu span.on{background:#fff!important}
+.lt-slides{flex:1;display:grid;min-width:0}
+.lt-slides .lt-corpo{grid-area:1/1;opacity:0;transform:translateX(14px);transition:opacity .5s ease,transform .5s ease;pointer-events:none;padding-bottom:26px}
+.lt-slides .lt-corpo.on{opacity:1;transform:none}
+.lt-slides .lt-corpo:not(.on) *{animation-play-state:paused}
+.lt-pontos{position:absolute;left:54px;right:0;bottom:9px;display:flex;gap:6px;justify-content:center}
+.lt-pontos i{width:6px;height:6px;border-radius:50%;background:color-mix(in srgb,var(--ink-2) 35%,transparent);transition:all .3s}.lt-pontos i.on{width:18px;border-radius:4px;background:var(--bloom)}
+.lt-pilulas{display:flex;gap:5px}.lt-pilulas u{text-decoration:none;font-size:10.5px;padding:2px 9px;border-radius:99px;background:var(--paper);color:var(--ink-2)}.lt-pilulas u.on{background:var(--petrol);color:#fff}
+.lt-grade{position:relative;display:grid;grid-template-columns:repeat(5,1fr);gap:5px;background:var(--paper);border-radius:12px;padding:8px;min-height:104px}
+.lt-grade div{display:flex;flex-direction:column;min-width:0;border-left:1px solid var(--line);padding-left:4px}.lt-grade div:first-child{border-left:0;padding-left:0}
+.lt-grade small{font-size:10px;color:var(--ink-2);text-align:center}
+.lt-grade span{font-size:10px;padding:3px 5px;border-radius:6px;border-left:3px solid var(--petrol);background:var(--petrol-tint,#e2eef1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:pop .4s backwards}
+.lt-grade span.s1{border-left-color:#2E8B57;background:color-mix(in srgb,#2E8B57 14%,var(--paper))}.lt-grade span.s2{border-left-color:var(--bloom);background:color-mix(in srgb,var(--bloom) 14%,var(--paper))}.lt-grade span.s3{border-left-color:#C9822B;background:color-mix(in srgb,#C9822B 14%,var(--paper))}
+.lt-agora{position:absolute;left:8px;right:8px;top:58px;height:2px;background:var(--bloom);animation:agoraDesce 10s linear infinite}
+@keyframes agoraDesce{from{top:26px}to{top:96px}}
+.lt-barras{display:flex;align-items:flex-end;gap:8px;height:74px;background:var(--paper);border-radius:12px;padding:10px 12px 18px}
+.lt-barras span{flex:1;height:var(--a);border-radius:5px 5px 2px 2px;background:linear-gradient(var(--petrol),var(--petrol-2));position:relative;transform-origin:bottom}
+.lt-barras span:last-child{background:linear-gradient(var(--bloom),color-mix(in srgb,var(--bloom) 70%,#000))}
+.lt-corpo.on .lt-barras span{animation:cresce .7s cubic-bezier(.2,.7,.2,1) backwards}
+.lt-barras small{position:absolute;bottom:-14px;left:0;right:0;text-align:center;font-size:9px;color:var(--ink-2)}
+@media (max-width:560px){.lt-grade span{font-size:9px;padding:2px 3px}}
+@media (prefers-reduced-motion:reduce){.lt-agora,.lt-grade span,.lt-barras span{animation:none!important}}
+.lt-barras{height:100px}

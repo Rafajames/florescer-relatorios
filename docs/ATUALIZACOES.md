@@ -4,6 +4,10 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 13/11/2026 — Prévia da apresentação com três telas
+
+- A prévia no destaque alterna sozinha, a cada 5 segundos, entre **Início**, **Agenda da semana** (grade com sessões coloridas e a linha do agora) e **Financeiro** (recebido, a receber, gastos, barras dos meses e uma cobrança por PIX). Tudo com nomes e valores fictícios; o item do menu lateral e os pontinhos acompanham a troca.
+
 ## 13/11/2026 — Animações contínuas na apresentação
 
 - No destaque: pétalas subindo devagar, brilho rosa se movendo, e a prévia da tela "viva" (flutua, o menu troca de item, cada sessão ganha a vez, "Agendada" vira "Confirmou", aviso "Tudo salvo" aparece e some).
