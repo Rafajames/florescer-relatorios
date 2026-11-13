@@ -1372,3 +1372,30 @@ revoke all on function public.portal_overview() from public, anon;
 revoke all on function public.portal_confirm(uuid, text) from public, anon;
 grant execute on function public.portal_overview() to authenticated;
 grant execute on function public.portal_confirm(uuid, text) to authenticated;
+
+-- ===================== v16 (13/11/2026): recibo em PDF no portal do paciente =====================
+-- O portal passa a receber o conteúdo do recibo (data) e os dados do profissional usados no documento
+-- (nome, especialidade, registro, nome do consultório e marca). Só para o próprio paciente (mesmo e-mail).
+create or replace function public.portal_overview()
+returns jsonb language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'appointments', coalesce((select jsonb_agg(x order by x.date, x.time) from (
+        select a.id, a.date, a.time, a.duration_min, a.confirm_status, pr.full_name as professional_name
+        from public.appointments a join public.patients p on p.id = a.patient_id join public.profiles pr on pr.id = a.professional_id
+        where a.status = 'agendado' and a.date >= current_date and p.email is not null and lower(p.email) = lower(auth.jwt() ->> 'email')
+        order by a.date, a.time limit 20) x), '[]'::jsonb),
+    'receipts', coalesce((select jsonb_agg(y order by y.issued_on desc) from (
+        select r.id, r.numero, r.issued_on, r.total, r.data, r.professional_id, pr.full_name as professional_name
+        from public.receipts r join public.patients p on p.id = r.patient_id join public.profiles pr on pr.id = r.professional_id
+        where p.email is not null and lower(p.email) = lower(auth.jwt() ->> 'email')
+        order by r.issued_on desc limit 24) y), '[]'::jsonb),
+    'professionals', coalesce((select jsonb_object_agg(pr.id, jsonb_build_object(
+        'full_name', pr.full_name, 'specialty', pr.specialty, 'council_registry', pr.council_registry, 'clinic_name', pr.clinic_name,
+        'branding', coalesce(pr.branding, '{}'::jsonb) - 'insurers' - 'recibo_seq' - 'charge_absence' - 'public'))
+      from public.profiles pr where pr.id in (
+        select r.professional_id from public.receipts r join public.patients p on p.id = r.patient_id
+        where p.email is not null and lower(p.email) = lower(auth.jwt() ->> 'email'))), '{}'::jsonb))
+  where exists (select 1 from public.profiles me where me.id = auth.uid() and me.role = 'patient');
+$$;
+revoke all on function public.portal_overview() from public, anon;
+grant execute on function public.portal_overview() to authenticated;

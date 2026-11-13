@@ -1,5 +1,5 @@
 import * as api from './api.js';
-import { exportPdf } from './export.js';
+import { exportPdf, exportReciboPdf } from './export.js';
 import { $, esc, fmtDate, shell, loading, pageHeader, backLink, meta, callout, icon } from './ui.js';
 import { state } from './state.js';
 import { registryText } from './credentials.js';
@@ -25,8 +25,8 @@ export async function renderPortal() {
       <button class="btn quiet sm" data-pc="${a.id}" data-r="remarcar">Preciso remarcar</button></div>`).join('')}</div></section>` : '';
   const recibosHtml = ov.receipts.length ? `<section class="panel"><h2>Recibos</h2>
     <div class="table">${ov.receipts.map((r) => `<div class="tr" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
-      <span>Recibo nº ${String(r.numero).padStart(4, '0')} · ${fmtDate(r.issued_on)}<small class="muted"> · ${esc(r.professional_name || '')}</small></span><b>${brl(r.total)}</b></div>`).join('')}</div>
-    <p class="muted small" style="margin:10px 0 0">Para receber o recibo em PDF, peça ao(à) profissional.</p></section>` : '';
+      <span>Recibo nº ${String(r.numero).padStart(4, '0')} · ${fmtDate(r.issued_on)}<small class="muted"> · ${esc(r.professional_name || '')}</small></span><span class="row" style="gap:8px"><b>${brl(r.total)}</b>${r.data ? `<button class="btn quiet sm" data-recibo="${esc(r.id)}">${icon('download')}PDF</button>` : ''}</span></div>`).join('')}</div>
+    ${ov.receipts.some((r) => !r.data) ? '<p class="muted small" style="margin:10px 0 0">Para receber o recibo em PDF, peça ao(à) profissional.</p>' : ''}</section>` : '';
   const pros = [...new Map(list.map((r) => [r.professional_name, r])).values()];
   const proCard = (r) => {
     const c = r.professional_credentials || {};
@@ -48,6 +48,13 @@ export async function renderPortal() {
     b.disabled = true;
     try { await api.portalConfirm(b.dataset.pc, b.dataset.r); renderPortal(); }
     catch { b.disabled = false; alertar('Não consegui registrar a resposta. Tente de novo.'); }
+  }));
+  // recibo em PDF: o mesmo conteúdo impresso pelo profissional (segunda via)
+  main.querySelectorAll('[data-recibo]').forEach((b) => (b.onclick = () => {
+    const r = ov.receipts.find((x) => x.id === b.dataset.recibo); if (!r || !r.data) return;
+    const prof = (ov.professionals || {})[r.professional_id] || { full_name: r.professional_name };
+    try { exportReciboPdf({ professional: prof, payment: prof.branding?.payment, ...r.data, numero: r.numero }); }
+    catch { alertar('Não consegui gerar o PDF. Tente de novo.'); }
   }));
 }
 
