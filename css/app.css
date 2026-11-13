@@ -1229,6 +1229,7 @@ polyline.desenha{stroke-dasharray:1;stroke-dashoffset:1;animation:traca .9s .15s
 .ag-g-col{position:relative;height:var(--h);border-left:1px solid var(--line);background:repeating-linear-gradient(to bottom,transparent 0 51px,var(--line) 51px 52px);cursor:copy}
 .ag-g-col.hoje{background-color:color-mix(in srgb,var(--bloom) 5%,transparent)}
 .ag-g-s{position:absolute;left:3px;right:3px;border:0;border-left:3px solid var(--petrol);border-radius:8px;background:var(--petrol-tint,#e2eef1);color:var(--ink);font:500 12.5px/1.25 var(--sans);text-align:left;padding:4px 6px;overflow:hidden;cursor:pointer;transition:transform .12s,box-shadow .15s;animation:pop .3s backwards}
+.ag-g-txt{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--lin,2);overflow:hidden;overflow-wrap:anywhere;word-break:break-word}
 .ag-g-s:hover{transform:scale(1.02);box-shadow:0 8px 16px -10px rgba(10,40,50,.5);z-index:2}
 .ag-g-s.st-realizado{border-left-color:#2E8B57;background:color-mix(in srgb,#2E8B57 12%,var(--paper))}
 .ag-g-s.st-falta,.ag-g-s.st-falta_justificada{border-left-color:#C9822B;background:color-mix(in srgb,#C9822B 12%,var(--paper))}

@@ -177,8 +177,10 @@ async function agenda(params, patients) {
         ${blocksOf(d).map((b) => { const t0 = b.start_time ? mins(b.start_time) : h0 * 60, t1 = b.end_time ? mins(b.end_time) : h1 * 60;
           return `<span class="ag-g-bloq" style="top:${(t0 - h0 * 60) / 60 * PX}px;height:${(t1 - t0) / 60 * PX}px">${esc(b.reason || 'Bloqueado')}</span>`; }).join('')}
         ${aps.filter((a) => a.date === d).map((a) => { const t = a.time ? mins(a.time) : h0 * 60; const dur = a.duration_min || 50;
-          return `<button type="button" class="ag-g-s st-${a.status}" data-ed="${a.id}" style="top:${(t - h0 * 60) / 60 * PX}px;height:${Math.max(dur / 60 * PX - 2, 22)}px">
-            <b>${esc(hhmm(a.time))}</b> ${esc(a.patients?.name || '')}${a.confirm_status === 'confirmado' && a.status === 'agendado' ? ' ✓' : ''}</button>`; }).join('')}</div>`).join('')}
+          const hPx = Math.max(dur / 60 * PX - 2, 22), linhas = Math.max(1, Math.floor((hPx - 8) / 16));
+          const nome = a.patients?.name || '';
+          return `<button type="button" class="ag-g-s st-${a.status}" data-ed="${a.id}" title="${esc(hhmm(a.time) + ' ' + nome)}" style="top:${(t - h0 * 60) / 60 * PX}px;height:${hPx}px;--lin:${linhas}">
+            <span class="ag-g-txt"><b>${esc(hhmm(a.time))}</b> ${esc(nome)}${a.confirm_status === 'confirmado' && a.status === 'agendado' ? ' ✓' : ''}</span></button>`; }).join('')}</div>`).join('')}
     </div>`;
   }
   if (!aps.length && ver !== 'grade') $('#days').insertAdjacentHTML('afterbegin', emptyState(umDia ? 'Dia sem sessões' : 'Semana sem sessões', 'Use “Nova sessão” para agendar. Dá para repetir toda semana nos dias escolhidos.'));

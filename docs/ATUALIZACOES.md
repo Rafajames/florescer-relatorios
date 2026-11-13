@@ -312,3 +312,6 @@ Admin: uso (só totais), convites (exigência opcional, desligada por padrão), 
 
 ### Logo do profissional no menu
 - A logo enviada agora aparece sempre numa caixa branca, com contorno fino, no menu e no topo. Antes, em alguns temas, a logo com fundo colorido se misturava com a cor do menu e parecia um bloco estranho.
+
+### Sessões na grade da agenda cabem na caixa
+- O texto de cada sessão (hora e nome do paciente) fica dentro do bloco. Nomes longos são cortados com "..." conforme o espaço da sessão, e o nome completo aparece ao passar o mouse.
