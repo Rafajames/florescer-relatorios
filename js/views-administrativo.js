@@ -58,7 +58,7 @@ export async function renderAdministrativo(params) {
 
 /* ---------- Agenda (semana) ---------- */
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-const verPills = (ver, ref) => `<div class="pilulas ag-ver" role="group" aria-label="Visão">${[['dia', 'Dia'], ['lista', 'Lista'], ['grade', 'Semana'], ['mes', 'Mês']].map(([k, t]) => `<a class="pilula${k === ver ? ' on' : ''}" href="#/administrativo?ver=${k}&semana=${ref}">${t}</a>`).join('')}</div>`;
+const verPills = (ver, ref) => `<div class="pilulas ag-ver" role="group" aria-label="Visão">${[['lista', 'Lista'], ['grade', 'Semana'], ['mes', 'Mês']].map(([k, t]) => `<a class="pilula${k === ver ? ' on' : ''}" href="#/administrativo?ver=${k}&semana=${ref}">${t}</a>`).join('')}</div>`;
 
 /** Visão do mês: quantas sessões em cada dia; clicar no dia abre a semana. */
 async function agendaMes(params) {
@@ -92,7 +92,8 @@ async function agendaMes(params) {
 }
 
 async function agenda(params, patients) {
-  let ver = params.get('ver'); try { if (ver) localStorage.setItem('ag-ver', ver); else ver = localStorage.getItem('ag-ver') || (matchMedia('(max-width:700px)').matches ? 'dia' : null); } catch { /* sem armazenamento */ }
+  let ver = params.get('ver'); try { if (ver) { if (ver !== 'dia') localStorage.setItem('ag-ver', ver); } else ver = localStorage.getItem('ag-ver') || (matchMedia('(max-width:700px)').matches ? 'lista' : null); } catch { /* sem armazenamento */ }
+  if (ver === 'dia' && !params.get('ver')) ver = 'lista';
   ver = ['dia', 'lista', 'grade', 'mes'].includes(ver) ? ver : 'lista';
   const umDia = ver === 'dia';
   if (ver === 'mes') return agendaMes(params);
@@ -120,7 +121,7 @@ async function agenda(params, patients) {
       <b style="min-width:190px;text-align:center">${umDia ? `${WD[dt(start).getDay()]}, ${fmtDate(start)}` : `${fmtDate(start)} a ${fmtDate(end)}`}</b>
       <a class="btn quiet sm" href="${week(1)}" aria-label="${umDia ? 'Próximo dia' : 'Próxima semana'}">${icon('right')}</a>
       <a class="btn quiet sm" href="#/administrativo?ver=${ver}">Hoje</a>
-      ${verPills(ver, start)}
+      ${umDia ? `<a class="btn quiet sm" href="#/administrativo?ver=lista&semana=${start}">Voltar para a lista</a>` : verPills(ver, start)}
       <details class="menu"><summary class="btn quiet sm">${icon('more')}Ações</summary><div class="menu-list">
         <button type="button" id="ag-lembretes">${icon('calendar')}Lembretes de amanhã</button>
         <button type="button" id="ag-bloquear">${icon('x')}Bloquear dia ou horário</button>
@@ -137,10 +138,10 @@ async function agenda(params, patients) {
     if (!list.length && dt(d).getDay() === 0 && !umDia) return ''; // domingo vazio não aparece
     if (!list.length) return `<section class="ag-day vazio ${d === today ? 'today' : ''}">
       <h3>${WD[dt(d).getDay()]}, ${fmtDate(d)}${d === today ? ' ' + chip('Hoje', 'bloom') : ''}<span class="muted small ag-livre">sem sessões</span>
-      <button class="link small" data-novo="${d}">Agendar</button></h3>${blocksHtml(d)}</section>`;
+      <a class="link small" href="#/administrativo?ver=dia&semana=${d}">Ver dia</a><button class="link small" data-novo="${d}">Agendar</button></h3>${blocksHtml(d)}</section>`;
     return `<section class="ag-day ${d === today ? 'today' : ''}">
       <h3>${WD[dt(d).getDay()]}, ${fmtDate(d)}${d === today ? ' ' + chip('Hoje', 'bloom') : ''}<span class="muted small ag-livre">${list.length} ${list.length === 1 ? 'sessão' : 'sessões'}</span>
-      <button class="link small" data-novo="${d}">Agendar</button></h3>${blocksHtml(d)}
+      <a class="link small" href="#/administrativo?ver=dia&semana=${d}">Ver dia</a><button class="link small" data-novo="${d}">Agendar</button></h3>${blocksHtml(d)}
       ${list.length ? `<div class="table">${list.map((a) => {
         const conf = a.status !== 'agendado' ? '' : a.confirm_status === 'confirmado' ? chip('Confirmou', 'ok') : a.confirm_status === 'remarcar' ? chip('Pediu para remarcar', 'warn') : '';
         const remarcar = ['falta', 'falta_justificada', 'cancelado'].includes(a.status) || a.confirm_status === 'remarcar' ? `<button class="btn quiet sm" data-remarcar="${a.id}">Reagendar</button>` : '';

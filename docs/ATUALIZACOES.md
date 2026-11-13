@@ -315,3 +315,8 @@ Admin: uso (só totais), convites (exigência opcional, desligada por padrão), 
 
 ### Sessões na grade da agenda cabem na caixa
 - O texto de cada sessão (hora e nome do paciente) fica dentro do bloco. Nomes longos são cortados com "..." conforme o espaço da sessão, e o nome completo aparece ao passar o mouse.
+
+### Agenda: botão Dia removido, "Ver dia" na lista
+- Saiu o botão Dia. Na Lista, cada dia tem "Ver dia" ao lado de "Agendar", que abre só aquele dia.
+- Na tela de um dia, "Voltar para a lista" leva de volta à semana.
+- No celular, a agenda abre na Lista (antes abria no Dia).

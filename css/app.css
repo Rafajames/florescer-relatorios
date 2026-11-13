@@ -941,6 +941,7 @@ details.menu[open]>summary{background:var(--petrol-tint,#e2eef1)}
 .tabs{overflow-x:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tab{flex:none;white-space:nowrap}
 .ag-day h3 .ag-livre{font-weight:400;margin-left:2px}
 .ag-day h3 .link{margin-left:auto;font-weight:600}
+.ag-day h3 .link+.link{margin-left:14px}
 .ag-day.vazio{margin-bottom:6px;padding:8px 0;border-bottom:1px solid var(--line)}.ag-day.vazio h3{margin:0;font-weight:500;color:var(--ink-2)}
 @media (max-width:760px){
   .head{align-items:flex-start}.head>.grow{flex-basis:100%}
