@@ -81,7 +81,9 @@ export async function renderDashboard() {
   const diff = prev7 ? Math.round(((total7 - prev7) / prev7) * 100) : 0;
   const maxC = Math.max(1, ...counts);
 
+  const pedidosRemarcar = (aps || []).filter((a) => a.confirm_status === 'remarcar' && a.status === 'agendado');
   const attention = [
+    ...pedidosRemarcar.slice(0, 3).map((a) => ({ c: 'c-pet', t: `Remarcação · ${esc(a.patients?.name || 'Paciente')}`, s: `pediu para remarcar a sessão de ${fmtDate(a.date)} às ${String(a.time || '').slice(0, 5)}`, h: `#/administrativo?ver=lista&semana=${a.date}`, b: 'Ver pedido' })),
     ...drafts.slice(0, 3).map((r) => ({ c: 'c-blo', t: `Rascunho · ${esc(r.patients?.name || r.title)}`, s: `${esc(r.title)} · ${fmtDate(r.session_date)}`, h: `#/relatorio/${r.id}`, b: 'Revisar' })),
     ...(ready.length ? [{ c: 'c-pet', t: `${ready.length} ${ready.length === 1 ? 'relatório pronto' : 'relatórios prontos'}`, s: 'revisados, ainda não liberados ao paciente', h: '#/relatorios', b: 'Liberar' }] : []),
     ...noConsent.slice(0, 3).map((x) => ({ c: 'c-warn', t: `Consentimento · ${esc(x.name)}`, s: 'registre antes de gravar a sessão', h: `#/pacientes/${x.id}`, b: 'Abrir' })),

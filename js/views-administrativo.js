@@ -109,6 +109,7 @@ async function agenda(params, patients) {
     api.listRuleReleases({ from: start, to: end }).catch(() => []),
   ]);
   const fixos = regrasEm(janela, regras, liberos);
+  const pedidosN = aps.filter((a) => a.confirm_status === 'remarcar' && a.status === 'agendado').length;
   const blocksOf = (d) => [...blocks, ...fixos.filter((f) => !f.liberado)].filter((b) => b.date <= d && (b.end_date || b.date) >= d);
   const blockTxt = (b) => `${b.start_time ? `${hhmm(b.start_time)}–${hhmm(b.end_time)}` : 'Dia todo'}${b.reason ? ' · ' + esc(b.reason) : ''}`;
   const blocksHtml = (d) => blocksOf(d).map((b) => b.regra
@@ -136,6 +137,7 @@ async function agenda(params, patients) {
         <button type="button" id="ag-ics">${icon('download')}Levar para o calendário do celular</button></div></details>
       <span class="grow"></span>
       <span class="small muted">${aps.length} ${aps.length === 1 ? 'sessão' : 'sessões'}</span>
+      ${pedidosN ? chip(`${pedidosN} ${pedidosN === 1 ? 'pedido' : 'pedidos'} de remarcação`, 'warn') : ''}
       ${['realizado', 'falta', 'falta_justificada', 'cancelado'].filter(count).map((s) => chip(`${ATT_STATUS[s]}: ${count(s)}`, STATUS_KIND[s])).join(' ')}
     </div>
     <div id="days" class="${(() => { const ant = sessionStorage.getItem('ag-sem'); sessionStorage.setItem('ag-sem', start); return !ant || ant === start ? '' : start > ant ? 'vai-dir' : 'vai-esq'; })()}"></div>`;
@@ -152,7 +154,7 @@ async function agenda(params, patients) {
       <a class="link small" href="#/administrativo?ver=dia&semana=${d}">Ver dia</a><button class="link small" data-novo="${d}">Agendar</button></h3>${blocksHtml(d)}
       ${list.length ? `<div class="table">${list.map((a) => {
         const conf = a.status !== 'agendado' ? '' : a.confirm_status === 'confirmado' ? chip('Confirmou', 'ok') : a.confirm_status === 'remarcar' ? chip('Pediu para remarcar', 'warn') : '';
-        const remarcar = ['falta', 'falta_justificada', 'cancelado'].includes(a.status) || a.confirm_status === 'remarcar' ? `<button class="btn quiet sm" data-remarcar="${a.id}">Reagendar</button>` : '';
+        const remarcar = ['falta', 'falta_justificada', 'cancelado'].includes(a.status) || a.confirm_status === 'remarcar' ? `<button class="btn quiet sm" data-remarcar="${a.id}">Reagendar</button>${a.status === 'agendado' ? `<button class="btn quiet sm" data-sugerir="${a.id}">Sugerir horários</button>` : ''}` : ''
         const rid = evoAp.get(a.id) || evo.get(`${a.patient_id}|${a.date}`);
         const evoLink = rid ? `<a class="small" href="#/relatorio/${rid}">${icon('file')}Evolução</a>`
           : a.status === 'realizado' && state.profile?.role !== 'secretary' ? `<a class="small" href="#/nova?paciente=${a.patient_id}&sessao=${a.id}">${icon('plus')}Registrar evolução</a>` : '';
@@ -176,6 +178,7 @@ async function agenda(params, patients) {
     let h0 = comHora.length ? Math.max(0, Math.min(...comHora.map((a) => Math.floor(mins(a.time) / 60))) - 1) : 8;
     let h1 = comHora.length ? Math.min(24, Math.max(...comHora.map((a) => Math.ceil((mins(a.time) + (a.duration_min || 50)) / 60))) + 1) : 18;
     if (temHoje && minAgora / 60 >= 6 && minAgora / 60 <= 22) { h0 = Math.min(h0, Math.floor(minAgora / 60)); h1 = Math.max(h1, Math.ceil(minAgora / 60) + 1); }
+    h0 = Math.min(h0, 8); h1 = Math.max(h1, 22);
     while (h1 - h0 < 8) { if (h1 < 22) h1++; else if (h0 > 0) h0--; else break; }
     const PX = 52; const cols = cols0;
     $('#days').innerHTML = `<div class="ag-grade" style="--cols:${cols.length};--h:${(h1 - h0) * PX}px">
@@ -219,6 +222,7 @@ async function agenda(params, patients) {
   $$('[data-unblock]').forEach((b) => (b.onclick = async () => { await api.deleteBlock(b.dataset.unblock); toast('Bloqueio removido.'); again(); }));
   $$('[data-liberar-dia]').forEach((b) => (b.onclick = async () => { const [rid, dia] = b.dataset.liberarDia.split('|'); await api.releaseRuleDay(rid, dia); toast('Liberado neste dia. Os outros dias continuam bloqueados.'); again(); }));
   $$('[data-travar-dia]').forEach((b) => (b.onclick = async () => { const [rid, dia] = b.dataset.travarDia.split('|'); await api.unreleaseRuleDay(rid, dia); toast('Bloqueado de novo neste dia.'); again(); }));
+  $$('[data-sugerir]').forEach((b) => (b.onclick = () => sugerirModal(aps.find((x) => x.id === b.dataset.sugerir), patients)));
   $$('[data-remarcar]').forEach((b) => (b.onclick = () => {
     const o = aps.find((x) => x.id === b.dataset.remarcar);
     appointmentModal({ patients: patients.filter((p) => !p.archived), date: addDays(o.date < todayISO() ? todayISO() : o.date, 7), preset: o }).then((ok) => ok && again());
@@ -350,6 +354,55 @@ const regrasEm = (dias, regras, liberos) => dias.flatMap((d) => regras
   .filter((r) => (r.weekdays || []).includes(dt(d).getDay()))
   .map((r) => ({ date: d, end_date: d, start_time: r.start_time, end_time: r.end_time, reason: r.reason, regra: r.id,
     liberado: liberos.some((x) => x.rule_id === r.id && x.date === d) })));
+
+/* ---------- Pedido de remarcação: horários livres para oferecer ---------- */
+const minsDe = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+const ATEND_INI = 8 * 60, ATEND_FIM = 22 * 60; // atendimento: 08h às 22h, seg a sáb
+/** Horários de 30 em 30 min em que cabe a sessão, sem outra sessão, sem bloqueio e sem passar da hora atual. */
+async function horariosLivres(duracao, dias, excetoId) {
+  const ate = dias[dias.length - 1];
+  const [apsP, bl, rg, lib] = await Promise.all([api.listAppointments({ from: dias[0], to: ate }), api.listBlocks({ from: dias[0], to: ate }).catch(() => []), api.listRules().catch(() => []), api.listRuleReleases({ from: dias[0], to: ate }).catch(() => [])]);
+  const bloqueios = [...bl, ...regrasEm(dias, rg, lib).filter((f) => !f.liberado)];
+  const agora = new Date(); const minAgora = agora.getHours() * 60 + agora.getMinutes(); const hoje = todayISO();
+  const out = [];
+  for (const d of dias) {
+    if (dt(d).getDay() === 0) continue; // domingo fora
+    for (let t = ATEND_INI; t + duracao <= ATEND_FIM; t += 30) {
+      if (d === hoje && t <= minAgora) continue;
+      const fim = t + duracao;
+      const ocupado = apsP.some((o) => o.id !== excetoId && o.date === d && o.time && o.status !== 'cancelado' && minsDe(o.time) < fim && t < minsDe(o.time) + (o.duration_min || 50));
+      const bloqueado = bloqueios.some((b) => b.date <= d && (b.end_date || b.date) >= d && (!b.start_time || (minsDe(b.start_time) < fim && t < minsDe(b.end_time || '23:59'))));
+      if (!ocupado && !bloqueado) out.push({ date: d, time: `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}` });
+    }
+  }
+  return out;
+}
+/** Monta a mensagem com os horários escolhidos, pronta para enviar pelo WhatsApp. */
+const msgSugestao = (nome, data, escolhidos) => `Olá, ${nome}! Tudo bem?\n\nSobre a sua sessão de ${fmtDate(data)}, tenho estes horários disponíveis:\n${escolhidos.map(([d, t]) => `📅 ${WD[dt(d).getDay()]}, ${fmtDate(d).slice(0, 5)} às ${t}`).join('\n') || '(marque os horários ao lado)'}\n\nMe diga qual prefere que eu confirmo.`;
+async function sugerirModal(a, patients) {
+  if (!a) return;
+  const pat = patients.find((p) => p.id === a.patient_id) || {};
+  const nome = (a.patients?.name || pat.name || 'paciente').split(' ')[0];
+  const dias = [...Array(7)].map((_, i) => addDays(todayISO(), i));
+  const livres = await horariosLivres(a.duration_min || 50, dias, a.id);
+  if (!livres.length) { toast('Não há horários livres nos próximos 7 dias.', 'err'); return; }
+  const porDia = dias.map((d) => [d, livres.filter((l) => l.date === d)]).filter(([, l]) => l.length);
+  return openModal('Sugerir horários', `
+    <p class="muted small">Marque os horários que você pode oferecer. A mensagem sai pronta para o WhatsApp. Quando ele escolher, use "Reagendar" para marcar.</p>
+    ${porDia.map(([d, l]) => `<div class="field"><b>${WD[dt(d).getDay()]}, ${fmtDate(d)}</b><div class="row" style="gap:8px;flex-wrap:wrap;margin-top:4px">${l.map((x) => `<label class="check small"><input type="checkbox" name="sl" value="${x.date}|${x.time}"> ${x.time}</label>`).join('')}</div></div>`).join('')}
+    <label class="field">Mensagem<textarea name="msg" rows="7"></textarea></label>`, {
+    okText: pat.phone ? 'Abrir no WhatsApp' : 'Copiar mensagem', cancelText: 'Fechar',
+    onOpen: (d) => {
+      const atualiza = () => { const sel = [...d.querySelectorAll('[name=sl]:checked')].map((c) => c.value.split('|')); d.querySelector('[name=msg]').value = msgSugestao(nome, a.date, sel); };
+      d.querySelectorAll('[name=sl]').forEach((c) => (c.onchange = atualiza)); atualiza();
+    },
+    onOk: async (d) => {
+      const msg = d.querySelector('[name=msg]').value;
+      if (pat.phone) { const url = waLink(pat.phone, msg); if (url) window.open(url, '_blank', 'noopener'); return true; }
+      try { await navigator.clipboard.writeText(msg); toast('Mensagem copiada. A paciente não tem telefone cadastrado.'); } catch { toast('Não consegui copiar. Selecione o texto e copie.', 'err'); return false; }
+      return true;
+    } });
+}
 
 /* ---------- Bloqueios que se repetem (ex.: almoço, seg a sex) ---------- */
 const DIAS_SEMANA = [[1, 'Seg'], [2, 'Ter'], [3, 'Qua'], [4, 'Qui'], [5, 'Sex'], [6, 'Sáb'], [0, 'Dom']];

@@ -328,3 +328,9 @@ Admin: uso (só totais), convites (exigência opcional, desligada por padrão), 
 - Agendar dentro de um horário bloqueado continua permitido após confirmar. A sessão fica marcada como "Encaixe" na lista.
 - Migração v18 (tabelas `agenda_rules` e `agenda_rule_releases`, coluna `appointments.encaixe`), aplicada no Supabase e conferida. A exportação de backup inclui as duas tabelas novas.
 - Testado no ambiente simulado: criar a regra (5 dias), liberar um dia, bloquear de novo e agendar com encaixe. Não testado com dados reais.
+
+### Pedido de remarcação: sugerir horários
+- Quando o paciente pede para remarcar, a sessão aparece como pedido na agenda (chip "pedido de remarcação") e no Início, em "O que precisa da sua atenção".
+- Botão "Sugerir horários" mostra os horários livres dos próximos 7 dias (seg a sáb, das 08h às 22h, de 30 em 30 min), sem sessão e sem bloqueio. O profissional marca os que pode oferecer e a mensagem sai pronta para o WhatsApp. Depois, marca com "Reagendar".
+- A grade da agenda agora mostra sempre das 08h às 22h.
+- Testado no ambiente simulado. Não testado com dados reais. Domingo fica fora da sugestão.
