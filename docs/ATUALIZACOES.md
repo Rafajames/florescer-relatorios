@@ -4,6 +4,12 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 13/11/2026 — Agenda em grade semanal e visão do mês
+
+- A agenda tem três visões, em pílulas ao lado de "Hoje": **Lista** (a de antes), **Semana** (grade com colunas por dia e sessões no horário, do tamanho da duração) e **Mês** (calendário com as sessões de cada dia). A última visão escolhida é lembrada.
+- Na Semana: clicar numa sessão abre a edição; clicar num espaço vazio do dia agenda; bloqueios aparecem hachurados; cores por situação (agendada, realizada, falta, cancelada); ✓ quando o paciente confirmou.
+- No Mês: clicar no dia abre aquela semana em lista; dias bloqueados aparecem hachurados; no celular, as sessões viram pequenas barras.
+
 ## 13/11/2026 — Busca mais completa e progresso no relatório por período
 
 - **Busca (Ctrl K)** agora acha também sessões (por nome do paciente ou data, 60 dias para trás e para frente, levando à semana certa da agenda), cobranças em aberto por paciente (quantidade e total) e as páginas do Financeiro e da Agenda.

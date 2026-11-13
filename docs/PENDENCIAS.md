@@ -71,7 +71,7 @@ O James quer emissão de nota fiscal no futuro. Fica para depois.
 - Pagamento parcial de uma sessão não existe: a sessão é paga inteira ou fica em aberto.
 
 **Administrativo**
-- Não há visão de mês nem de dia.
+- ~~Sem visão de mês~~ Feito em 13/11/2026 (Lista, Semana em grade e Mês). Visão de um dia só ainda não existe.
 - A evolução é ligada à sessão só por paciente e data; duas sessões no mesmo dia confundem.
 
 **Design**
@@ -100,7 +100,6 @@ O desenho completo, com papéis, permissões, layout e as perguntas em aberto, e
 - **Instalar como aplicativo** (ícone na tela do celular). O James pediu para **não fazer ainda**.
 - **PDF gravado direto na pasta.** Hoje o PDF sai pela janela de impressão do navegador, então a plataforma só prepara a pasta e avisa onde salvar. Gravar sozinho exigiria gerar o PDF dentro do site com uma biblioteca, com risco de perder qualidade. Não decidido.
 - A tabela `attachments` e a pasta privada `anexos` do Supabase existem, vazias e sem uso: o James decidiu guardar laudos e exames **na pasta do computador**, não no servidor. Podem ser removidas numa limpeza.
-- **Agenda em grade semanal.**
 - **Cobrança enviada sozinha** (por e-mail), ver seção 2.
 
 ## 3D. Melhorias propostas em 12/11/2026 (tarde), nenhuma aprovada ainda
@@ -119,7 +118,7 @@ O desenho completo, com papéis, permissões, layout e as perguntas em aberto, e
 **Funcionalidades**
 8. ~~Relatório por período com metas e escalas~~ **Feito em 13/11/2026:** seção "Progresso das metas e escalas" montada sem IA (situação de cada meta, em quantas sessões foi trabalhada, primeira e última pontuação das escalas no período). Não testado com dados reais.
 9. ~~Busca sem sessões e cobranças~~ **Feito em 13/11/2026:** a busca acha sessões (60 dias para trás e para frente), cobranças em aberto por paciente e as páginas do Financeiro e da Agenda.
-10. Agenda em grade semanal; PDF gravado direto na pasta; cobrança automática por e-mail (ver seções acima).
+10. ~~Agenda em grade semanal~~ (feito em 13/11/2026); PDF gravado direto na pasta; cobrança automática por e-mail (ver seções acima).
 
 ## 4. Segurança (adiado pelo James por estar em fase de testes)
 

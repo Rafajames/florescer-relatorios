@@ -57,7 +57,44 @@ export async function renderAdministrativo(params) {
 }
 
 /* ---------- Agenda (semana) ---------- */
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const verPills = (ver, ref) => `<div class="pilulas ag-ver" role="group" aria-label="Visão">${[['lista', 'Lista'], ['grade', 'Semana'], ['mes', 'Mês']].map(([k, t]) => `<a class="pilula${k === ver ? ' on' : ''}" href="#/administrativo?ver=${k}&semana=${ref}">${t}</a>`).join('')}</div>`;
+
+/** Visão do mês: quantas sessões em cada dia; clicar no dia abre a semana. */
+async function agendaMes(params) {
+  const pane = $('#pane');
+  const ref = params.get('semana') || todayISO();
+  const ini = ref.slice(0, 8) + '01';
+  const d0 = dt(ini); const fim = iso(new Date(d0.getFullYear(), d0.getMonth() + 1, 0, 12));
+  const mesDe = (n) => iso(new Date(d0.getFullYear(), d0.getMonth() + n, 1, 12));
+  const [aps, blocks] = await Promise.all([api.listAppointments({ from: ini, to: fim }), api.listBlocks({ from: ini, to: fim }).catch(() => [])]);
+  const hoje = todayISO();
+  const primeiro = mondayOf(ini); const dias = [];
+  for (let d = primeiro; d <= fim || dias.length % 7; d = addDays(d, 1)) dias.push(d);
+  pane.innerHTML = `
+    <div class="row" style="margin-bottom:14px;align-items:center">
+      <a class="btn quiet sm" href="#/administrativo?ver=mes&semana=${mesDe(-1)}" aria-label="Mês anterior">${icon('left')}</a>
+      <b style="min-width:170px;text-align:center">${MESES[d0.getMonth()][0].toUpperCase() + MESES[d0.getMonth()].slice(1)} de ${d0.getFullYear()}</b>
+      <a class="btn quiet sm" href="#/administrativo?ver=mes&semana=${mesDe(1)}" aria-label="Próximo mês">${icon('right')}</a>
+      <a class="btn quiet sm" href="#/administrativo?ver=mes">Hoje</a>
+      ${verPills('mes', ref)}
+      <span class="grow"></span><span class="small muted">${aps.length} ${aps.length === 1 ? 'sessão' : 'sessões'} no mês</span>
+    </div>
+    <div class="ag-mes">${['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((w) => `<div class="ag-mes-wd">${w}</div>`).join('')}
+    ${dias.map((d) => {
+      const l = aps.filter((a) => a.date === d && a.status !== 'cancelado').sort((a, b) => String(a.time).localeCompare(String(b.time)));
+      const bloq = blocks.some((b) => b.date <= d && (b.end_date || b.date) >= d);
+      return `<a class="ag-mes-dia${d.slice(0, 7) !== ini.slice(0, 7) ? ' fora' : ''}${d === hoje ? ' hoje' : ''}${bloq ? ' bloq' : ''}" href="#/administrativo?ver=lista&semana=${d}">
+        <span class="n">${Number(d.slice(8))}</span>
+        ${l.slice(0, 3).map((a) => `<span class="ag-mes-s st-${a.status}">${esc(hhmm(a.time))} ${esc((a.patients?.name || '').split(' ')[0])}</span>`).join('')}
+        ${l.length > 3 ? `<span class="ag-mes-mais">+${l.length - 3}</span>` : ''}</a>`;
+    }).join('')}</div>`;
+}
+
 async function agenda(params, patients) {
+  let ver = params.get('ver'); try { if (ver) localStorage.setItem('ag-ver', ver); else ver = localStorage.getItem('ag-ver'); } catch { /* sem armazenamento */ }
+  ver = ['lista', 'grade', 'mes'].includes(ver) ? ver : 'lista';
+  if (ver === 'mes') return agendaMes(params);
   const pane = $('#pane');
   const start = mondayOf(params.get('semana') || todayISO());
   const end = addDays(start, 6);
@@ -72,7 +109,7 @@ async function agenda(params, patients) {
   const amanha = addDays(todayISO(), 1);
   const evo = new Map(reps.map((r) => [`${r.patient_id}|${r.session_date}`, r.id]));
   const count = (s) => aps.filter((a) => a.status === s).length;
-  const week = (n) => `#/administrativo?semana=${addDays(start, 7 * n)}`;
+  const week = (n) => `#/administrativo?ver=${ver}&semana=${addDays(start, 7 * n)}`;
   const today = todayISO();
 
   pane.innerHTML = `
@@ -80,7 +117,8 @@ async function agenda(params, patients) {
       <a class="btn quiet sm" href="${week(-1)}" aria-label="Semana anterior">${icon('left')}</a>
       <b style="min-width:190px;text-align:center">${fmtDate(start)} a ${fmtDate(end)}</b>
       <a class="btn quiet sm" href="${week(1)}" aria-label="Próxima semana">${icon('right')}</a>
-      <a class="btn quiet sm" href="#/administrativo">Hoje</a>
+      <a class="btn quiet sm" href="#/administrativo?ver=${ver}">Hoje</a>
+      ${verPills(ver, start)}
       <details class="menu"><summary class="btn quiet sm">${icon('more')}Ações</summary><div class="menu-list">
         <button type="button" id="ag-lembretes">${icon('calendar')}Lembretes de amanhã</button>
         <button type="button" id="ag-bloquear">${icon('x')}Bloquear dia ou horário</button>
@@ -116,7 +154,25 @@ async function agenda(params, patients) {
       }).join('')}</div>` : ''}
     </section>`;
   }).join('') || '';
-  if (!aps.length) $('#days').insertAdjacentHTML('afterbegin', emptyState('Semana sem sessões', 'Use “Nova sessão” para agendar. Dá para repetir toda semana nos dias escolhidos.'));
+  if (ver === 'grade') {
+    // grade da semana: colunas por dia, sessões posicionadas pelo horário
+    const mins = (t) => { const [h, m] = String(t || '08:00').split(':').map(Number); return h * 60 + (m || 0); };
+    const comHora = aps.filter((a) => a.time);
+    const h0 = Math.min(7, ...comHora.map((a) => Math.floor(mins(a.time) / 60)));
+    const h1 = Math.max(19, ...comHora.map((a) => Math.ceil((mins(a.time) + (a.duration_min || 50)) / 60)));
+    const PX = 52; const cols = days.filter((d) => dt(d).getDay() !== 0 || aps.some((a) => a.date === d));
+    $('#days').innerHTML = `<div class="ag-grade" style="--cols:${cols.length};--h:${(h1 - h0) * PX}px">
+      <div class="ag-g-head"></div>${cols.map((d) => `<div class="ag-g-head${d === today ? ' hoje' : ''}"><b>${WD[dt(d).getDay()]}</b> ${fmtDate(d).slice(0, 5)}</div>`).join('')}
+      <div class="ag-g-horas">${[...Array(h1 - h0)].map((_, i) => `<span style="top:${i * PX}px">${String(h0 + i).padStart(2, '0')}h</span>`).join('')}</div>
+      ${cols.map((d) => `<div class="ag-g-col${d === today ? ' hoje' : ''}" data-novo="${d}" title="Clique num espaço livre para agendar">
+        ${blocksOf(d).map((b) => { const t0 = b.start_time ? mins(b.start_time) : h0 * 60, t1 = b.end_time ? mins(b.end_time) : h1 * 60;
+          return `<span class="ag-g-bloq" style="top:${(t0 - h0 * 60) / 60 * PX}px;height:${(t1 - t0) / 60 * PX}px">${esc(b.reason || 'Bloqueado')}</span>`; }).join('')}
+        ${aps.filter((a) => a.date === d).map((a) => { const t = a.time ? mins(a.time) : h0 * 60; const dur = a.duration_min || 50;
+          return `<button type="button" class="ag-g-s st-${a.status}" data-ed="${a.id}" style="top:${(t - h0 * 60) / 60 * PX}px;height:${Math.max(dur / 60 * PX - 2, 22)}px">
+            <b>${esc(hhmm(a.time))}</b> ${esc(a.patients?.name || '')}${a.confirm_status === 'confirmado' && a.status === 'agendado' ? ' ✓' : ''}</button>`; }).join('')}</div>`).join('')}
+    </div>`;
+  }
+  if (!aps.length && ver !== 'grade') $('#days').insertAdjacentHTML('afterbegin', emptyState('Semana sem sessões', 'Use “Nova sessão” para agendar. Dá para repetir toda semana nos dias escolhidos.'));
 
   const again = () => agenda(params, patients);
   $$('[data-st]').forEach((s) => (s.onchange = async () => {
@@ -144,7 +200,8 @@ async function agenda(params, patients) {
     const o = aps.find((x) => x.id === b.dataset.remarcar);
     appointmentModal({ patients: patients.filter((p) => !p.archived), date: addDays(o.date < todayISO() ? todayISO() : o.date, 7), preset: o }).then((ok) => ok && again());
   }));
-  $$('[data-novo]').forEach((b) => (b.onclick = () => {
+  $$('[data-novo]').forEach((b) => (b.onclick = (e) => {
+    if (b.classList.contains('ag-g-col') && e.target !== b) return; // clique numa sessão da grade
     appointmentModal({ patients: patients.filter((p) => !p.archived), date: b.dataset.novo }).then((ok) => ok && again());
   }));
   $$('[data-del]').forEach((b) => (b.onclick = async () => {
