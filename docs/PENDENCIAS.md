@@ -107,9 +107,9 @@ O desenho completo, com papéis, permissões, layout e as perguntas em aberto, e
 ## 3D. Melhorias propostas em 12/11/2026 (tarde), nenhuma aprovada ainda
 
 **Confiabilidade**
-1. **Backup incompleto.** "Baixar backup completo" só leva pacientes, consentimentos, relatórios, modelos e sessões. Ficam de fora: valores e forma de cobrança, gastos, cobranças avulsas, recibos, metas, escalas, lista de espera, bloqueios e equipe. O arquivo ainda sai com o nome "florescer-backup". Esperado: incluir tudo e renomear.
+1. ~~Backup incompleto~~ **Feito em 13/11/2026:** o backup agora leva todas as tabelas do profissional e o perfil (com marca e dados de pagamento). Falta baixar um com conta real e conferir.
 2. **Teste com conta real.** Quase tudo desta rodada foi testado só com dados simulados. Esperado: percorrer o roteiro da seção 1 no site publicado, com uma conta de teste.
-3. **Avisos para o profissional.** Quando o paciente responde uma anamnese, pede para remarcar ou abre as orientações, o profissional só descobre ao abrir a tela certa. Esperado: um bloco "Novidades" no Início.
+3. ~~Avisos para o profissional~~ **Feito em 13/11/2026:** bloco "Novidades" no Início (anamnese respondida, presença confirmada, pedido de remarcação, orientação e relatório abertos, pesquisa respondida, dos últimos 14 dias). O "visto" fica guardado no navegador. Testado só no simulado; conferir com um link real. Ainda não avisa por e-mail nem por notificação.
 
 **Telas que ainda têm texto demais ou não foram revisadas**
 4. **Ficha do paciente** ficou longa (próximas sessões, metas, linha do tempo, financeiro, escalas, arquivos, links). Esperado: abas dentro da ficha (Resumo, Clínico, Financeiro, Arquivos e links).

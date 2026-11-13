@@ -1156,3 +1156,8 @@ polyline.desenha{stroke-dasharray:1;stroke-dashoffset:1;animation:traca .9s .15s
 .celebra-flor b{position:absolute;left:46px;top:46px;width:28px;height:28px;border-radius:50%;background:var(--petrol);box-shadow:0 0 0 5px var(--paper);animation:pop .4s .35s backwards}
 @keyframes petala{from{transform:rotate(var(--r)) scale(0);opacity:0}}
 @media (prefers-reduced-motion:reduce){#main .panel,#main .stat,.chip.ok,.g6-b i,#days,dialog.modal[open],dialog.modal.fechando,.celebra-flor i,.celebra-flor b,.celebra p{animation:none!important}polyline.desenha,#toast.show .t-check path{animation:none;stroke-dashoffset:0}}
+.novidades .panel-head h3{display:flex;align-items:center;gap:8px}.novidades h3 svg{width:18px;height:18px;color:var(--bloom)}
+.nov-n{background:var(--bloom);color:#fff;border-radius:99px;font-size:12px;padding:1px 8px;animation:pop .35s .3s backwards}
+.nov{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:12px;color:inherit;text-decoration:none;transition:background-color .15s}
+.nov:hover{background:var(--petrol-tint,#e2eef1)}.nov.alerta{border-left:3px solid var(--bloom)}
+@media (max-width:560px){.nov{flex-direction:column;align-items:flex-start;gap:2px}}

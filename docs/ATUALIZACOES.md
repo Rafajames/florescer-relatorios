@@ -4,6 +4,11 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 13/11/2026 — Backup completo e Novidades no Início
+
+- "Baixar backup completo" passou a levar tudo: pacientes, consentimentos, relatórios e versões, sessões, bloqueios, lista de espera, valores e forma de cobrança, cobranças, recibos, gastos, metas, escalas e pontuações, links enviados, respostas da pesquisa, modelos e o perfil.
+- Novo bloco **Novidades** no topo do Início, com o que os pacientes fizeram nos últimos 14 dias: anamnese respondida, presença confirmada, pedido para remarcar (destacado), orientações e relatório abertos, pesquisa respondida. Cada item leva à tela certa; "Marcar como visto" esconde até chegar algo novo.
+
 ## 13/11/2026 — Animações pela plataforma
 
 - Aviso de "salvo" com um check que se desenha; janelas abrem subindo e fecham mais rápido; painéis e números aparecem em sequência.

@@ -10,7 +10,7 @@ import { metasPanel, escalasPanel } from './views-clinico.js';
 import {
   $, $$, esc, fmtDate, fmtDateTime, toast, openModal, confirmBox, busy, statusChip, chip, meta, callout,
   shell, loading, pageHeader, backLink, icon, greeting, longDate, emptyState, todayISO,
-  celebrar,
+  celebrar, sumir,
 } from './ui.js';
 
 const goto = (h) => { location.hash = h; };
@@ -104,7 +104,14 @@ export async function renderDashboard() {
     const comAberto = new Set(abertas.filter((a) => cobravel(a, p)).map((a) => a.patient_id));
     cobHoje = admins.filter((a) => comAberto.has(a.patient_id) && cobrancaVencida(a, todayISO())).length;
   } catch { cobHoje = 0; }
-  main.innerHTML = pageHeader(`${greeting()}, ${esc(first)}`, esc(longDate())) + (cobHoje ? callout(`<p><b>${cobHoje} cobrança${cobHoje === 1 ? '' : 's'} agendada${cobHoje === 1 ? '' : 's'} para hoje.</b> A mensagem e o PIX já estão prontos; é só conferir e enviar.</p>`, '', '<a class="btn sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a>') : '') + niverHtml + `
+  // Novidades vindas dos pacientes; "visto" fica guardado neste navegador.
+  let nov = []; try { nov = await api.listNovidades(); } catch { nov = []; }
+  let visto = ''; try { visto = localStorage.getItem('potira-novidades-visto') || ''; } catch { /* sem armazenamento */ }
+  const novas = nov.filter((n) => n.quando > visto);
+  const novHtml = novas.length ? `<section class="panel novidades" style="margin-bottom:16px"><div class="panel-head"><h3>${icon('sparkle')}Novidades <span class="nov-n">${novas.length}</span></h3><button class="btn quiet sm" id="nov-ok">Marcar como visto</button></div>
+    ${novas.slice(0, 8).map((n) => `<a class="nov${n.alerta ? ' alerta' : ''}" href="${n.h}"><span class="grow"><b>${esc(n.nome)}</b> ${esc(n.txt)}</span><small class="muted">${fmtDateTime(n.quando)}</small></a>`).join('')}
+    ${novas.length > 8 ? `<p class="small muted">E mais ${novas.length - 8}.</p>` : ''}</section>` : '';
+  main.innerHTML = pageHeader(`${greeting()}, ${esc(first)}`, esc(longDate())) + (cobHoje ? callout(`<p><b>${cobHoje} cobrança${cobHoje === 1 ? '' : 's'} agendada${cobHoje === 1 ? '' : 's'} para hoje.</b> A mensagem e o PIX já estão prontos; é só conferir e enviar.</p>`, '', '<a class="btn sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a>') : '') + novHtml + niverHtml + `
   <div class="dash">
     <section class="dcard wide" aria-label="Sessões de hoje">
       <h3>Sessões de hoje</h3><span class="ill">${ART.clip}</span>
@@ -179,6 +186,8 @@ export async function renderDashboard() {
 
   if (!p.is_admin) import('./tour.js').then((m) => m.maybeTour()).catch(() => {});
   if ($('#h-lembretes')) $('#h-lembretes').onclick = () => lembretesModal({ aps: amanhaAps, patients, title: `Lembretes de amanhã (${fmtDate(amanhaISO)})` });
+  const novOk = $('#nov-ok');
+  if (novOk) novOk.onclick = () => { try { localStorage.setItem('potira-novidades-visto', novas[0].quando); } catch { /* sem armazenamento */ } const sec = novOk.closest('.novidades'); sumir(sec); };
   $$('[data-hfalta]').forEach((b) => (b.onclick = async () => {
     const a = todayAps.find((x) => x.id === b.dataset.hfalta);
     if (!(await confirmBox(`Marcar falta de ${a.patients?.name || 'paciente'} na sessão de hoje?`, 'Marcar falta'))) return;

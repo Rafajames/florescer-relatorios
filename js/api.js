@@ -175,14 +175,36 @@ export const listAuditAll = () =>
 
 /* ---------- backup dos dados do profissional ---------- */
 export async function exportEverything() {
-  const [patients, consents, reports, templates] = await Promise.all([
-    sb.from('patients').select('*').then(unwrap),
-    sb.from('consents').select('*').then(unwrap),
-    sb.from('reports').select('*').then(unwrap),
-    sb.from('templates').select('*').not('professional_id', 'is', null).then(unwrap),
-  ]);
-  const appointments = await sb.from('appointments').select('*').then((r) => (r.error ? [] : r.data));
-  return { exported_at: new Date().toISOString(), patients, consents, reports, templates, appointments };
+  // tudo o que é do profissional; tabela que não existir ou falhar vai vazia, sem travar o backup
+  const T = ['patients', 'consents', 'reports', 'report_versions', 'appointments', 'agenda_blocks', 'waitlist', 'patient_admin',
+    'charges', 'receipts', 'expenses', 'goals', 'scales', 'scale_scores', 'share_links', 'survey_answers'];
+  const pega = (t) => sb.from(t).select('*').then((r) => (r.error ? [] : r.data || []), () => []);
+  const out = { exported_at: new Date().toISOString(), versao: 2 };
+  const dados = await Promise.all(T.map(pega));
+  T.forEach((t, k) => { out[t] = dados[k]; });
+  out.templates = await sb.from('templates').select('*').not('professional_id', 'is', null).then((r) => (r.error ? [] : r.data), () => []);
+  const { data: { user } = {} } = await sb.auth.getUser();
+  if (user) out.profile = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle().then((r) => r.data || null, () => null);
+  return out;
+}
+
+/** Novidades dos últimos 14 dias vindas dos pacientes: anamnese respondida, presença confirmada ou remarcação pedida, orientação aberta, pesquisa respondida. */
+export async function listNovidades() {
+  const desde = new Date(Date.now() - 14 * 864e5).toISOString();
+  const { data, error } = await sb.from('share_links')
+    .select('id, kind, patient_id, responded_at, opened_at, appointment_id, patients(name), appointments(date, time, confirm_status)')
+    .or(`responded_at.gte.${desde},opened_at.gte.${desde}`).order('created_at', { ascending: false }).limit(40);
+  if (error) return [];
+  return (data || []).map((l) => {
+    const quando = l.responded_at || l.opened_at; const ap = l.appointments;
+    const o = { id: l.id, quando, patient_id: l.patient_id, nome: l.patients?.name || 'Paciente', kind: l.kind };
+    if (l.kind === 'anamnese' && l.responded_at) return { ...o, txt: 'respondeu a anamnese', h: `#/pacientes/${l.patient_id}` };
+    if (l.kind === 'confirmacao' && l.responded_at) return { ...o, txt: ap?.confirm_status === 'remarcar' ? `pediu para remarcar a sessão de ${ap.date.split('-').reverse().slice(0, 2).join('/')}` : `confirmou a sessão${ap ? ' de ' + ap.date.split('-').reverse().slice(0, 2).join('/') : ''}`, alerta: ap?.confirm_status === 'remarcar', h: '#/administrativo' };
+    if (l.kind === 'orientacao' && l.opened_at) return { ...o, quando: l.opened_at, txt: 'abriu as orientações para casa', h: `#/pacientes/${l.patient_id}` };
+    if (l.kind === 'pesquisa' && l.responded_at) return { ...o, txt: 'respondeu a pesquisa de satisfação', h: '#/administrativo/pesquisa' };
+    if (l.kind === 'relatorio' && l.opened_at) return { ...o, quando: l.opened_at, txt: 'abriu o relatório enviado por link', h: `#/pacientes/${l.patient_id}` };
+    return null;
+  }).filter(Boolean).sort((a, b) => (a.quando < b.quando ? 1 : -1));
 }
 
 /* ---------- administrativo: agenda e frequência ---------- */
