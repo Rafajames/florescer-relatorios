@@ -781,6 +781,8 @@ h1{font-size:30px} h2{font-size:19px;font-weight:650}
 .rail{background:var(--paper);color:var(--ink-2);border-radius:var(--r-card);top:16px;height:calc(100vh - 32px);padding:18px 12px;gap:6px;overflow-y:auto}
 .brand{color:var(--ink);padding:2px 8px 12px}
 .brand .mark{background:linear-gradient(140deg,var(--petrol-3),var(--petrol));color:#fff;border-radius:11px}
+/* logo do profissional: sempre numa caixa branca, para as cores da própria logo não se misturarem com o tema */
+.brand .mark.has-logo{background:#fff;box-shadow:0 0 0 1px var(--line);overflow:hidden}
 .brand b{font-size:18px;color:var(--ink)}
 .nav{gap:1px}
 .nav-sec{display:block;font-size:11.5px;font-weight:600;color:var(--ink-3);padding:14px 12px 5px}

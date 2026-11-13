@@ -309,3 +309,6 @@ Admin: uso (só totais), convites (exigência opcional, desligada por padrão), 
 - **Dados**: backup completo em JSON, planilha CSV de pacientes e registro de atividades.
 
 > **Atualizando de uma versão anterior?** Execute novamente `supabase/schema.sql` no SQL Editor (é seguro repetir). Ele adiciona a coluna `preferences` e atualiza o portal para respeitar a visibilidade por seção.
+
+### Logo do profissional no menu
+- A logo enviada agora aparece sempre numa caixa branca, com contorno fino, no menu e no topo. Antes, em alguns temas, a logo com fundo colorido se misturava com a cor do menu e parecia um bloco estranho.
