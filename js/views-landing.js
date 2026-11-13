@@ -52,6 +52,7 @@ export function renderLanding() {
 
     <main class="land-wrap">
       <section class="land-hero">
+        <div class="land-petalas" aria-hidden="true">${'<i></i>'.repeat(7)}</div>
         <span class="land-selo">Em fase de testes · sem custo</span>
         <h1>O consultório inteiro em um só lugar.</h1>
         <p>Anamnese, evolução de cada sessão, relatórios, agenda e cobrança. Para profissionais de saúde que querem escrever menos, organizar melhor e entregar documentos com a própria marca.</p>
@@ -62,8 +63,9 @@ export function renderLanding() {
             <b>Bom dia, Ana</b>
             <div class="lt-cards"><div><small>Sessões de hoje</small><strong>5</strong></div><div><small>A receber</small><strong>R$ 840</strong></div><div><small>Rascunhos</small><strong>2</strong></div></div>
             <div class="lt-linha"><em>09:00</em><span>Pedro L.</span><u class="ok">Confirmou</u></div>
-            <div class="lt-linha"><em>10:00</em><span>Marina S.</span><u>Agendada</u></div>
+            <div class="lt-linha"><em>10:00</em><span>Marina S.</span><u class="lt-troca"><i>Agendada</i><i>Confirmou</i></u></div>
             <div class="lt-linha"><em>14:00</em><span>João V.</span><u class="bl">Evolução</u></div>
+            <div class="lt-aviso">${icon('check')}Tudo salvo</div>
           </div>
         </div>
       </section>

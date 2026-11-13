@@ -1294,3 +1294,32 @@ polyline.desenha{stroke-dasharray:1;stroke-dashoffset:1;animation:traca .9s .15s
 .land-hero .land-selo{justify-self:start}
 .lt-cards strong{white-space:nowrap}
 @media (max-width:560px){.lt-cards strong{font-size:14px}.lt-cards div{padding:8px}.lt-cards small{font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+/* apresentação: animações que ficam rodando (param para quem pede menos movimento) */
+.land-hero::after{animation:brilho 14s ease-in-out infinite alternate}
+@keyframes brilho{to{transform:translate(-120px,90px) scale(1.25)}}
+.land-petalas{position:absolute!important;inset:0;overflow:hidden;pointer-events:none;z-index:0!important;animation:none!important;grid-column:1 / -1!important}
+.land-petalas i{position:absolute;bottom:-30px;width:16px;height:24px;border-radius:50%/62% 62% 38% 38%;background:color-mix(in srgb,var(--bloom) 70%,#fff);opacity:0;animation:petalaSobe 13s linear infinite}
+.land-petalas i:nth-child(1){left:6%;animation-delay:0s}.land-petalas i:nth-child(2){left:19%;animation-delay:4.5s;width:11px;height:17px}.land-petalas i:nth-child(3){left:34%;animation-delay:8s}
+.land-petalas i:nth-child(4){left:52%;animation-delay:2s;width:12px;height:18px}.land-petalas i:nth-child(5){left:68%;animation-delay:6.5s}.land-petalas i:nth-child(6){left:81%;animation-delay:10s;width:10px;height:15px}.land-petalas i:nth-child(7){left:93%;animation-delay:3.2s}
+@keyframes petalaSobe{0%{transform:translate(0,0) rotate(0);opacity:0}8%{opacity:.35}50%{transform:translate(26px,-260px) rotate(140deg)}92%{opacity:.3}100%{transform:translate(-14px,-560px) rotate(300deg);opacity:0}}
+.land-tela{animation:rise .7s .15s cubic-bezier(.2,.7,.2,1) backwards,flutua 7s 1s ease-in-out infinite}
+@keyframes flutua{0%,100%{translate:0 0}50%{translate:0 -9px}}
+.lt-menu span{animation:menuPisca 9s infinite}.lt-menu span:nth-of-type(1){animation-delay:0s}.lt-menu span:nth-of-type(2){animation-delay:2.25s}.lt-menu span:nth-of-type(3){animation-delay:4.5s}.lt-menu span:nth-of-type(4){animation-delay:6.75s}
+.lt-menu span.on{background:rgba(255,255,255,.22)}
+@keyframes menuPisca{0%,22%{background:#fff}25%,100%{background:rgba(255,255,255,.22)}}
+.lt-linha{animation:linhaVez 9s infinite}.lt-linha:nth-of-type(3){animation-delay:3s}.lt-linha:nth-of-type(4){animation-delay:6s}
+@keyframes linhaVez{0%,100%{box-shadow:none;transform:none}6%,26%{box-shadow:0 0 0 2px var(--bloom);transform:translateX(3px)}32%{box-shadow:none;transform:none}}
+.lt-troca{position:relative;display:inline-grid}.lt-troca i{grid-area:1/1;font-style:normal;animation:troca 9s infinite}.lt-troca i:last-child{animation-name:troca2}
+.lt-troca{animation:trocaCor 9s infinite}
+@keyframes troca{0%,40%{opacity:1}45%,95%{opacity:0}100%{opacity:1}}@keyframes troca2{0%,40%{opacity:0}45%,95%{opacity:1}100%{opacity:0}}
+@keyframes trocaCor{0%,40%{background:var(--petrol-tint,#e2eef1);color:var(--petrol)}45%,95%{background:color-mix(in srgb,#2E8B57 16%,var(--paper));color:#1f6b41}}
+.lt-corpo{position:relative}
+.lt-aviso{position:absolute;right:12px;bottom:10px;display:flex;align-items:center;gap:6px;background:var(--petrol-2);color:#fff;font-size:12px;border-radius:99px;padding:5px 11px;opacity:0;animation:avisoVai 9s 4.2s infinite}
+.lt-aviso svg{width:13px;height:13px}
+@keyframes avisoVai{0%,100%{opacity:0;transform:translateY(8px)}6%,24%{opacity:1;transform:none}30%{opacity:0;transform:translateY(8px)}}
+.land-passos div::before{animation:passoVez 8s infinite}.land-passos div:nth-child(2)::before{animation-delay:2s}.land-passos div:nth-child(3)::before{animation-delay:4s}.land-passos div:nth-child(4)::before{animation-delay:6s}
+@keyframes passoVez{0%,100%{transform:scale(1);box-shadow:none}5%,20%{transform:scale(1.18);box-shadow:0 0 0 6px color-mix(in srgb,var(--bloom) 25%,transparent)}26%{transform:scale(1);box-shadow:none}}
+.land-ic{animation:icBalanca 6s ease-in-out infinite}.land-card:nth-child(even) .land-ic{animation-delay:1.5s}.land-card:nth-child(3n) .land-ic{animation-delay:3s}
+@keyframes icBalanca{0%,100%{transform:none}50%{transform:translateY(-4px) rotate(-4deg)}}
+@media (prefers-reduced-motion:reduce){.land-hero::after,.land-petalas i,.land-tela,.lt-menu span,.lt-linha,.lt-troca,.lt-troca i,.lt-aviso,.land-passos div::before,.land-ic{animation:none!important}.lt-menu span.on{background:#fff}.lt-troca i:last-child{opacity:0}.land-petalas{display:none}}
+.lt-aviso{bottom:auto;top:12px}

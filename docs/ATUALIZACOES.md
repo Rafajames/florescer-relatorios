@@ -4,6 +4,12 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 13/11/2026 — Animações contínuas na apresentação
+
+- No destaque: pétalas subindo devagar, brilho rosa se movendo, e a prévia da tela "viva" (flutua, o menu troca de item, cada sessão ganha a vez, "Agendada" vira "Confirmou", aviso "Tudo salvo" aparece e some).
+- Mais abaixo: os números do passo a passo acendem em sequência e os ícones dos recursos balançam de leve.
+- Só CSS, sem biblioteca; tudo para para quem pede menos movimento.
+
 ## 13/11/2026 — Contato no site
 
 - A apresentação tem sempre a seção **Fale com a gente**, com o nome do criador e o link do GitHub (github.com/Rafajames); também no rodapé ("Contato") e na página Sobre. WhatsApp e e-mail continuam opcionais (Administração → Convites).
