@@ -58,7 +58,7 @@ export async function renderAdministrativo(params) {
 
 /* ---------- Agenda (semana) ---------- */
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-const verPills = (ver, ref) => `<div class="pilulas ag-ver" role="group" aria-label="Visão">${[['lista', 'Lista'], ['grade', 'Semana'], ['mes', 'Mês']].map(([k, t]) => `<a class="pilula${k === ver ? ' on' : ''}" href="#/administrativo?ver=${k}&semana=${ref}">${t}</a>`).join('')}</div>`;
+const verPills = (ver, ref) => `<div class="pilulas ag-ver" role="group" aria-label="Visão">${[['dia', 'Dia'], ['lista', 'Lista'], ['grade', 'Semana'], ['mes', 'Mês']].map(([k, t]) => `<a class="pilula${k === ver ? ' on' : ''}" href="#/administrativo?ver=${k}&semana=${ref}">${t}</a>`).join('')}</div>`;
 
 /** Visão do mês: quantas sessões em cada dia; clicar no dia abre a semana. */
 async function agendaMes(params) {
@@ -84,7 +84,7 @@ async function agendaMes(params) {
     ${dias.map((d) => {
       const l = aps.filter((a) => a.date === d && a.status !== 'cancelado').sort((a, b) => String(a.time).localeCompare(String(b.time)));
       const bloq = blocks.some((b) => b.date <= d && (b.end_date || b.date) >= d);
-      return `<a class="ag-mes-dia${d.slice(0, 7) !== ini.slice(0, 7) ? ' fora' : ''}${d === hoje ? ' hoje' : ''}${bloq ? ' bloq' : ''}" href="#/administrativo?ver=lista&semana=${d}">
+      return `<a class="ag-mes-dia${d.slice(0, 7) !== ini.slice(0, 7) ? ' fora' : ''}${d === hoje ? ' hoje' : ''}${bloq ? ' bloq' : ''}" href="#/administrativo?ver=dia&semana=${d}">
         <span class="n">${Number(d.slice(8))}</span>
         ${l.slice(0, 3).map((a) => `<span class="ag-mes-s st-${a.status}">${esc(hhmm(a.time))} ${esc((a.patients?.name || '').split(' ')[0])}</span>`).join('')}
         ${l.length > 3 ? `<span class="ag-mes-mais">+${l.length - 3}</span>` : ''}</a>`;
@@ -93,11 +93,12 @@ async function agendaMes(params) {
 
 async function agenda(params, patients) {
   let ver = params.get('ver'); try { if (ver) localStorage.setItem('ag-ver', ver); else ver = localStorage.getItem('ag-ver'); } catch { /* sem armazenamento */ }
-  ver = ['lista', 'grade', 'mes'].includes(ver) ? ver : 'lista';
+  ver = ['dia', 'lista', 'grade', 'mes'].includes(ver) ? ver : 'lista';
+  const umDia = ver === 'dia';
   if (ver === 'mes') return agendaMes(params);
   const pane = $('#pane');
-  const start = mondayOf(params.get('semana') || todayISO());
-  const end = addDays(start, 6);
+  const start = umDia ? (params.get('semana') || todayISO()) : mondayOf(params.get('semana') || todayISO());
+  const end = umDia ? start : addDays(start, 6);
   const [aps, reps, blocks] = await Promise.all([
     api.listAppointments({ from: start, to: end }),
     api.listReports({ kind: 'sessao', from: start, to: end, limit: 500 }),
@@ -107,15 +108,16 @@ async function agenda(params, patients) {
   const blockTxt = (b) => `${b.start_time ? `${hhmm(b.start_time)}–${hhmm(b.end_time)}` : 'Dia todo'}${b.reason ? ' · ' + esc(b.reason) : ''}`;
   const blocksHtml = (d) => blocksOf(d).map((b) => `<span class="ag-block">${icon('x')}Bloqueado: ${blockTxt(b)} <button class="link small" data-unblock="${b.id}">Liberar</button></span>`).join('');
   const amanha = addDays(todayISO(), 1);
-  const evo = new Map(reps.map((r) => [`${r.patient_id}|${r.session_date}`, r.id]));
+  const evoAp = new Map(reps.filter((r) => r.appointment_id).map((r) => [r.appointment_id, r.id]));
+  const evo = new Map(reps.filter((r) => !r.appointment_id).map((r) => [`${r.patient_id}|${r.session_date}`, r.id]));
   const count = (s) => aps.filter((a) => a.status === s).length;
-  const week = (n) => `#/administrativo?ver=${ver}&semana=${addDays(start, 7 * n)}`;
+  const week = (n) => `#/administrativo?ver=${ver}&semana=${addDays(start, (umDia ? 1 : 7) * n)}`;
   const today = todayISO();
 
   pane.innerHTML = `
     <div class="row" style="margin-bottom:14px;align-items:center">
       <a class="btn quiet sm" href="${week(-1)}" aria-label="Semana anterior">${icon('left')}</a>
-      <b style="min-width:190px;text-align:center">${fmtDate(start)} a ${fmtDate(end)}</b>
+      <b style="min-width:190px;text-align:center">${umDia ? `${WD[dt(start).getDay()]}, ${fmtDate(start)}` : `${fmtDate(start)} a ${fmtDate(end)}`}</b>
       <a class="btn quiet sm" href="${week(1)}" aria-label="Próxima semana">${icon('right')}</a>
       <a class="btn quiet sm" href="#/administrativo?ver=${ver}">Hoje</a>
       ${verPills(ver, start)}
@@ -129,10 +131,10 @@ async function agenda(params, patients) {
     </div>
     <div id="days" class="${(() => { const ant = sessionStorage.getItem('ag-sem'); sessionStorage.setItem('ag-sem', start); return !ant || ant === start ? '' : start > ant ? 'vai-dir' : 'vai-esq'; })()}"></div>`;
 
-  const days = [...Array(7)].map((_, i) => addDays(start, i));
+  const days = umDia ? [start] : [...Array(7)].map((_, i) => addDays(start, i));
   $('#days').innerHTML = days.map((d) => {
     const list = aps.filter((a) => a.date === d);
-    if (!list.length && dt(d).getDay() === 0) return ''; // domingo vazio não aparece
+    if (!list.length && dt(d).getDay() === 0 && !umDia) return ''; // domingo vazio não aparece
     if (!list.length) return `<section class="ag-day vazio ${d === today ? 'today' : ''}">
       <h3>${WD[dt(d).getDay()]}, ${fmtDate(d)}${d === today ? ' ' + chip('Hoje', 'bloom') : ''}<span class="muted small ag-livre">sem sessões</span>
       <button class="link small" data-novo="${d}">Agendar</button></h3>${blocksHtml(d)}</section>`;
@@ -142,9 +144,9 @@ async function agenda(params, patients) {
       ${list.length ? `<div class="table">${list.map((a) => {
         const conf = a.status !== 'agendado' ? '' : a.confirm_status === 'confirmado' ? chip('Confirmou', 'ok') : a.confirm_status === 'remarcar' ? chip('Pediu para remarcar', 'warn') : '';
         const remarcar = ['falta', 'falta_justificada', 'cancelado'].includes(a.status) || a.confirm_status === 'remarcar' ? `<button class="btn quiet sm" data-remarcar="${a.id}">Reagendar</button>` : '';
-        const rid = evo.get(`${a.patient_id}|${a.date}`);
+        const rid = evoAp.get(a.id) || evo.get(`${a.patient_id}|${a.date}`);
         const evoLink = rid ? `<a class="small" href="#/relatorio/${rid}">${icon('file')}Evolução</a>`
-          : a.status === 'realizado' && state.profile?.role !== 'secretary' ? `<a class="small" href="#/nova?paciente=${a.patient_id}">${icon('plus')}Registrar evolução</a>` : '';
+          : a.status === 'realizado' && state.profile?.role !== 'secretary' ? `<a class="small" href="#/nova?paciente=${a.patient_id}&sessao=${a.id}">${icon('plus')}Registrar evolução</a>` : '';
         return `<div class="tr cols-agenda">
           <span class="t">${esc(hhmm(a.time) || '—')}</span>
           <span class="ellip">${state.profile?.role === 'secretary' ? esc(a.patients?.name || '') : `<a href="#/pacientes/${a.patient_id}" style="color:inherit">${esc(a.patients?.name || '')}</a>`}<small class="muted"> · ${a.duration_min} min${a.notes ? ' · ' + esc(a.notes) : ''}</small> ${conf}</span>
@@ -172,7 +174,7 @@ async function agenda(params, patients) {
             <b>${esc(hhmm(a.time))}</b> ${esc(a.patients?.name || '')}${a.confirm_status === 'confirmado' && a.status === 'agendado' ? ' ✓' : ''}</button>`; }).join('')}</div>`).join('')}
     </div>`;
   }
-  if (!aps.length && ver !== 'grade') $('#days').insertAdjacentHTML('afterbegin', emptyState('Semana sem sessões', 'Use “Nova sessão” para agendar. Dá para repetir toda semana nos dias escolhidos.'));
+  if (!aps.length && ver !== 'grade') $('#days').insertAdjacentHTML('afterbegin', emptyState(umDia ? 'Dia sem sessões' : 'Semana sem sessões', 'Use “Nova sessão” para agendar. Dá para repetir toda semana nos dias escolhidos.'));
 
   const again = () => agenda(params, patients);
   $$('[data-st]').forEach((s) => (s.onchange = async () => {

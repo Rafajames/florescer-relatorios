@@ -146,8 +146,8 @@ export async function renderDashboard() {
       <div class="agl">${todayAps.length ? todayAps.map((a) => `<div class="agi hoje-it">
           <span class="ck ${a.status === 'realizado' ? 'ok' : a.status.startsWith('falta') ? 'no' : ''}"></span><span class="tm">${hh(a.time) || '—'}</span>
           <a class="nm" href="#/pacientes/${a.patient_id}" style="color:inherit;text-decoration:none"><b>${esc(a.patients?.name || 'Paciente')}</b><span>${esc(ATT_STATUS[a.status] || '')}${a.duration_min ? ` · ${a.duration_min} min` : ''}${a.confirm_status === 'confirmado' ? ' · confirmou' : a.confirm_status === 'remarcar' ? ' · pediu para remarcar' : ''}</span></a>
-          <span class="hoje-act">${a.status === 'agendado' ? `<a class="btn sm" href="#/nova?paciente=${a.patient_id}">Iniciar</a><button class="btn quiet sm" data-hfalta="${a.id}">Falta</button>`
-            : a.status === 'realizado' ? `<a class="btn quiet sm" href="#/nova?paciente=${a.patient_id}">Evolução</a>` : ''}</span></div>`).join('')
+          <span class="hoje-act">${a.status === 'agendado' ? `<a class="btn sm" href="#/nova?paciente=${a.patient_id}&sessao=${a.id}">Iniciar</a><button class="btn quiet sm" data-hfalta="${a.id}">Falta</button>`
+            : a.status === 'realizado' ? `<a class="btn quiet sm" href="#/nova?paciente=${a.patient_id}&sessao=${a.id}">Evolução</a>` : ''}</span></div>`).join('')
         : '<p class="empty-mini">Nenhuma sessão agendada para hoje.</p>'}</div>
       <div class="foot">${amanhaAps.length ? `<button class="btn quiet" id="h-lembretes">Lembretes de amanhã (${amanhaAps.length})</button>` : ''}<a class="btn quiet" href="#/administrativo">Ver agenda</a><a class="btn" href="#/administrativo">${icon('plus')}Agendar</a></div>
     </section>

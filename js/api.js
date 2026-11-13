@@ -135,7 +135,7 @@ export const saveTemplate = (t) => {
 export const deleteTemplate = (id) => sb.from('templates').delete().eq('id', id).then(unwrap);
 
 /* ---------- relatórios ---------- */
-const LIST_COLS = 'id,title,kind,session_date,period_start,period_end,status,released_to_patient,ai_generated,patient_id,created_at,goal_ids,patients(name,email)';
+const LIST_COLS = 'id,title,kind,session_date,period_start,period_end,status,released_to_patient,ai_generated,patient_id,created_at,goal_ids,appointment_id,patients(name,email)';
 export const listReports = ({ patientId, kind, status, limit, from, to, withSections } = {}) => {
   if (STAFF) return Promise.resolve([]);
   let q = sb.from('reports').select(withSections ? LIST_COLS + ',sections' : LIST_COLS)
@@ -298,9 +298,13 @@ export const updateAppointment = (id, patch) =>
   sb.from('appointments').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).select().single().then(unwrap);
 export const deleteAppointment = (id) => sb.from('appointments').delete().eq('id', id).then(unwrap);
 /** Ao registrar a evolução de uma sessão, marca como realizada a sessão agendada do paciente naquele dia (a primeira do horário). Retorna a sessão marcada ou null. */
-export const markSessionRealized = async (patientId, date) => {
-  const { data, error } = await sb.from('appointments').select('id,patient_id,amount,status,payment_method').eq('patient_id', patientId).eq('date', date).eq('status', 'agendado')
-    .order('time', { nullsFirst: true }).limit(1);
+export const deleteReceipt = (id) => sb.from('receipts').delete().eq('id', id).then(unwrap);
+export const undoReceiptNumber = (n) => sb.rpc('undo_receipt_number', { p_n: n }).then(unwrap);
+/** Marca a sessão como realizada: a sessão indicada (appointmentId) ou, sem ela, a primeira agendada do paciente naquela data. */
+export const markSessionRealized = async (patientId, date, appointmentId = null) => {
+  let q = sb.from('appointments').select('id,patient_id,amount,status,payment_method').eq('patient_id', patientId).eq('status', 'agendado');
+  q = appointmentId ? q.eq('id', appointmentId) : q.eq('date', date);
+  const { data, error } = await q.order('time', { nullsFirst: true }).limit(1);
   if (error) throw error;
   const a = data && data[0];
   if (!a) return null;

@@ -4,6 +4,14 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 13/11/2026 — Acertos no Financeiro e na Agenda (migração v17 aplicada)
+
+- **Anular o último recibo:** em Financeiro → Documentos, o recibo mais recente tem "Anular"; ele sai da lista e do portal, e o número volta a ficar livre (função `undo_receipt_number`, só devolve se for o último e não houver recibo com aquele número).
+- **Evolução ligada à sessão certa:** "Iniciar", "Evolução" e "Registrar evolução" levam a sessão no endereço (`&sessao=`); a evolução guarda `appointment_id` e marca como realizada aquela sessão, não a primeira do dia.
+- **Editar valor em Cobranças:** a tela não volta ao topo e a linha salva pisca em verde.
+- **Agenda:** nova visão **Dia** (setas andam de um em um dia; clicar num dia do Mês abre o Dia).
+- Não feito: pagamento parcial (precisa de desenho) e controle de convênio com guias.
+
 ## 13/11/2026 — Recibo em PDF no portal do paciente
 
 - No Portal do paciente, cada recibo ganha o botão **PDF**, com o mesmo conteúdo, número e timbre da segunda via do profissional.

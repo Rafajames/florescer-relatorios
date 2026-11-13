@@ -62,17 +62,17 @@ O James quer emissão de nota fiscal no futuro. Fica para depois.
 ## 3. Achados da revisão que ainda não foram tratados
 
 **Financeiro**
-- O número do recibo avança mesmo se o profissional cancelar a impressão (o recibo fica guardado, com segunda via).
+- ~~Número do recibo avança ao cancelar a impressão~~ Feito em 13/11/2026: o último recibo pode ser **anulado** e o número volta a ficar livre (v17). Não testado com conta real.
 - **Recibo em PDF no portal:** feito e migração v16 aplicada em 13/11/2026. Ainda não há nenhum recibo emitido no banco: conferir emitindo um recibo para um paciente de teste com e-mail e abrindo o portal com esse e-mail.
 - A secretária não vê a aba Pesquisa nem Convênios, e não usa a pasta de documentos por paciente com dados clínicos (só os administrativos).
 - Controle de convênio é simples: separa o que o convênio deve, sem guias nem faturamento por lote.
 - O recibo considera as sessões pagas pelo mês da sessão, não pelo mês do pagamento.
-- Editar um valor na tabela de sessões recarrega a tela inteira.
-- Pagamento parcial de uma sessão não existe: a sessão é paga inteira ou fica em aberto.
+- ~~Editar valor recarrega a tela~~ Feito em 13/11/2026: a tela mantém a posição e a linha alterada pisca em verde (os totais ainda são recalculados por inteiro).
+- **Pagamento parcial de uma sessão não existe** (paga inteira ou em aberto). Não foi feito em 13/11/2026 de propósito: mexe em todos os cálculos de dinheiro (em aberto, cobrança, recibo, resumo). Precisa de desenho aprovado pelo James antes.
 
 **Administrativo**
-- ~~Sem visão de mês~~ Feito em 13/11/2026 (Lista, Semana em grade e Mês). Visão de um dia só ainda não existe.
-- A evolução é ligada à sessão só por paciente e data; duas sessões no mesmo dia confundem.
+- ~~Sem visão de mês~~ Feito em 13/11/2026 (Lista, Semana em grade e Mês). Visão de um dia feita em 13/11/2026 (pílula "Dia").
+- ~~Duas sessões no mesmo dia confundem a evolução~~ Feito em 13/11/2026 (v17): a evolução guarda a sessão de origem (`reports.appointment_id`) quando é iniciada pela agenda ou pelo Início. Evoluções antigas e as criadas por "Nova evolução" sem sessão continuam ligadas por paciente e data.
 
 **Design**
 - O campo de data da página pública segue o idioma do navegador de quem abre.

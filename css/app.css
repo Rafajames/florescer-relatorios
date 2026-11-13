@@ -1244,3 +1244,4 @@ polyline.desenha{stroke-dasharray:1;stroke-dashoffset:1;animation:traca .9s .15s
 .ag-mes-mais{font-size:11.5px;color:var(--ink-2)}
 @media (max-width:600px){.ag-mes{gap:3px}.ag-mes-dia{min-height:58px;padding:4px}.ag-mes-s{font-size:0;height:6px;padding:0}.ag-mes-mais{font-size:10px}}
 @media (prefers-reduced-motion:reduce){.ag-g-s,.ag-mes-dia{animation:none}}
+.tr.salvou{animation:salvou 1.4s ease-out}@keyframes salvou{0%{background:color-mix(in srgb,#2E8B57 18%,transparent)}100%{background:transparent}}

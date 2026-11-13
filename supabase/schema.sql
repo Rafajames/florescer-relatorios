@@ -1399,3 +1399,21 @@ returns jsonb language sql stable security definer set search_path = public as $
 $$;
 revoke all on function public.portal_overview() from public, anon;
 grant execute on function public.portal_overview() to authenticated;
+
+-- ===================== v17 (13/11/2026): evolução ligada à sessão e número de recibo devolvido =====================
+-- 1) A evolução guarda de qual sessão ela é (duas sessões no mesmo dia não se confundem).
+alter table public.reports add column if not exists appointment_id uuid references public.appointments(id) on delete set null;
+create index if not exists reports_appointment_idx on public.reports (appointment_id);
+-- 2) Se o profissional desistir do recibo (não imprimiu nem salvou), o número volta, mas só se ainda for o último emitido.
+create or replace function public.undo_receipt_number(p_n int)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare v_prof uuid := coalesce(public.staff_of(), case when public.is_professional() then auth.uid() end);
+begin
+  if v_prof is null then raise exception 'sem_permissao'; end if;
+  update public.profiles set branding = jsonb_set(branding, '{recibo_seq}', to_jsonb(p_n - 1))
+   where id = v_prof and (branding->>'recibo_seq')::int = p_n
+     and not exists (select 1 from public.receipts r where r.professional_id = v_prof and r.numero = p_n);
+  return found;
+end $$;
+revoke all on function public.undo_receipt_number(int) from public, anon;
+grant execute on function public.undo_receipt_number(int) to authenticated;

@@ -164,7 +164,12 @@ async function chargesTab(pane, mes, from, to) {
       paid_on: st === 'pago' ? (dt.value || todayISO()) : null,
       payment_method: $('.cob-m', row).value || null,
     };
-    try { await api.updateAppointment(id, patch); toast('Cobrança atualizada.'); refresh(); }
+    try {
+      await api.updateAppointment(id, patch); toast('Cobrança atualizada.');
+      // recarrega os totais sem perder o lugar na lista e destaca a linha alterada
+      const y = window.scrollY; await refresh(); window.scrollTo(0, y);
+      const nova = document.querySelector(`#cob .tr[data-id="${id}"]`); if (nova) nova.classList.add('salvou');
+    }
     catch (err) { toast(err.message, 'err'); }
   };
   const pat = (id) => patients.find((x) => x.id === id);
@@ -392,9 +397,20 @@ async function documentsTab(pane, mes, from, to) {
   const drawRecibos = async () => {
     const box = $('#rc-list'); if (!box) return;
     let recs = []; try { recs = await api.listReceipts(); } catch { recs = []; }
-    box.innerHTML = recs.length ? `<div class="table">${recs.map((r) => `<div class="tr" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    box.innerHTML = recs.length ? `<div class="table">${recs.map((r, i) => `<div class="tr" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <span class="grow t">Nº ${String(r.numero).padStart(4, '0')} · ${esc(r.patients?.name || r.data?.patientName || '')}<small class="muted"> · ${fmtDate(r.issued_on)} · ${esc(r.data?.monthLabel || '')}</small></span>
-      <b>${brl(r.total)}</b><button class="btn quiet sm" data-via="${r.id}">Segunda via (PDF)</button></div>`).join('')}</div>` : '<p class="muted small">Nenhum recibo emitido ainda.</p>';
+      <b>${brl(r.total)}</b><button class="btn quiet sm" data-via="${r.id}">Segunda via (PDF)</button>${i === 0 ? `<button class="link small" data-anular="${r.id}" title="Só o último recibo pode ser anulado; o número volta a ficar livre">Anular</button>` : ''}</div>`).join('')}</div>
+      <p class="muted small" style="margin:8px 0 0">Emitiu por engano ou desistiu de imprimir? Anule o último recibo: o número volta a ficar livre.</p>` : '<p class="muted small">Nenhum recibo emitido ainda.</p>';
+    $$('[data-anular]', box).forEach((b) => (b.onclick = async () => {
+      const rc = recs.find((x) => x.id === b.dataset.anular);
+      if (!(await confirmBox(`Anular o recibo nº ${String(rc.numero).padStart(4, '0')}? Ele sai da lista (e do portal do paciente) e o número volta a ficar livre.`, 'Anular recibo'))) return;
+      try {
+        await api.deleteReceipt(rc.id);
+        const voltou = await api.undoReceiptNumber(rc.numero).catch(() => false);
+        if (voltou) state.profile = { ...state.profile, branding: { ...(state.profile.branding || {}), recibo_seq: rc.numero - 1 } };
+        toast(voltou ? 'Recibo anulado. O número ficou livre.' : 'Recibo anulado.'); await sumir(b.closest('.tr')); drawRecibos();
+      } catch (err) { toast(err.message, 'err'); }
+    }));
     $$('[data-via]', box).forEach((b) => (b.onclick = () => { const r = recs.find((x) => x.id === b.dataset.via); exportReciboPdf({ professional: state.profile, payment: pay, ...r.data, numero: r.numero }); }));
   };
   drawRecibos();

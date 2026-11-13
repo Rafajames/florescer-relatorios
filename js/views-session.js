@@ -262,7 +262,12 @@ export async function renderNewSession(params) {
         transcript: transcript || null, notes: notes || null, sections, ai_generated: withAI,
       });
       if (kind === 'sessao') {
-        try { const marcada = await api.markSessionRealized(patient_id, rep.session_date); if (marcada) toast('Sessão marcada como realizada e liberada para cobrança.'); }
+        try {
+          const marcada = await api.markSessionRealized(patient_id, rep.session_date, params.get('sessao'));
+          const apId = params.get('sessao') || marcada?.id;
+          if (apId) await api.updateReport(rep.id, { appointment_id: apId }).catch(() => {}); // liga a evolução à sessão
+          if (marcada) toast('Sessão marcada como realizada e liberada para cobrança.');
+        }
         catch (err) { console.warn('Não foi possível marcar a sessão como realizada:', err); }
       }
       goto(`#/relatorio/${rep.id}`);
