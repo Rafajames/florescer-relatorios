@@ -30,7 +30,8 @@ export function renderLanding() {
   const ic = icon;
   // contato público: definido pelo administrador (Administração → Convites); sem ele, a seção não aparece
   const wa = String(settings.contato_whatsapp || '').replace(/\D/g, ''), mail = String(settings.contato_email || '').trim();
-  const contato = Boolean(wa || mail);
+  const GIT = 'https://github.com/Rafajames'; // contato do criador (James); WhatsApp e e-mail entram quando o administrador preencher
+  const contato = true;
   $('#app').innerHTML = `
   <div class="land">
     <header class="land-top"><div class="land-wrap land-nav">
@@ -116,8 +117,8 @@ export function renderLanding() {
         </div>
       </section>
 
-      ${contato ? `<section id="contato" class="land-contato"><div><h2>Fale com a gente</h2><p class="land-sub">Dúvidas antes de criar a conta? Respondemos por aqui.</p></div>
-        <div class="land-cta">${wa ? `<a class="btn lg" target="_blank" rel="noopener" href="https://wa.me/${wa}">WhatsApp</a>` : ''}${mail ? `<a class="btn quiet lg" href="mailto:${esc(mail)}">${esc(mail)}</a>` : ''}</div></section>` : ''}
+      ${contato ? `<section id="contato" class="land-contato"><div><h2>Fale com a gente</h2><p class="land-sub">A Potira é criada por <b>James</b> (Jamerson Rafael). Dúvidas, sugestões ou problemas? Fale por aqui.</p></div>
+        <div class="land-cta"><a class="btn lg" target="_blank" rel="noopener" href="${GIT}">GitHub · Rafajames</a>${wa ? `<a class="btn lg" target="_blank" rel="noopener" href="https://wa.me/${wa}">WhatsApp</a>` : ''}${mail ? `<a class="btn quiet lg" href="mailto:${esc(mail)}">${esc(mail)}</a>` : ''}</div></section>` : ''}
 
       <section class="land-fim">
         <h2>Quer testar com os seus pacientes?</h2>
@@ -127,9 +128,10 @@ export function renderLanding() {
     </main>
 
     <footer class="land-wrap land-rodape"><span>Potira · relatórios clínicos</span>
-      <span><a href="#/entrar">Entrar</a> · <a href="#/paciente">Portal do paciente</a> · <a href="termos.html">Termos de uso</a> · <a href="privacidade.html">Privacidade</a></span></footer>
+      <span><a href="#/entrar">Entrar</a> · <a href="#/paciente">Portal do paciente</a> · <a href="#/" data-ir="contato">Contato</a> · <a href="termos.html">Termos de uso</a> · <a href="privacidade.html">Privacidade</a></span></footer>
   </div>`;
-  document.querySelectorAll('.land [data-ir]').forEach((b) => (b.onclick = () => {
+  document.querySelectorAll('.land [data-ir]').forEach((b) => (b.onclick = (e) => {
+    e.preventDefault();
     const alvo = document.getElementById(b.dataset.ir);
     if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }));

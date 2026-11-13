@@ -38,7 +38,7 @@ Estes itens foram testados só no ambiente de teste (dados simulados). O que se 
 - **Tela principal de apresentação** (12/11/2026): testada só em ambiente simulado (computador e celular). Falta abrir o site publicado sem estar logado e conferir Entrar, Criar conta e Portal do paciente; conferir também o link antigo `apresentacao.html` e o botão "Página de apresentação" em Sobre.
 
 - **Melhorias da crítica de 13/11/2026** (agenda, editor, ficha, listas, configurações, apresentação): testadas só no simulado. Conferir no site: clicar num horário vazio da grade, visão Dia no celular, menu Mais da ficha, lista compacta de pacientes.
-- **Contato da apresentação:** o James precisa preencher WhatsApp e/ou e-mail em Administração → Convites (conta de administrador) para a seção "Fale com a gente" aparecer.
+- **Contato:** a seção "Fale com a gente" (apresentação) e o bloco Contato (Sobre) mostram por enquanto só o GitHub do James (github.com/Rafajames), a pedido dele. WhatsApp e e-mail aparecem se forem preenchidos em Administração → Convites.
 - Ainda não tratado da crítica: textos longos dentro de Aparência e marca e de Dados e privacidade.
 
 ## 2. Proposto e ainda não implementado

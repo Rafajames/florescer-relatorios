@@ -4,6 +4,10 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 13/11/2026 — Contato no site
+
+- A apresentação tem sempre a seção **Fale com a gente**, com o nome do criador e o link do GitHub (github.com/Rafajames); também no rodapé ("Contato") e na página Sobre. WhatsApp e e-mail continuam opcionais (Administração → Convites).
+
 ## 13/11/2026 — Crítica das telas novas, tudo corrigido
 
 - **Agenda:** a grade começa uma hora antes da primeira sessão e termina uma depois da última (mínimo de 8 horas); linha rosa do "agora" no dia de hoje; clicar num espaço livre já abre o agendamento com o horário (arredondado para meia hora); no celular a visão padrão é **Dia**; etiquetas das horas não cortam; setas com o nome certo na visão Dia.
