@@ -141,3 +141,9 @@ Avisos do Supabase que continuam abertos. **Tratar antes de abrir a plataforma p
 ## 6. Anotações de 13/11/2026
 - Bloqueios que se repetem e encaixes: a secretária não consegue criar esses bloqueios (igual aos bloqueios comuns, que são só do profissional). Perguntar ao James se ela deve poder.
 - O teste automático da agenda (run-a.js) falha na parte da lista de espera também antes desta entrega. Revisar o teste, não o código.
+
+## 7. Anotado em 13/11/2026 (não implementar ainda)
+- **Perfil público do profissional:** resumo sobre o profissional e suas certificações, preenchido por ele em Configurações.
+- **Onde aparece:** disponível para o paciente ver (no Portal do paciente e/ou na página de confirmação por link) e, se o profissional quiser, no Início dele.
+- **Contato pelo paciente:** botão para falar com o profissional pelo WhatsApp, ou pelo contato que ele disponibilizar (telefone, e-mail, Instagram, endereço). Só aparece o que o profissional liberar.
+- Dados só públicos e opcionais; nada clínico. Confirmar com o James antes de programar.
