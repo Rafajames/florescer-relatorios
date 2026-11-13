@@ -1362,3 +1362,12 @@ polyline.desenha{stroke-dasharray:1;stroke-dashoffset:1;animation:traca .9s .15s
 .lt-linha em svg{width:15px;height:15px;display:block}
 @media (prefers-reduced-motion:reduce){.lt-escreve span{animation:none}}
 .lt-doc{align-content:start;align-self:start}
+/* prévia: uma linha destacada por vez, em qualquer tela (a ordem vem da posição entre as linhas) */
+.lt-corpo .lt-linha{animation-delay:0s}
+.lt-corpo .lt-linha ~ .lt-linha{animation-delay:3s}
+.lt-corpo .lt-linha ~ .lt-linha ~ .lt-linha{animation-delay:6s}
+.lt-corpo[data-m="-1"] .lt-linha{animation-name:linhaVez4;animation-duration:10s}
+.lt-corpo[data-m="-1"] .lt-linha ~ .lt-linha{animation-delay:2.5s}
+.lt-corpo[data-m="-1"] .lt-linha ~ .lt-linha ~ .lt-linha{animation-delay:5s}
+.lt-corpo[data-m="-1"] .lt-linha ~ .lt-linha ~ .lt-linha ~ .lt-linha{animation-delay:7.5s}
+@keyframes linhaVez4{0%,100%{box-shadow:none;transform:none}5%,20%{box-shadow:0 0 0 2px var(--bloom);transform:translateX(3px)}25%{box-shadow:none;transform:none}}
