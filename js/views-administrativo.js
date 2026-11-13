@@ -76,7 +76,7 @@ async function agendaMes(params) {
       <a class="btn quiet sm" href="#/administrativo?ver=mes&semana=${mesDe(-1)}" aria-label="Mês anterior">${icon('left')}</a>
       <b style="min-width:170px;text-align:center">${MESES[d0.getMonth()][0].toUpperCase() + MESES[d0.getMonth()].slice(1)} de ${d0.getFullYear()}</b>
       <a class="btn quiet sm" href="#/administrativo?ver=mes&semana=${mesDe(1)}" aria-label="Próximo mês">${icon('right')}</a>
-      <a class="btn quiet sm" href="#/administrativo?ver=mes">Hoje</a>
+      ${hoje.slice(0, 7) === ref.slice(0, 7) ? '' : '<a class="btn quiet sm" href="#/administrativo?ver=mes">Hoje</a>'}
       ${verPills('mes', ref)}
       <span class="grow"></span><span class="small muted">${aps.length} ${aps.length === 1 ? 'sessão' : 'sessões'} no mês</span>
     </div>
@@ -128,7 +128,7 @@ async function agenda(params, patients) {
       <a class="btn quiet sm" href="${week(-1)}" aria-label="${umDia ? 'Dia anterior' : 'Semana anterior'}">${icon('left')}</a>
       <b style="min-width:190px;text-align:center">${umDia ? `${WD[dt(start).getDay()]}, ${fmtDate(start)}` : `${fmtDate(start)} a ${fmtDate(end)}`}</b>
       <a class="btn quiet sm" href="${week(1)}" aria-label="${umDia ? 'Próximo dia' : 'Próxima semana'}">${icon('right')}</a>
-      <a class="btn quiet sm" href="#/administrativo?ver=${ver}">Hoje</a>
+      ${today >= start && today <= end ? '' : `<a class="btn quiet sm" href="#/administrativo?ver=${ver}">Hoje</a>`}
       ${umDia ? `<a class="btn quiet sm" href="#/administrativo?ver=lista&semana=${start}">Voltar para a lista</a>` : verPills(ver, start)}
       <details class="menu ag-acoes"><summary class="btn quiet sm">${icon('more')}Ações</summary><div class="menu-list">
         <button type="button" id="ag-lembretes">${icon('calendar')}Lembretes de amanhã</button>

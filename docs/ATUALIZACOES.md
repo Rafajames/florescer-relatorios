@@ -334,3 +334,7 @@ Admin: uso (só totais), convites (exigência opcional, desligada por padrão), 
 - Botão "Sugerir horários" mostra os horários livres dos próximos 7 dias (seg a sáb, das 08h às 22h, de 30 em 30 min), sem sessão e sem bloqueio. O profissional marca os que pode oferecer e a mensagem sai pronta para o WhatsApp. Depois, marca com "Reagendar".
 - A grade da agenda agora mostra sempre das 08h às 22h.
 - Testado no ambiente simulado. Não testado com dados reais. Domingo fica fora da sugestão.
+
+### Agenda: botão Hoje só aparece quando não está em hoje
+- Na Lista, Semana e Mês, o botão Hoje some quando o período mostrado já inclui hoje.
+- Testado no ambiente simulado (lista, semana e mês). Não testado com dados reais.
