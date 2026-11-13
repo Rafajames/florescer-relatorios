@@ -1169,3 +1169,15 @@ polyline.desenha{stroke-dasharray:1;stroke-dashoffset:1;animation:traca .9s .15s
 .pac-ficha[data-at=resumo] [data-aba=resumo],.pac-ficha[data-at=clinico] [data-aba=clinico],.pac-ficha[data-at=financeiro] [data-aba=financeiro],.pac-ficha[data-at=arquivos] [data-aba=arquivos]{display:block;animation:rise .35s cubic-bezier(.2,.7,.2,1) backwards}
 .pac-ficha [data-aba] + [data-aba]{margin-top:16px}
 @media (prefers-reduced-motion:reduce){.pac-ficha [data-aba]{animation:none!important}}
+/* Configurações: visão geral em cartões */
+.cfg-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;max-width:980px}
+.cfg-card{display:flex;align-items:center;gap:14px;padding:16px 18px;background:var(--paper);border:1px solid var(--line);border-radius:16px;color:inherit;text-decoration:none;transition:transform .16s ease,box-shadow .2s ease,border-color .16s ease;animation:rise .4s cubic-bezier(.2,.7,.2,1) backwards}
+.cfg-card:nth-child(2){animation-delay:.04s}.cfg-card:nth-child(3){animation-delay:.08s}.cfg-card:nth-child(4){animation-delay:.12s}.cfg-card:nth-child(5){animation-delay:.16s}.cfg-card:nth-child(6){animation-delay:.2s}.cfg-card:nth-child(7){animation-delay:.24s}
+.cfg-card:hover{transform:translateY(-2px);box-shadow:0 12px 26px -16px rgba(10,40,50,.45);border-color:var(--petrol)}
+.cfg-card b{display:block;font-size:16px}.cfg-card small{display:block;color:var(--ink-2);font-size:13.5px;margin-top:2px}
+.cfg-card > svg{width:16px;height:16px;color:var(--ink-2);flex:none}
+.cfg-ic{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:var(--petrol-tint,#e2eef1);color:var(--petrol);flex:none}.cfg-ic svg{width:20px;height:20px}
+.cfg-card .chip{flex:none}
+@media (max-width:560px){.cfg-grade{grid-template-columns:1fr}.cfg-card .chip{display:none}}
+@media (prefers-reduced-motion:reduce){.cfg-card{animation:none}}
+.cfg-card .chip{margin-top:8px}@media (max-width:560px){.cfg-card .chip{display:inline-flex}}

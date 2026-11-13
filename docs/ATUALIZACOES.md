@@ -4,6 +4,11 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 13/11/2026 — Configurações em cartões
+
+- Configurações abre com um cartão por seção (Perfil e timbre, Aparência e marca, Preferências, Chaves de IA, Consentimento, Segurança, Dados e privacidade): ícone, uma linha de descrição e um estado curto ("Completo", "Falta o registro", "Personalizada", "Sem IA", "1 conectada").
+- Ao abrir uma seção, o título é o nome dela e há "voltar" para Configurações. A lista lateral de seções continua para trocar rápido.
+
 ## 13/11/2026 — Ficha do paciente em abas
 
 - A ficha do paciente ganhou abas: **Resumo** (próximas sessões, observações, consentimento, portal, arquivar/excluir), **Clínico** (plano terapêutico, linha do tempo, escalas), **Financeiro** e **Arquivos e links**. A última aba aberta é lembrada durante a visita.

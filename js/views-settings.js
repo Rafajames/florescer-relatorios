@@ -9,12 +9,22 @@ import { importTemplate } from './import-template.js';
 import { getLook, setLook } from './theme.js';
 import { COUNCILS, UFS, registryText, cleanUrl } from './credentials.js';
 import {
-  $, $$, esc, fmtDateTime, todayISO, toast, openModal, confirmBox, busy, chip, callout, shell, loading, pageHeader, icon, dropzone, bindDrops, emptyState,
+  $, $$, esc, fmtDateTime, todayISO, toast, openModal, confirmBox, busy, chip, callout, shell, loading, pageHeader, backLink, icon, dropzone, bindDrops, emptyState,
 } from './ui.js';
 
 /* =====================================================================
    CONFIGURAÇÕES
    ===================================================================== */
+// Cartões da página inicial das Configurações: ícone, uma linha de descrição e um estado curto.
+const CARD = {
+  perfil: ['edit', 'Nome, conselho e registro que aparecem nos documentos.'],
+  aparencia: ['sun', 'Logo, cores, timbre, seu link e sua página pública.'],
+  preferencias: ['sliders', 'Como a IA escreve e o que vem preenchido.'],
+  chaves: ['sparkle', 'Conectar a sua IA, se quiser. É opcional.'],
+  consentimento: ['clipboard', 'Texto do termo que o paciente aceita (LGPD).'],
+  seguranca: ['shield', 'Senha e código do autenticador no login.'],
+  dados: ['download', 'Backup, pasta no computador e histórico de ações.'],
+};
 const ALL_TABS = [
   ['perfil', 'Perfil e timbre'], ['aparencia', 'Aparência e marca'], ['preferencias', 'Preferências'], ['chaves', 'Chaves de IA'],
   ['consentimento', 'Consentimento'], ['seguranca', 'Segurança'], ['dados', 'Dados e privacidade'],
@@ -33,7 +43,21 @@ export async function renderSettings(params) {
   const adm = Boolean(state.profile.is_admin); // o administrador só usa a segurança da conta
   const TABS = adm ? ALL_TABS.filter(([k]) => k === 'seguranca') : ALL_TABS;
   const tab = TABS.some(([k]) => k === params.get('aba')) ? params.get('aba') : TABS[0][0];
-  main.innerHTML = pageHeader('Configurações', 'Ajuste o sistema ao seu jeito de trabalhar.', `<a class="btn quiet" href="#/ajuda">${icon('info')}Ajuda</a><button class="btn quiet" data-logout>${icon('logout')}Sair da conta</button>`) + `
+  if (!adm && !params.get('aba')) {
+    // visão geral: um cartão por seção; o detalhe aparece ao abrir
+    const p0 = state.profile, b0 = brandOf(p0) || {};
+    const nKeys = Object.keys(ai.PROVIDERS).filter((id) => ai.getKeys()[id]).length;
+    const estado = {
+      perfil: p0.council_registry ? ['Completo', 'ok'] : ['Falta o registro', 'warn'],
+      aparencia: b0.logo || b0.slug ? ['Personalizada', 'ok'] : ['Padrão da Potira', ''],
+      chaves: nKeys ? [`${nKeys} conectada${nKeys > 1 ? 's' : ''}`, 'ok'] : ['Sem IA', ''],
+    };
+    main.innerHTML = pageHeader('Configurações', '', `<a class="btn quiet" href="#/ajuda">${icon('info')}Ajuda</a><button class="btn quiet" data-logout>${icon('logout')}Sair da conta</button>`) + `
+      <div class="cfg-grade">${TABS.map(([k, l]) => { const [ic, d] = CARD[k]; const e = estado[k];
+        return `<a class="cfg-card" href="#/config?aba=${k}"><span class="cfg-ic">${icon(ic)}</span><span class="grow"><b>${l}</b><small>${d}</small>${e ? chip(e[0], e[1]) : ''}</span>${icon('right')}</a>`; }).join('')}</div>`;
+    return;
+  }
+  main.innerHTML = (adm ? '' : backLink('#/config', 'Configurações')) + pageHeader(TABS.find(([k]) => k === tab)[1], '', `<a class="btn quiet" href="#/ajuda">${icon('info')}Ajuda</a><button class="btn quiet" data-logout>${icon('logout')}Sair da conta</button>`) + `
     <div class="settings">
       <nav class="subnav" aria-label="Seções">${TABS.map(([k, l]) => `<a href="#/config?aba=${k}" class="${k === tab ? 'on' : ''}">${l}</a>`).join('')}</nav>
       <div id="pane"></div>
