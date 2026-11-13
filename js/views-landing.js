@@ -80,8 +80,26 @@ export function renderLanding() {
               <div class="lt-barras">${[42, 58, 50, 71, 64, 88].map((h, i) => `<span style="--a:${h}%;animation-delay:${i * 0.08}s"><small>${['jun', 'jul', 'ago', 'set', 'out', 'nov'][i]}</small></span>`).join('')}</div>
               <div class="lt-linha"><em>PIX</em><span>Marina S. · 4 sessões</span><u class="lt-troca"><i>Cobrar</i><i>Pago</i></u></div>
             </div>
+            <div class="lt-corpo" data-m="1">
+              <b>Relatório com o seu timbre</b>
+              <div class="lt-doc">
+                <div class="lt-doc-top"><i>${icon('flower')}</i><span><strong>Ana Souza</strong><small>Terapia Ocupacional · CREFITO 00000</small></span></div>
+                <h6>Evolução · Pedro L.</h6>
+                <p class="lt-escreve"><span></span><span></span><span class="c"></span></p>
+                <h6>Conduta</h6>
+                <p class="lt-escreve d2"><span></span><span class="c"></span></p>
+                <div class="lt-doc-pe"><u class="lt-troca"><i>Rascunho</i><i>Revisado</i></u><u class="bl">PDF</u></div>
+              </div>
+            </div>
+            <div class="lt-corpo" data-m="-1">
+              <b>Portal do paciente</b>
+              <div class="lt-linha"><em>${icon('calendar')}</em><span>Próxima sessão · sex 14:00</span><u class="lt-troca"><i>Confirmar</i><i>Confirmado</i></u></div>
+              <div class="lt-linha"><em>${icon('file')}</em><span>Relatório de acompanhamento</span><u class="ok">Liberado</u></div>
+              <div class="lt-linha"><em>${icon('file')}</em><span>Orientações para casa</span><u>Abrir</u></div>
+              <div class="lt-linha"><em>${icon('wallet')}</em><span>Recibo nº 0007 · R$ 480</span><u class="bl">PDF</u></div>
+            </div>
           </div>
-          <div class="lt-pontos"><i class="on"></i><i></i><i></i></div>
+          <div class="lt-pontos"><i class="on"></i><i></i><i></i><i></i><i></i></div>
         </div>
       </section>
 

@@ -1348,3 +1348,17 @@ polyline.desenha{stroke-dasharray:1;stroke-dashoffset:1;animation:traca .9s .15s
 @media (max-width:560px){.lt-grade span{font-size:9px;padding:2px 3px}}
 @media (prefers-reduced-motion:reduce){.lt-agora,.lt-grade span,.lt-barras span{animation:none!important}}
 .lt-barras{height:100px}
+/* prévia: relatório com timbre e portal do paciente */
+.lt-doc{background:#fff;color:#1b2a30;border-radius:10px;padding:12px 14px;box-shadow:0 6px 16px -10px rgba(0,0,0,.4);display:grid;gap:6px}
+.lt-doc-top{display:flex;gap:9px;align-items:center;border-bottom:2px solid var(--petrol);padding-bottom:7px}
+.lt-doc-top i{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--petrol);color:#fff}.lt-doc-top svg{width:14px;height:14px}
+.lt-doc-top strong{display:block;font:700 13px Georgia,serif;color:var(--petrol)}.lt-doc-top small{font-size:9.5px;color:#5b6b72}
+.lt-doc h6{margin:2px 0 0;font:700 10.5px var(--sans);color:#1b2a30}
+.lt-escreve{margin:0;display:grid;gap:4px}.lt-escreve span{height:6px;border-radius:3px;background:#d9e1e4;transform-origin:left;animation:escreve 9s infinite}
+.lt-escreve span:nth-child(2){animation-delay:.8s}.lt-escreve span.c{width:55%;animation-delay:1.6s}.lt-escreve.d2 span{animation-delay:2.6s}.lt-escreve.d2 span.c{animation-delay:3.4s}
+@keyframes escreve{0%{transform:scaleX(0)}10%,92%{transform:scaleX(1)}100%{transform:scaleX(0)}}
+.lt-doc-pe{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+.lt-doc-pe u,.lt-doc u{text-decoration:none;font-size:10.5px;padding:2px 9px;border-radius:99px;background:#e2eef1;color:var(--petrol)}.lt-doc-pe u.bl{background:var(--bloom);color:#fff}
+.lt-linha em svg{width:15px;height:15px;display:block}
+@media (prefers-reduced-motion:reduce){.lt-escreve span{animation:none}}
+.lt-doc{align-content:start;align-self:start}

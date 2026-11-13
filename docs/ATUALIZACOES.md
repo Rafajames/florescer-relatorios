@@ -6,7 +6,7 @@ Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do
 
 ## 13/11/2026 — Prévia da apresentação com três telas
 
-- A prévia no destaque alterna sozinha, a cada 5 segundos, entre **Início**, **Agenda da semana** (grade com sessões coloridas e a linha do agora) e **Financeiro** (recebido, a receber, gastos, barras dos meses e uma cobrança por PIX). Tudo com nomes e valores fictícios; o item do menu lateral e os pontinhos acompanham a troca.
+- A prévia no destaque alterna sozinha, a cada 5 segundos, entre **Início**, **Agenda da semana** (grade com sessões coloridas e a linha do agora) e **Financeiro** (recebido, a receber, gastos, barras dos meses e uma cobrança por PIX). Tudo com nomes e valores fictícios; o item do menu lateral e os pontinhos acompanham a troca. Depois entraram mais duas telas: **Relatório com o seu timbre** (texto "sendo escrito", Rascunho → Revisado, PDF) e **Portal do paciente** (próxima sessão para confirmar, relatório liberado, orientações e recibo em PDF).
 
 ## 13/11/2026 — Animações contínuas na apresentação
 
