@@ -46,6 +46,7 @@ export async function renderReport(id) {
         <button type="button" id="preview">${icon('eye')}Prévia do portal</button>
         <button type="button" id="word">${icon('download')}Word (para editar)</button>
         <button type="button" id="pdf">${icon('download')}PDF</button>
+        <button type="button" id="send-link">${icon('file')}Enviar por link ao paciente</button>
         <label class="check small" style="padding:8px 12px;margin:0"><input type="checkbox" id="onlyvis">Só as seções visíveis ao paciente</label></div></details>
       <details class="menu"><summary class="btn quiet sm" aria-label="Mais ações">${icon('more')}</summary><div class="menu-list">
         ${r.released_to_patient ? `<button type="button" id="unrelease">${icon('eyeoff')}Retirar do portal</button>` : ''}
@@ -344,6 +345,11 @@ export async function renderReport(id) {
     } catch (err) { toast(err.message || String(err), 'err'); }
   };
   $('#word').onclick = () => exportWord(exportArgs());
+  $('#send-link').onclick = async () => {
+    if (dirty) await save();
+    const { enviarRelatorioPorLink } = await import('./views-home.js');
+    enviarRelatorioPorLink(id).catch((err) => toast(err.message || String(err), 'err'));
+  };
   $('#pdf').onclick = () => {
     const args = exportArgs();
     openModal('Prévia do PDF', `<iframe class="pdf-prev" title="Prévia do documento" srcdoc="${esc(previewHtml(args))}"></iframe>

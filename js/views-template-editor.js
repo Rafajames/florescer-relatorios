@@ -23,7 +23,7 @@ function preview(r) {
     const opts = r.options || [];
     return opts.length ? opts.map((o) => `☐ ${esc(o)}`).join(' &nbsp;&nbsp; ') : '<span class="muted">Liste as opções acima</span>';
   }
-  return '<span class="tpl-blank"></span><span class="tpl-blank"></span>';
+  return '<span class="tpl-blank"></span>'.repeat(Math.min(Math.max(+r.lines || 2, 1), 12));
 }
 
 export async function renderTemplateEditor(id) {
@@ -52,7 +52,7 @@ export async function renderTemplateEditor(id) {
 
   main.innerHTML = `
     <div class="row" style="margin-bottom:10px">${backLink('#/modelos', 'Modelos')}<span class="grow"></span>
-      <button class="btn quiet" id="tpl-cancel">Cancelar</button><button class="btn" id="tpl-save">${icon('check')}Salvar modelo</button></div>
+      <button class="btn quiet" id="tpl-cancel">Cancelar</button>${isNew ? '' : `<button class="btn quiet" id="tpl-copy">${icon('plus')}Salvar como cópia</button>`}<button class="btn" id="tpl-save">${icon('check')}Salvar modelo</button></div>
     ${t.meta?.source ? callout(`<p>Importado de <b>${esc(t.meta.source)}</b>${t.meta.ai ? ' com ajuda da IA' : ''}. Confira os campos e acrescente o que faltar.${t.meta.noLayout ? ' A logo, a marca d’água, o cabeçalho e o rodapé só são lidos de arquivos Word (.docx).' : ''}</p>`, 'ok') : ''}
     ${lay ? `<section class="panel tpl-lay"><h2>Timbre do seu documento</h2>
       <p class="muted small">Lido do arquivo enviado. Os documentos feitos com este modelo saem com esta logo, marca d’água, cabeçalho e rodapé, no lugar do timbre das Configurações.</p>
@@ -85,9 +85,11 @@ export async function renderTemplateEditor(id) {
           <input class="tpl-f-title" data-f="title" value="${esc(r.title)}" placeholder="Título do campo" aria-label="Título do campo ${i + 1}">
           <select class="tpl-f-type" data-f="type" aria-label="Tipo do campo">${TYPES.map(([v, l]) => `<option value="${v}" ${(r.type || 'longo') === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
         </div>
-        <input class="tpl-f-hint" data-f="hint" value="${esc(r.hint || '')}" placeholder="Orientação para a IA (opcional)" aria-label="Orientação">
+        <textarea class="tpl-f-hint" data-f="hint" rows="1" placeholder="Orientação para a IA (opcional)" aria-label="Orientação">${esc(r.hint || '')}</textarea>
         ${r.type === 'escolha' ? `<input class="tpl-f-opts" data-f="options" value="${esc((r.options || []).join(', '))}" placeholder="Opções separadas por vírgula" aria-label="Opções">` : ''}
         <div class="tpl-f-preview">${preview(r)}</div>
+        ${(r.type || 'longo') === 'longo' ? `<div class="tpl-f-lines"><span class="muted small">Linhas para escrever: ${Math.min(Math.max(+r.lines || 2, 1), 12)}</span>
+          <button type="button" class="btn quiet sm" data-a="less" ${(+r.lines || 2) <= 1 ? 'disabled' : ''}>− linha</button><button type="button" class="btn quiet sm" data-a="more" ${(+r.lines || 2) >= 12 ? 'disabled' : ''}>${icon('plus')}linha</button></div>` : ''}
         <div class="tpl-f-tools">
           <button type="button" class="icon-btn" data-a="up" title="Subir" aria-label="Subir campo" ${i === 0 ? 'disabled' : ''}>${icon('up')}</button>
           <button type="button" class="icon-btn" data-a="down" title="Descer" aria-label="Descer campo" ${i === rows.length - 1 ? 'disabled' : ''}>${icon('down')}</button>
@@ -95,7 +97,9 @@ export async function renderTemplateEditor(id) {
         </div>
       </div>`).join('');
   };
-  draw();
+  const grow = (el) => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; };
+  const growAll = () => doc.querySelectorAll('.tpl-f-hint').forEach(grow);
+  draw(); growAll();
 
   // Edição sem redesenhar (para não perder o foco ao digitar)
   doc.addEventListener('input', (e) => {
@@ -103,16 +107,17 @@ export async function renderTemplateEditor(id) {
     const r = rows[+el.closest('.tpl-f').dataset.i];
     if (f === 'options') r.options = el.value.split(',').map((x) => x.trim()).filter(Boolean);
     else r[f] = el.value;
+    if (f === 'hint') grow(el);
     if (f === 'options') { el.closest('.tpl-f').querySelector('.tpl-f-preview').innerHTML = preview(r); }
   });
   doc.addEventListener('change', (e) => {
-    if (e.target.dataset.f === 'type') { rows[+e.target.closest('.tpl-f').dataset.i].type = e.target.value; draw(); }
+    if (e.target.dataset.f === 'type') { rows[+e.target.closest('.tpl-f').dataset.i].type = e.target.value; draw(); growAll(); }
   });
   doc.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.target.dataset.f === 'title') {
       e.preventDefault();
       const i = +e.target.closest('.tpl-f').dataset.i;
-      rows.splice(i + 1, 0, blank()); draw();
+      rows.splice(i + 1, 0, blank()); draw(); growAll();
       doc.querySelectorAll('.tpl-f-title')[i + 1]?.focus();
     }
   });
@@ -121,26 +126,32 @@ export async function renderTemplateEditor(id) {
     const i = +b.closest('.tpl-f').dataset.i;
     if (b.dataset.a === 'up' && i > 0) [rows[i - 1], rows[i]] = [rows[i], rows[i - 1]];
     if (b.dataset.a === 'down' && i < rows.length - 1) [rows[i + 1], rows[i]] = [rows[i], rows[i + 1]];
+    if (b.dataset.a === 'more' || b.dataset.a === 'less') {
+      const r = rows[i], n = Math.min(Math.max(+r.lines || 2, 1), 12);
+      r.lines = Math.min(Math.max(n + (b.dataset.a === 'more' ? 1 : -1), 1), 12);
+    }
     if (b.dataset.a === 'rm') {
       const r = rows[i];
       if ((r.title || '').trim() && !(await confirmBox(`Remover o campo “${r.title.trim()}”?`, 'Remover'))) return;
       rows.splice(i, 1);
       if (!rows.length) rows.push(blank());
     }
-    draw();
+    draw(); growAll();
   });
 
-  $('#tpl-add').onclick = () => { rows.push(blank()); draw(); doc.querySelectorAll('.tpl-f-title').item(rows.length - 1)?.focus(); };
+  $('#tpl-add').onclick = () => { rows.push(blank()); draw(); growAll(); doc.querySelectorAll('.tpl-f-title').item(rows.length - 1)?.focus(); };
   $('#tpl-cancel').onclick = () => { location.hash = '#/modelos'; };
   // o padrão vale para evolução e anamnese; relatório por período não tem modelo padrão
   const syncDef = () => { $('#tpl-def-wrap').style.display = $('#tpl-kind').value === 'periodo' ? 'none' : ''; };
   $('#tpl-kind').addEventListener('change', syncDef); syncDef();
   $$('[data-layrm]').forEach((b) => (b.onclick = () => { lay[b.dataset.layrm] = null; b.closest('figure').remove(); }));
-  $('#tpl-save').onclick = async (e) => {
-    const name = $('#tpl-name').value.trim();
+  const salvar = (asCopy) => async (e) => {
+    let name = $('#tpl-name').value.trim();
+    if (asCopy && name === (t.name || '').trim()) name += ' (cópia)';
     const sections = rows.map((r) => ({
       title: (r.title || '').trim(), hint: (r.hint || '').trim(), type: r.type || 'longo',
       ...(r.type === 'escolha' && r.options?.length ? { options: r.options } : {}),
+      ...((r.type || 'longo') === 'longo' && +r.lines > 0 && +r.lines !== 2 ? { lines: Math.min(+r.lines, 12) } : {}),
     })).filter((r) => r.title);
     if (!name) return toast('Dê um nome ao modelo.', 'err');
     if (!sections.length) return toast('Informe ao menos um campo com título.', 'err');
@@ -154,7 +165,7 @@ export async function renderTemplateEditor(id) {
       }
       const kind = $('#tpl-kind').value;
       const saved = await api.saveTemplate({
-        ...(isNew ? {} : { id: t.id }),
+        ...(isNew || asCopy ? {} : { id: t.id }),
         name, specialty: $('#tpl-area').value, kind, sections, meta,
       });
       // modelo padrão: marca (ou desmarca) nas preferências do profissional
@@ -171,4 +182,6 @@ export async function renderTemplateEditor(id) {
       location.hash = '#/modelos';
     } catch (err) { toast(err.message, 'err'); btn.disabled = false; }
   };
+  $('#tpl-save').onclick = salvar(false);
+  if ($('#tpl-copy')) $('#tpl-copy').onclick = salvar(true);
 }

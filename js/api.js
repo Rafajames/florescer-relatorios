@@ -126,11 +126,12 @@ export const templatesForMe = (list, profile) => {
   return list.filter((t) => (t.professional_id ? t.professional_id === profile.id
     : t.specialty === 'Geral' || (Boolean(area) && t.specialty === area)));
 };
-export const saveTemplate = (t) => {
+export const saveTemplate = async (t) => {
   const { id, ...rest } = t;
-  return id
-    ? sb.from('templates').update(rest).eq('id', id).select().single().then(unwrap)
-    : sb.from('templates').insert(rest).select().single().then(unwrap);
+  if (id) return sb.from('templates').update(rest).eq('id', id).select().single().then(unwrap);
+  // modelo novo (ou cópia) nasce no nome de quem está logado; só o administrador cria modelos da Potira (professional_id nulo, enviado de propósito)
+  const row = 'professional_id' in rest ? rest : { ...rest, professional_id: (await getSession())?.user?.id };
+  return sb.from('templates').insert(row).select().single().then(unwrap);
 };
 export const deleteTemplate = (id) => sb.from('templates').delete().eq('id', id).then(unwrap);
 

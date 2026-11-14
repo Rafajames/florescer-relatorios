@@ -4,6 +4,14 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 14/11/2026 — Salvar cópia de modelo, linhas de resposta e link da anamnese
+
+- **Corrigido o erro "Você não tem permissão para esta ação"** ao salvar um modelo copiado de um modelo da Potira (como a Anamnese geral): a cópia era gravada sem dono e o banco recusava. Agora toda cópia ou modelo novo nasce no nome de quem salvou. Os modelos da Potira continuam intocáveis para profissionais.
+- No editor de modelo, novo botão **Salvar como cópia** (o modelo original fica como está; se o nome não mudar, ganha "(cópia)").
+- A **orientação** de cada campo agora é uma caixa que cresce enquanto se digita (e pode ser puxada para ficar maior).
+- Nos campos de texto longo, botões **+ linha / − linha** definem quantas linhas de resposta o campo tem (de 1 a 12); vale na prévia do modelo e no formulário da anamnese por link.
+- Anamnese revisada agora pode ser enviada **por link** (leitura, com PDF e Word), pelo menu Exportar da própria tela do relatório ("Enviar por link ao paciente") e também pela ficha do paciente. A anamnese para o paciente **preencher** já existia ("Anamnese para responder").
+
 ## 13/11/2026 — Prévia da apresentação com três telas
 
 - A prévia no destaque alterna sozinha, a cada 5 segundos, entre **Início**, **Agenda da semana** (grade com sessões coloridas e a linha do agora) e **Financeiro** (recebido, a receber, gastos, barras dos meses e uma cobrança por PIX). Tudo com nomes e valores fictícios; o item do menu lateral e os pontinhos acompanham a troca. Depois entraram mais duas telas: **Relatório com o seu timbre** (texto "sendo escrito", Rascunho → Revisado, PDF) e **Portal do paciente** (próxima sessão para confirmar, relatório liberado, orientações e recibo em PDF).

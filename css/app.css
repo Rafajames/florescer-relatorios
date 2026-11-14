@@ -1376,3 +1376,7 @@ polyline.desenha{stroke-dasharray:1;stroke-dashoffset:1;animation:traca .9s .15s
 .lt-corpo[data-m="-1"] .lt-linha ~ .lt-linha ~ .lt-linha{animation-delay:5s}
 .lt-corpo[data-m="-1"] .lt-linha ~ .lt-linha ~ .lt-linha ~ .lt-linha{animation-delay:7.5s}
 @keyframes linhaVez4{0%,100%{box-shadow:none;transform:none}5%,20%{box-shadow:0 0 0 2px var(--bloom);transform:translateX(3px)}25%{box-shadow:none;transform:none}}
+
+/* Editor de modelo: orientação que cresce e contador de linhas */
+textarea.tpl-f-hint{resize:vertical;overflow:hidden;font-family:inherit;line-height:1.4;display:block}
+.tpl-f-lines{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 0}

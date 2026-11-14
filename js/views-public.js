@@ -83,7 +83,7 @@ function campo(s, i) {
   else if (s.type === 'data') input = `<input type="date" name="a${i}" aria-label="${esc(s.title)}">`;
   else if (s.type === 'marcar') input = `<select name="a${i}" aria-label="${esc(s.title)}"><option value="">—</option><option>Sim</option><option>Não</option><option>Não sei</option></select>`;
   else if (s.type === 'escolha') input = `<select name="a${i}" aria-label="${esc(s.title)}"><option value="">—</option>${(s.options || []).map((o) => `<option>${esc(o)}</option>`).join('')}</select>`;
-  else input = `<textarea name="a${i}" rows="${s.type === 'longo' ? 4 : 2}" aria-label="${esc(s.title)}"></textarea>`;
+  else input = `<textarea name="a${i}" rows="${s.lines ? Math.min(+s.lines + 2, 14) : s.type === 'longo' ? 4 : 2}" aria-label="${esc(s.title)}"></textarea>`;
   return `<label class="field pub-f">${label}${hint}${input}</label>`;
 }
 

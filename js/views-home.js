@@ -476,8 +476,8 @@ async function orientacaoLinkModal(p, id) {
   renderPatientDetail(id);
 }
 
-async function relatorioLinkModal(p, id, reports) {
-  const revs = reports.filter((x) => x.status === 'revisado' && (x.kind === 'sessao' || x.kind === 'periodo'));
+async function relatorioLinkModal(p, id, reports, after = () => renderPatientDetail(id)) {
+  const revs = reports.filter((x) => x.status === 'revisado' && ['sessao', 'periodo', 'anamnese'].includes(x.kind));
   if (!revs.length) return toast('Revise um relatório antes de enviar por link.', 'err');
   const r = await openModal('Relatório por link', `
     <p>Quem tiver o link lê o relatório e baixa em PDF ou Word. Só aparecem as partes marcadas como visíveis ao paciente.</p>
@@ -491,7 +491,15 @@ async function relatorioLinkModal(p, id, reports) {
   await api.createShareLink({ token, kind: 'relatorio', patient_id: id, report_id: r.rep, expires_at: expires, password_hash });
   await showLinkModal(linkUrl(token), expires, `Olá, ${p.name}! Segue o link para acessar o seu relatório.`, p.phone,
     r.pw ? 'Envie a senha em outra mensagem, não junto com o link.' : '');
-  renderPatientDetail(id);
+  after();
+}
+
+/** Usado na tela do relatório/anamnese: gera o link do documento já revisado, sem sair da tela. */
+export async function enviarRelatorioPorLink(reportId) {
+  const rep = await api.getReport(reportId);
+  if (rep.status !== 'revisado') return toast('Marque como revisado antes de enviar por link.', 'err');
+  const p = await api.getPatient(rep.patients.id);
+  return relatorioLinkModal(p, p.id, [rep], () => {});
 }
 
 // Soma recebido e a receber das sessões realizadas (valor do atendimento ou valor padrão do paciente).

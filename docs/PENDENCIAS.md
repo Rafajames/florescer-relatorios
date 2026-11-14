@@ -18,6 +18,7 @@ Estes itens foram testados só no ambiente de teste (dados simulados). O que se 
 | Cobrança em PDF e recibo | Abrir o PDF gerado e conferir chave PIX, total e código copia-e-cola pagando um valor baixo de teste. |
 | Chave PIX de telefone | Gerar código com chave de telefone e testar no aplicativo do banco. |
 | Página pública com a marca | Abrir um link de anamnese e um de relatório num celular sem login e ver logo, nome e cor do profissional. |
+| Salvar cópia e link da anamnese | Com conta de profissional (não admin): abrir a Anamnese geral, "Editar uma cópia", salvar e ver o modelo "Meu". Em um modelo próprio, testar "Salvar como cópia" e "+ linha". Revisar uma anamnese e gerar o link pelo menu Exportar. |
 | Cobrar faltas | Ligar a opção, marcar uma falta e ver a cobrança aparecer. |
 | Menu colorido | Trocar a paleta em Configurações → Aparência e marca e ver o menu mudar, no claro e no escuro. |
 | Lembrete com confirmação | Enviar um lembrete para o próprio número, abrir o link, confirmar e pedir para remarcar; ver a resposta na agenda. |
