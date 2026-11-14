@@ -111,9 +111,11 @@ export async function renderDashboard() {
   // "visto" fica no perfil (vale no computador e no celular); o navegador guarda uma cópia para o caso de falhar
   let visto = state.profile?.preferences?.novidades_visto || ''; try { const l = localStorage.getItem('potira-novidades-visto') || ''; if (l > visto) visto = l; } catch { /* sem armazenamento */ }
   const novas = nov.filter((n) => n.quando > visto);
-  const novHtml = novas.length ? `<section class="panel novidades" style="margin-bottom:16px"><div class="panel-head"><h3>${icon('sparkle')}Novidades <span class="nov-n">${novas.length}</span></h3><button class="btn quiet sm" id="nov-ok">Marcar como visto</button></div>
-    ${novas.slice(0, 8).map((n) => `<a class="nov${n.alerta ? ' alerta' : ''}" href="${n.h}"><span class="grow"><b>${esc(n.nome)}</b> ${esc(n.txt)}</span><small class="muted">${fmtDateTime(n.quando)}</small></a>`).join('')}
-    ${novas.length > 8 ? `<p class="small muted">E mais ${novas.length - 8}.</p>` : ''}</section>` : '';
+  // No Início aparece só a mais recente; "Novidades" abre a lista toda. Cada uma leva direto ao que avisa.
+  const novItem = (n, i) => `<a class="nov${n.alerta ? ' alerta' : ''}" href="${n.h}" data-nov="${i}"><span class="grow"><b>${esc(n.nome)}</b> ${esc(n.txt)}<br><small class="muted">${fmtDateTime(n.quando)}</small></span>${icon('right')}</a>`;
+  const novHtml = novas.length ? `<section class="panel novidades" style="margin-bottom:16px"><div class="panel-head"><button type="button" class="nov-tit" id="nov-all" title="Ver todas as novidades"><h3>${icon('sparkle')}Novidades <span class="nov-n">${novas.length}</span></h3></button><button class="btn quiet sm" id="nov-ok">Marcar como visto</button></div>
+    ${novItem(novas[0], 0)}
+    ${novas.length > 1 ? `<button type="button" class="link small" id="nov-mais">Ver as outras ${novas.length - 1}</button>` : ''}</section>` : '';
   main.innerHTML = pageHeader(`${greeting()}, ${esc(first)}`, esc(longDate())) + (cobHoje ? callout(`<p><b>${cobHoje} cobrança${cobHoje === 1 ? '' : 's'} agendada${cobHoje === 1 ? '' : 's'} para hoje.</b> A mensagem e o PIX já estão prontos; é só conferir e enviar.</p>`, '', '<a class="btn sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a>') : '') + novHtml + niverHtml + `<div id="inbox"></div>
   <div class="dash">
     <section class="dcard wide" aria-label="Sessões de hoje">
@@ -189,6 +191,19 @@ export async function renderDashboard() {
 
   if (!p.is_admin) import('./tour.js').then((m) => m.maybeTour()).catch(() => {});
   if ($('#h-lembretes')) $('#h-lembretes').onclick = () => lembretesModal({ aps: amanhaAps, patients, title: `Lembretes de amanhã (${fmtDate(amanhaISO)})` });
+  // anamnese respondida: abre a própria anamnese (a mais recente do paciente), não só a ficha
+  const abrirNov = async (n) => {
+    if (/anamnese/.test(n.txt) && /^#\/pacientes\/[\w-]+$/.test(n.h) && !n.h.endsWith('null')) {
+      try { const [a] = await api.listReports({ patientId: n.h.split('/').pop(), kind: 'anamnese', limit: 1 }); if (a) { goto(`#/relatorio/${a.id}`); return; } } catch { /* vai para a ficha */ }
+    }
+    goto(n.h.endsWith('/null') ? '#/pacientes' : n.h);
+  };
+  const ligarNov = (root, lista) => root.querySelectorAll('[data-nov]').forEach((a) => (a.onclick = (e) => { e.preventDefault(); abrirNov(lista[+a.dataset.nov]); }));
+  if ($('.novidades')) ligarNov($('.novidades'), novas);
+  const todasNov = () => openModal('Novidades', `<div class="nov-lista">${nov.slice(0, 30).map((n, i) => novItem(n, i).replace('class="nov', `class="nov${n.quando > visto ? ' nova' : ''}`)).join('') || '<p class="muted">Nenhuma novidade.</p>'}</div>`,
+    { cancelText: 'Fechar', wide: true, onOpen: (d) => d.querySelectorAll('[data-nov]').forEach((a) => (a.onclick = (e) => { e.preventDefault(); d.querySelector('[data-cancel]').click(); abrirNov(nov[+a.dataset.nov]); })) });
+  if ($('#nov-all')) $('#nov-all').onclick = todasNov;
+  if ($('#nov-mais')) $('#nov-mais').onclick = todasNov;
   const novOk = $('#nov-ok');
   if (novOk) novOk.onclick = () => {
     const ate = novas[0].quando;

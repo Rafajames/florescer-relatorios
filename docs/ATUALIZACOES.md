@@ -4,6 +4,12 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 14/11/2026 — Novidades clicáveis
+
+- No Início aparece só a novidade mais recente; clicar nela leva direto ao que avisa (anamnese respondida abre a própria anamnese).
+- Clicar no título "Novidades" (ou em "Ver as outras") abre uma janela com as últimas 30, com bolinha nas que ainda não foram vistas.
+- Corrigido erro "home.atualizarSelo is not a function" ao entrar (o número do menu não trava mais a tela).
+
 ## 14/11/2026 — Anamnese para paciente novo e "Anamneses recebidas"
 
 - **Anamnese sem paciente cadastrado:** botão "Enviar anamnese" em Pacientes, opção "Anamnese por link" no botão Novo e "Enviar para um paciente preencher" ao salvar um modelo. Primeiro pergunta "Paciente novo" ou "Paciente já cadastrado"; escolhido um, o outro some (com "Trocar"). Dentro da ficha do paciente não há escolha.
