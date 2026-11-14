@@ -4,6 +4,12 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 14/11/2026 — Ajustes de layout no celular
+
+- Anamneses recebidas: nome e dados em cima, botões embaixo ocupando a largura (antes o texto ficava espremido, uma palavra por linha).
+- Título da página não passa mais por cima da barra do topo ao rolar.
+- Menu "⋯" do editor de relatório abre inteiro, embaixo da tela (antes aparecia cortado no topo).
+
 ## 14/11/2026 — Novidades clicáveis
 
 - No Início aparece só a novidade mais recente; clicar nela leva direto ao que avisa (anamnese respondida abre a própria anamnese).
