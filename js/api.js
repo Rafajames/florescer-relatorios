@@ -199,7 +199,8 @@ export async function listNovidades() {
   return (data || []).map((l) => {
     const quando = l.responded_at || l.opened_at; const ap = l.appointments;
     const o = { id: l.id, quando, patient_id: l.patient_id, nome: l.patients?.name || 'Paciente', kind: l.kind };
-    if (l.kind === 'anamnese' && l.responded_at) return { ...o, txt: 'respondeu a anamnese', h: `#/pacientes/${l.patient_id}` };
+    if (l.kind === 'anamnese' && l.responded_at) return l.patient_id ? { ...o, txt: 'respondeu a anamnese', h: `#/pacientes/${l.patient_id}` }
+      : { ...o, nome: 'Paciente novo', txt: 'respondeu a anamnese', h: `#/pacientes?resposta=${l.id}` };
     if (l.kind === 'confirmacao' && l.responded_at) return { ...o, txt: ap?.confirm_status === 'remarcar' ? `pediu para remarcar a sessão de ${ap.date.split('-').reverse().slice(0, 2).join('/')}` : `confirmou a sessão${ap ? ' de ' + ap.date.split('-').reverse().slice(0, 2).join('/') : ''}`, alerta: ap?.confirm_status === 'remarcar', h: '#/administrativo' };
     if (l.kind === 'orientacao' && l.opened_at) return { ...o, quando: l.opened_at, txt: 'abriu as orientações para casa', h: `#/pacientes/${l.patient_id}` };
     if (l.kind === 'pesquisa' && l.responded_at) return { ...o, txt: 'respondeu a pesquisa de satisfação', h: '#/administrativo/pesquisa' };

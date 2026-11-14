@@ -196,7 +196,7 @@ export async function renderDashboard() {
     if (/anamnese/.test(n.txt) && /^#\/pacientes\/[\w-]+$/.test(n.h) && !n.h.endsWith('null')) {
       try { const [a] = await api.listReports({ patientId: n.h.split('/').pop(), kind: 'anamnese', limit: 1 }); if (a) { goto(`#/relatorio/${a.id}`); return; } } catch { /* vai para a ficha */ }
     }
-    goto(n.h.endsWith('/null') ? '#/pacientes' : n.h);
+    goto(n.h);
   };
   const ligarNov = (root, lista) => root.querySelectorAll('[data-nov]').forEach((a) => (a.onclick = (e) => { e.preventDefault(); abrirNov(lista[+a.dataset.nov]); }));
   if ($('.novidades')) ligarNov($('.novidades'), novas);
@@ -803,20 +803,30 @@ export async function inboxPanel() {
     <span class="muted small">Respondidas por quem ainda não é paciente cadastrado</span></div>
     ${itens.map((it) => { const d = dadosDa(it); return `<div class="inbox-it" data-it="${it.id}">
       <div class="grow"><b>${esc(d.nome || 'Sem nome informado')}</b><br><span class="muted small">${esc(it.title)} · recebida em ${fmtDateTime(it.created_at)}${d.resp ? ' · ' + esc(d.resp) : ''}</span></div>
-      <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn quiet sm" data-ver>Ver respostas</button><button class="btn sm" data-criar>Criar paciente</button>
-        <details class="menu"><summary class="btn quiet sm" aria-label="Mais">${icon('more')}</summary><div class="menu-list">
-          <button type="button" data-juntar>${icon('users')}Juntar a um paciente que já existe</button>
-          <button type="button" data-desc class="perigo">${icon('trash')}Descartar</button></div></details></div></div>`; }).join('')}</section>`;
+      <div class="row"><button class="btn sm" data-ver>${icon('eye')}Ver resposta</button></div></div>`; }).join('')}</section>`;
   const byId = Object.fromEntries(itens.map((x) => [x.id, x]));
   const de = (b) => byId[b.closest('[data-it]').dataset.it];
-  $$('[data-ver]', box).forEach((b) => (b.onclick = () => { const it = de(b); openModal(it.title, `<ol class="tpl-campos">${(it.sections || []).map((s) => `<li><b>${esc(s.title)}</b><br>${esc(s.text || '—')}</li>`).join('')}</ol>
-    <p class="muted small">Autorização de uso dos dados aceita em ${fmtDateTime(it.consent_at || it.created_at)}.</p>`, { cancelText: 'Fechar', wide: true }); }));
-  $$('[data-criar]', box).forEach((b) => (b.onclick = () => criarPacienteDaResposta(de(b)).catch((e) => toast(e.message || String(e), 'err'))));
-  $$('[data-juntar]', box).forEach((b) => (b.onclick = () => juntarResposta(de(b)).catch((e) => toast(e.message || String(e), 'err'))));
-  $$('[data-desc]', box).forEach((b) => (b.onclick = async () => {
-    if (!(await confirmBox('Descartar esta anamnese? As respostas são apagadas.', 'Descartar'))) return;
-    await api.deleteInbox(de(b).id); toast('Anamnese descartada.'); inboxPanel();
-  }));
+  $$('[data-ver]', box).forEach((b) => (b.onclick = () => verResposta(de(b))));
+  // vindo de uma novidade ("Paciente novo respondeu a anamnese"): abre a resposta direto
+  const q = new URLSearchParams((location.hash.split('?')[1]) || '');
+  const alvo = q.get('resposta') && itens.find((x) => x.link_id === q.get('resposta'));
+  if (alvo) { history.replaceState(null, '', location.pathname + location.hash.split('?')[0]); verResposta(alvo); }
+}
+
+/** A resposta primeiro; as decisões ficam dentro dela. */
+function verResposta(it) {
+  const err = (e) => toast(e.message || String(e), 'err');
+  return acoesModal(it.title || 'Anamnese', `<p class="muted small">Recebida em ${fmtDateTime(it.created_at)}. Autorização de uso dos dados aceita em ${fmtDateTime(it.consent_at || it.created_at)}.</p>
+    <ol class="tpl-campos">${(it.sections || []).map((s) => `<li><b>${esc(s.title)}</b><br>${esc(s.text || '—')}</li>`).join('')}</ol>
+    <p class="small" style="margin-top:14px"><b>O que fazer com esta resposta?</b></p>`, [
+    { icon: 'plus', label: 'Criar paciente', sub: 'Com os dados da resposta; a anamnese vai para a ficha', run: () => { setTimeout(() => criarPacienteDaResposta(it).catch(err), 200); return true; } },
+    { icon: 'users', label: 'Juntar a um paciente que já existe', run: () => { setTimeout(() => juntarResposta(it).catch(err), 200); return true; } },
+    { icon: 'check', label: 'Salvar para depois', sub: 'Continua em Anamneses recebidas', run: () => { toast('Resposta guardada em Anamneses recebidas.'); return true; } },
+    { icon: 'trash', label: 'Descartar', sub: 'Apaga as respostas', run: async () => {
+      if (!(await confirmBox('Descartar esta anamnese? As respostas são apagadas.', 'Descartar'))) return false;
+      await api.deleteInbox(it.id); toast('Anamnese descartada.'); inboxPanel(); return true;
+    } },
+  ]);
 }
 
 let contagem = 0;
