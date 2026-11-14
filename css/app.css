@@ -1389,3 +1389,13 @@ textarea.tpl-f-hint{resize:vertical;overflow:hidden;font-family:inherit;line-hei
 .acao-btn svg{flex:none;color:var(--petrol);margin-top:2px}
 .acao-btn small{display:block;color:var(--ink-2);font-size:12.5px;margin-top:2px}
 @media (prefers-reduced-motion: reduce){.acao-btn{transition:none}.acao-btn:hover{transform:none}}
+
+/* Anamneses recebidas */
+.nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:var(--bloom);color:#fff;font-size:11px;font-weight:700;line-height:1;vertical-align:middle}
+.inbox{border-left:4px solid var(--bloom);animation:rise .4s ease backwards}
+.inbox h2{display:flex;align-items:center;gap:8px}
+.inbox-it{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line)}
+.an-quem{display:grid;gap:8px;margin-bottom:10px}
+.an-pre{margin:6px 0 12px}
+.an-pre summary{cursor:pointer;margin-bottom:8px}
+@media (prefers-reduced-motion: reduce){.inbox{animation:none}}

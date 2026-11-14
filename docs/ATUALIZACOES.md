@@ -4,6 +4,17 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 14/11/2026 — Anamnese para paciente novo e "Anamneses recebidas"
+
+- **Anamnese sem paciente cadastrado:** botão "Enviar anamnese" em Pacientes, opção "Anamnese por link" no botão Novo e "Enviar para um paciente preencher" ao salvar um modelo. Primeiro pergunta "Paciente novo" ou "Paciente já cadastrado"; escolhido um, o outro some (com "Trocar"). Dentro da ficha do paciente não há escolha.
+- **Dados que o profissional já tem** (nome, responsáveis, nascimento, telefone) vão preenchidos no formulário; o telefone serve para o WhatsApp.
+- **Link fixo:** um link que várias famílias podem responder (ex.: bio do Instagram), válido por 1 ano, com limite de 20 respostas por hora.
+- **Anamneses recebidas** no Início e em Pacientes, com o número no menu Pacientes. Para cada resposta: ver respostas, **Criar paciente** (nome, nascimento, telefone e responsável vêm da resposta; avisa se já existe paciente com o mesmo nome ou telefone), **Juntar a um paciente que já existe** ou **Descartar**. A anamnese vai para a ficha como rascunho e o consentimento aceito no link é registrado no paciente.
+- Depois de criar o paciente: **Agendar a primeira sessão**, revisar a anamnese ou abrir a ficha.
+- **Rascunho no celular dos pais:** se fecharem a página no meio, as respostas continuam lá.
+- Banco: tabela `anamnese_inbox`, coluna `share_links.reusable`, `public_submit_anamnese` manda resposta sem paciente para a caixa, regra `share_links_tipo_dados` aceita anamnese sem paciente.
+- Pacientes são de cada profissional: dois profissionais com a mesma criança têm cadastros separados; o aviso de repetido só olha os pacientes de quem está logado.
+
 ## 14/11/2026 — "O que fazer agora?" ao salvar, modelos da Potira como guia e timbre opcional
 
 - **Modelos da Potira abrem direto no editor**, como guia. Ao salvar, viram modelo do profissional (etiqueta "Meu"); o original não muda.

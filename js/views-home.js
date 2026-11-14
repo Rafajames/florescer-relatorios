@@ -10,7 +10,7 @@ import { metasPanel, escalasPanel } from './views-clinico.js';
 import {
   $, $$, esc, fmtDate, fmtDateTime, toast, openModal, confirmBox, busy, statusChip, chip, meta, callout,
   shell, loading, pageHeader, backLink, icon, greeting, longDate, emptyState, todayISO,
-  celebrar, sumir,
+  celebrar, sumir, acoesModal,
 } from './ui.js';
 
 const goto = (h) => { location.hash = h; };
@@ -114,7 +114,7 @@ export async function renderDashboard() {
   const novHtml = novas.length ? `<section class="panel novidades" style="margin-bottom:16px"><div class="panel-head"><h3>${icon('sparkle')}Novidades <span class="nov-n">${novas.length}</span></h3><button class="btn quiet sm" id="nov-ok">Marcar como visto</button></div>
     ${novas.slice(0, 8).map((n) => `<a class="nov${n.alerta ? ' alerta' : ''}" href="${n.h}"><span class="grow"><b>${esc(n.nome)}</b> ${esc(n.txt)}</span><small class="muted">${fmtDateTime(n.quando)}</small></a>`).join('')}
     ${novas.length > 8 ? `<p class="small muted">E mais ${novas.length - 8}.</p>` : ''}</section>` : '';
-  main.innerHTML = pageHeader(`${greeting()}, ${esc(first)}`, esc(longDate())) + (cobHoje ? callout(`<p><b>${cobHoje} cobrança${cobHoje === 1 ? '' : 's'} agendada${cobHoje === 1 ? '' : 's'} para hoje.</b> A mensagem e o PIX já estão prontos; é só conferir e enviar.</p>`, '', '<a class="btn sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a>') : '') + novHtml + niverHtml + `
+  main.innerHTML = pageHeader(`${greeting()}, ${esc(first)}`, esc(longDate())) + (cobHoje ? callout(`<p><b>${cobHoje} cobrança${cobHoje === 1 ? '' : 's'} agendada${cobHoje === 1 ? '' : 's'} para hoje.</b> A mensagem e o PIX já estão prontos; é só conferir e enviar.</p>`, '', '<a class="btn sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a>') : '') + novHtml + niverHtml + `<div id="inbox"></div>
   <div class="dash">
     <section class="dcard wide" aria-label="Sessões de hoje">
       <h3>Sessões de hoje</h3><span class="ill">${ART.clip}</span>
@@ -203,6 +203,7 @@ export async function renderDashboard() {
   }));
   const go = $('#go-now');
   if (go) go.onclick = () => { const v = $('#who').value; goto(v ? `#/nova?paciente=${v}` : '#/nova'); };
+  inboxPanel();
 }
 
 /* ilustrações dos cartões (vetor com gradiente; ids próprios para não colidir) */
@@ -248,7 +249,7 @@ export async function renderPatients() {
   let all = await api.listPatients(false);
   let showArchived = false;
 
-  main.innerHTML = pageHeader('Pacientes', `${all.filter((x) => !x.archived).length} em atendimento`, `<button class="btn quiet" id="demo">${all.some(isDemo) ? 'Remover paciente de teste' : 'Criar paciente de teste'}</button><button class="btn" id="add">${icon('plus')}Novo paciente</button>`) + `
+  main.innerHTML = pageHeader('Pacientes', `${all.filter((x) => !x.archived).length} em atendimento`, `<button class="btn quiet" id="demo">${all.some(isDemo) ? 'Remover paciente de teste' : 'Criar paciente de teste'}</button><button class="btn quiet" id="an-novo">${icon('file')}Enviar anamnese</button><button class="btn" id="add">${icon('plus')}Novo paciente</button>`) + `<div id="inbox"></div>
     <div class="row lista-busca">
       <input id="q" type="search" placeholder="Buscar por nome ou e-mail" style="max-width:340px;margin:0" aria-label="Buscar paciente">
       <div class="pilulas" role="group" aria-label="Filtro">${[['', 'Todos'], ['semconsent', 'Sem consentimento'], ['rascunho', 'Com rascunhos']].map(([v, t], i) => `<button type="button" class="pilula${i ? '' : ' on'}" data-f="${v}">${t}</button>`).join('')}</div>
@@ -290,6 +291,8 @@ export async function renderPatients() {
   $$('[data-fmt]').forEach((b) => (b.onclick = () => setFmt(b.dataset.fmt, true)));
   const addP = async () => { const p = await patientModal(); if (p && p.id) goto(`#/pacientes/${p.id}`); };
   $('#add').onclick = addP;
+  $('#an-novo').onclick = () => enviarModeloParaPreencher(null);
+  inboxPanel();
   $('#demo').onclick = async (e) => {
     if (all.some(isDemo)) {
       if (!(await confirmBox('Remover o paciente de teste e todos os registros dele? Os seus pacientes reais não são afetados.', 'Remover'))) return;
@@ -348,7 +351,7 @@ function showLinkModal(url, expires, msg, phone, note = '') {
 const AN_TIPOS = [['curto', 'Resposta curta'], ['longo', 'Resposta longa'], ['data', 'Data'], ['marcar', 'Sim / Não']];
 const AN_KEY = 'potira.anamnese.campos';
 const anEssenciais = (p) => [
-  { title: 'Nome completo', type: 'curto', value: p.name },
+  { title: 'Nome completo', type: 'curto', value: p?.name || '' },
   { title: 'Nomes dos pais ou responsáveis', type: 'curto' },
   { title: 'Data de nascimento', type: 'data' },
   { title: 'Diagnóstico', type: 'curto', hint: 'Se houver. Pode deixar em branco.' },
@@ -361,7 +364,16 @@ async function anamneseLinkModal(p, id, modeloId = null) {
   const salvos = anSalvos();
   let fields = anEssenciais(p);
   const r = await openModal('Anamnese por link', `
-    <p>O(a) paciente responde no próprio celular, sem login. A resposta entra na ficha como rascunho para você revisar.</p>
+    ${p ? '<p>O(a) paciente responde no próprio celular, sem login. A resposta entra na ficha como rascunho para você revisar.</p>'
+    : `<p>Para quem ainda não é paciente cadastrado. Os pais ou o(a) próprio(a) paciente respondem pelo celular, sem login. A resposta chega em <b>Anamneses recebidas</b> (Início e Pacientes), onde você cria o paciente.</p>
+    <details class="an-pre" open><summary><b>Dados que você já tem</b> <span class="muted small">(opcional, vão preenchidos no formulário)</span></summary>
+      <div class="grid2">
+        <label class="field">Nome do(a) paciente<input id="pre-nome" maxlength="120"></label>
+        <label class="field">Pais ou responsáveis<input id="pre-resp" maxlength="200"></label>
+        <label class="field">Data de nascimento<input id="pre-nasc" type="date"></label>
+        <label class="field">Telefone (WhatsApp)<input id="pre-tel" type="tel" maxlength="20" placeholder="(95) 99999-9999"></label>
+      </div></details>
+    <label class="check"><input type="checkbox" id="an-fixo"> Link fixo: várias famílias podem responder (por exemplo, na bio do Instagram)</label>`}
     ${tpls.length || salvos ? `<label class="field">Começar com<select id="an-base">
       <option value="">Campos essenciais</option>
       ${salvos ? '<option value="salvos">Minha última lista de perguntas</option>' : ''}
@@ -398,7 +410,7 @@ async function anamneseLinkModal(p, id, modeloId = null) {
       const base = $('#an-base', d);
       if (base) base.onchange = () => {
         const ess = anEssenciais(p);
-        if (base.value === 'salvos') fields = salvos.map((f) => (/^nome completo$/i.test(f.title) ? { ...f, value: p.name } : { ...f }));
+        if (base.value === 'salvos') fields = salvos.map((f) => (/^nome completo$/i.test(f.title) ? { ...f, value: p?.name || '' } : { ...f }));
         else if (base.value) {
           const tem = new Set(ess.map((f) => f.title.toLowerCase()));
           const t = tpls.find((x) => x.id === base.value);
@@ -412,13 +424,23 @@ async function anamneseLinkModal(p, id, modeloId = null) {
       const limpos = fields.map((f) => ({ ...f, title: String(f.title || '').trim() })).filter((f) => f.title);
       if (!limpos.length) { toast('Adicione ao menos uma pergunta.', 'err'); return false; }
       if (limpos.length > 60) { toast('O formulário aceita até 60 perguntas.', 'err'); return false; }
-      return { fields: limpos, days: Number(d.querySelector('[name=days]').value) };
+      const v = (s) => d.querySelector(s)?.value.trim() || '';
+      const pre = { nome: v('#pre-nome'), resp: v('#pre-resp'), nasc: v('#pre-nasc'), tel: v('#pre-tel') };
+      const fixo = Boolean(d.querySelector('#an-fixo')?.checked);
+      if (!p && !fixo) limpos.forEach((f) => {
+        if (/^nome completo$/i.test(f.title) && pre.nome) f.value = pre.nome;
+        else if (/pais|respons/i.test(f.title) && f.type !== 'longo' && pre.resp) f.value = pre.resp;
+        else if (/nascimento/i.test(f.title) && f.type === 'data' && pre.nasc) f.value = pre.nasc;
+      });
+      return { fields: limpos, days: fixo ? 365 : Number(d.querySelector('[name=days]').value), pre, fixo };
     } });
   if (!r || r === true) return;
   try { localStorage.setItem(AN_KEY, JSON.stringify(r.fields.map(({ value, ...f }) => f))); } catch { /* sem armazenamento: segue */ }
   const token = newToken(), expires = expiresIn(r.days);
-  await api.createShareLink({ token, kind: 'anamnese', patient_id: id, fields: r.fields, expires_at: expires });
-  await showLinkModal(linkUrl(token), expires, `Olá! Segue o link para preencher a anamnese de ${p.name} antes da nossa primeira conversa. Leva uns minutos e pode ser feito pelo celular.`, p.phone);
+  await api.createShareLink({ token, kind: 'anamnese', patient_id: id || null, fields: r.fields, expires_at: expires, ...(r.fixo ? { reusable: true } : {}) });
+  const quem = p ? p.name : r.pre?.nome;
+  await showLinkModal(linkUrl(token), expires, `Olá! Segue o link para preencher a anamnese${quem ? ` de ${quem}` : ''} antes da nossa primeira conversa. Leva uns minutos e pode ser feito pelo celular.`, p ? p.phone : r.pre?.tel);
+  if (!id) { toast('Quando responderem, a anamnese aparece em Anamneses recebidas.'); if (location.hash === '#/pacientes' || location.hash === '#/painel') inboxPanel(); return; }
   if (location.hash === `#/pacientes/${id}`) renderPatientDetail(id); else location.hash = `#/pacientes/${id}`;
 }
 
@@ -427,11 +449,25 @@ export async function enviarModeloParaPreencher(modeloId, patientId = null) {
   let pid = patientId;
   if (!pid) {
     const pats = (await api.listPatients()).sort((a, b) => a.name.localeCompare(b.name));
-    if (!pats.length) { toast('Cadastre um paciente primeiro.', 'err'); return; }
-    pid = await openModal('Para qual paciente?', `<label class="field">Paciente<select name="pac">${pats.map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label>`,
-      { okText: 'Continuar', onOk: (d) => d.querySelector('[name=pac]').value });
+    pid = pats.length ? await openModal('Para quem é a anamnese?', `
+      <div class="an-quem">
+        <label class="check"><input type="radio" name="quem" value="novo" checked> <span><b>Paciente novo</b><br><span class="muted small">Ainda não está cadastrado. Você cria o paciente quando a resposta chegar.</span></span></label>
+        <label class="check"><input type="radio" name="quem" value="cad"> <span><b>Paciente já cadastrado</b></span></label>
+      </div>
+      <label class="field" id="quem-sel" hidden>Paciente<select name="pac">${pats.map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label>`,
+    { okText: 'Continuar', onOpen: (d) => {
+      // escolhido um caminho, o outro some
+      d.querySelectorAll('[name=quem]').forEach((rb) => (rb.onchange = () => {
+        const cad = d.querySelector('[name=quem]:checked').value === 'cad';
+        d.querySelector('#quem-sel').hidden = !cad;
+        d.querySelectorAll('.an-quem label').forEach((lb) => { lb.hidden = !lb.querySelector('input').checked; });
+        if (!d.querySelector('#quem-trocar')) d.querySelector('.an-quem').insertAdjacentHTML('beforeend', '<button type="button" class="link small" id="quem-trocar">Trocar</button>');
+        d.querySelector('#quem-trocar').onclick = () => { d.querySelectorAll('.an-quem label').forEach((lb) => { lb.hidden = false; }); d.querySelector('#quem-trocar').remove(); };
+      }));
+    }, onOk: (d) => (d.querySelector('[name=quem]:checked').value === 'cad' ? d.querySelector('[name=pac]').value : 'novo') }) : 'novo';
     if (!pid || pid === true) return;
   }
+  if (pid === 'novo') return anamneseLinkModal(null, null, modeloId);
   const p = await api.getPatient(pid);
   return anamneseLinkModal(p, pid, modeloId);
 }
@@ -729,4 +765,111 @@ export async function newDocument(patientId) {
     return api.createReport({ patient_id: patientId, template_id: null, kind: 'documento', title: t, session_date: todayISO(), status: 'rascunho', sections: [{ title: 'Documento', text: '', patient_visible: true }] });
   } });
   if (rep && rep.id) goto(`#/relatorio/${rep.id}`);
+}
+
+/* =====================================================================
+   ANAMNESES RECEBIDAS: respostas de quem ainda não é paciente cadastrado
+   ===================================================================== */
+const sem = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+const resposta = (it, re) => ((it.sections || []).find((s) => re.test(s.title || '')) || {}).text?.trim() || '';
+const dadosDa = (it) => {
+  const dm = resposta(it, /nascimento/i).match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  return { nome: resposta(it, /nome completo|nome do\(a\) paciente|nome da crian|nome do paciente/i), nasc: dm ? `${dm[3]}-${dm[2]}-${dm[1]}` : '',
+    resp: resposta(it, /pais|respons/i), tel: resposta(it, /telefone|whats|celular/i) };
+};
+
+/** Mostra a caixa em #inbox (Início e Pacientes) e o número no menu Pacientes. */
+export async function inboxPanel() {
+  const itens = await api.listInbox();
+  marcarMenu(itens.length);
+  const box = $('#inbox'); if (!box) return;
+  if (!itens.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<section class="panel inbox"><div class="panel-head"><h2>${icon('file')}Anamneses recebidas <span class="nav-badge">${itens.length}</span></h2>
+    <span class="muted small">Respondidas por quem ainda não é paciente cadastrado</span></div>
+    ${itens.map((it) => { const d = dadosDa(it); return `<div class="inbox-it" data-it="${it.id}">
+      <div class="grow"><b>${esc(d.nome || 'Sem nome informado')}</b><br><span class="muted small">${esc(it.title)} · recebida em ${fmtDateTime(it.created_at)}${d.resp ? ' · ' + esc(d.resp) : ''}</span></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap"><button class="btn quiet sm" data-ver>Ver respostas</button><button class="btn sm" data-criar>Criar paciente</button>
+        <details class="menu"><summary class="btn quiet sm" aria-label="Mais">${icon('more')}</summary><div class="menu-list">
+          <button type="button" data-juntar>${icon('users')}Juntar a um paciente que já existe</button>
+          <button type="button" data-desc class="perigo">${icon('trash')}Descartar</button></div></details></div></div>`; }).join('')}</section>`;
+  const byId = Object.fromEntries(itens.map((x) => [x.id, x]));
+  const de = (b) => byId[b.closest('[data-it]').dataset.it];
+  $$('[data-ver]', box).forEach((b) => (b.onclick = () => { const it = de(b); openModal(it.title, `<ol class="tpl-campos">${(it.sections || []).map((s) => `<li><b>${esc(s.title)}</b><br>${esc(s.text || '—')}</li>`).join('')}</ol>
+    <p class="muted small">Autorização de uso dos dados aceita em ${fmtDateTime(it.consent_at || it.created_at)}.</p>`, { cancelText: 'Fechar', wide: true }); }));
+  $$('[data-criar]', box).forEach((b) => (b.onclick = () => criarPacienteDaResposta(de(b)).catch((e) => toast(e.message || String(e), 'err'))));
+  $$('[data-juntar]', box).forEach((b) => (b.onclick = () => juntarResposta(de(b)).catch((e) => toast(e.message || String(e), 'err'))));
+  $$('[data-desc]', box).forEach((b) => (b.onclick = async () => {
+    if (!(await confirmBox('Descartar esta anamnese? As respostas são apagadas.', 'Descartar'))) return;
+    await api.deleteInbox(de(b).id); toast('Anamnese descartada.'); inboxPanel();
+  }));
+}
+
+let contagem = 0;
+function marcarMenu(n) {
+  contagem = n;
+  document.querySelectorAll('a[href="#/pacientes"]').forEach((a) => {
+    let s = a.querySelector('.nav-badge');
+    if (!n) { s?.remove(); return; }
+    if (!s) { s = document.createElement('span'); s.className = 'nav-badge'; a.appendChild(s); }
+    s.textContent = n; s.title = `${n} anamnese${n === 1 ? '' : 's'} recebida${n === 1 ? '' : 's'}`;
+  });
+}
+let ultimaContagem = 0;
+/** Atualiza o número no menu de tempos em tempos (chamado a cada troca de tela). */
+export const atualizarSelo = () => { marcarMenu(contagem); if (Date.now() - ultimaContagem < 60e3) return; ultimaContagem = Date.now(); api.listInbox().then((l) => marcarMenu(l.length)).catch(() => {}); };
+
+/** Leva a resposta para a ficha do paciente: anamnese em rascunho + consentimento aceito no link. */
+async function levarParaFicha(it, pid) {
+  const rep = await api.createReport({ patient_id: pid, template_id: it.template_id || null, kind: 'anamnese', title: it.title || 'Anamnese',
+    session_date: (it.created_at || '').slice(0, 10) || todayISO(), sections: it.sections, status: 'rascunho' });
+  if (it.consent_text) await api.addConsent({ patient_id: pid, consent_text: it.consent_text, channel: 'link' }).catch(() => {});
+  await api.updateInbox(it.id, { done_at: new Date().toISOString(), patient_id: pid, report_id: rep.id });
+  return rep;
+}
+
+async function criarPacienteDaResposta(it) {
+  const d = dadosDa(it);
+  const pats = await api.listPatients(true);
+  const dig = (x) => String(x || '').replace(/\D/g, '');
+  const iguais = () => {
+    const nome = sem(document.querySelector('#cp-nome')?.value ?? d.nome), tel = dig(document.querySelector('#cp-tel')?.value ?? d.tel);
+    return pats.filter((x) => (nome && sem(x.name) === nome) || (tel.length >= 8 && dig(x.phone).endsWith(tel.slice(-8))));
+  };
+  const r = await openModal('Criar paciente', `
+    <p class="muted small">Dados lidos da resposta. Confira antes de criar.</p>
+    <label class="field">Nome do(a) paciente<input id="cp-nome" required maxlength="120" value="${esc(d.nome)}"></label>
+    <div class="grid2"><label class="field">Data de nascimento<input id="cp-nasc" type="date" value="${esc(d.nasc)}"></label>
+      <label class="field">Telefone<input id="cp-tel" type="tel" value="${esc(d.tel)}"></label></div>
+    <label class="field">Pais ou responsáveis<input id="cp-resp" maxlength="200" value="${esc(d.resp)}"></label>
+    <div id="cp-dup"></div>`,
+  { okText: 'Criar paciente', onOpen: (dlg) => {
+    const ver = () => { const dup = iguais(); $('#cp-dup', dlg).innerHTML = dup.length ? callout(`<p><b>Atenção:</b> você já tem ${dup.map((x) => `<b>${esc(x.name)}</b>`).join(', ')} com o mesmo nome ou telefone. Se for a mesma pessoa, use “Juntar a um paciente que já existe”.</p>`, 'warn') : ''; };
+    ver(); $('#cp-nome', dlg).oninput = ver; $('#cp-tel', dlg).oninput = ver;
+  }, onOk: (dlg) => {
+    const nome = $('#cp-nome', dlg).value.trim();
+    if (!nome) { toast('Informe o nome do(a) paciente.', 'err'); return false; }
+    return { nome, nasc: $('#cp-nasc', dlg).value, tel: $('#cp-tel', dlg).value.trim(), resp: $('#cp-resp', dlg).value.trim() };
+  } });
+  if (!r || r === true) return;
+  const p = await api.savePatient({ name: r.nome, birth_date: r.nasc || null, phone: r.tel || null });
+  if (r.resp) await api.savePatientAdmin({ patient_id: p.id, guardian: r.resp.slice(0, 200) }).catch(() => {});
+  const rep = await levarParaFicha(it, p.id);
+  inboxPanel();
+  await acoesModal('Paciente criado', `<p><b>${esc(p.name)}</b> foi cadastrado(a). A anamnese está na ficha, como rascunho, e o consentimento aceito no link ficou registrado.</p>`, [
+    { icon: 'calendar', label: 'Agendar a primeira sessão', run: async () => { const { appointmentModal: ag } = await import('./views-administrativo.js'); await ag({ patients: [p], date: todayISO() }); return true; } },
+    { icon: 'file', label: 'Revisar a anamnese', run: () => { goto(`#/relatorio/${rep.id}`); return true; } },
+    { icon: 'users', label: 'Abrir a ficha do paciente', run: () => { goto(`#/pacientes/${p.id}`); return true; } },
+  ]);
+}
+
+async function juntarResposta(it) {
+  const pats = (await api.listPatients()).sort((a, b) => a.name.localeCompare(b.name));
+  if (!pats.length) return toast('Você ainda não tem pacientes cadastrados. Use “Criar paciente”.', 'err');
+  const d = dadosDa(it), alvo = pats.find((x) => sem(x.name) === sem(d.nome));
+  const pid = await openModal('Juntar a um paciente', `<p class="muted small">A anamnese entra como rascunho na ficha do paciente escolhido.</p>
+    <label class="field">Paciente<select name="pac">${pats.map((x) => `<option value="${x.id}" ${x === alvo ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>`,
+  { okText: 'Juntar', onOk: (dlg) => dlg.querySelector('[name=pac]').value });
+  if (!pid || pid === true) return;
+  await levarParaFicha(it, pid);
+  toast('Anamnese levada para a ficha.'); goto(`#/pacientes/${pid}`);
 }

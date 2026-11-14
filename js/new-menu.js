@@ -1,11 +1,12 @@
 // Botão único "Novo": pergunta o que criar.
 import * as api from './api.js';
 import { openModal, esc, icon, toast } from './ui.js';
-import { newDocument } from './views-home.js';
+import { newDocument, enviarModeloParaPreencher } from './views-home.js';
 
 const OPTIONS = [
   ['sessao', 'mic', 'Evolução (sessão)', 'Gravar ou digitar uma sessão e gerar o relatório.', true],
   ['anamnese', 'file', 'Anamnese', 'Entrevista inicial do paciente.', true],
+  ['anamnese-link', 'users', 'Anamnese por link', 'Os pais ou o paciente respondem pelo celular, mesmo sem cadastro.', false],
   ['documento', 'edit', 'Documento livre', 'Página em branco, como no Word, com tabelas.', true],
   ['periodo', 'calendar', 'Relatório por período', 'Junta várias sessões de um paciente.', false],
   ['paciente', 'users', 'Paciente', 'Cadastrar um novo paciente.', false],
@@ -27,6 +28,7 @@ export async function openNewMenu() {
   const [k, pid] = choice, q = pid ? `paciente=${pid}` : '';
   if (k === 'sessao') location.hash = `#/nova${q ? '?' + q : ''}`;
   else if (k === 'anamnese') location.hash = `#/nova?${q ? q + '&' : ''}tipo=anamnese`;
+  else if (k === 'anamnese-link') enviarModeloParaPreencher(null, pid || null);
   else if (k === 'periodo') location.hash = `#/periodo${q ? '?' + q : ''}`;
   else if (k === 'paciente') location.hash = '#/pacientes';
   else if (k === 'modelo') location.hash = '#/modelos';

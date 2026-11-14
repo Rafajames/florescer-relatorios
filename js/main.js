@@ -119,6 +119,7 @@ async function doRoute() {
     const tela = TELAS[path.split('/')[1]];
     if (tela) document.title = `${tela} · ${document.title}`; // document.title já traz a marca (applyBrand)
     await hit[1](hit[0], new URLSearchParams(query));
+    if (!isPatient && !isStaff && !state.profile.is_admin) home.atualizarSelo();
   } catch (err) {
     console.error(err);
     $('#app').innerHTML = `<div class="auth-wrap"><div class="card auth-card">

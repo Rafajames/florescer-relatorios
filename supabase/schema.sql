@@ -1452,3 +1452,79 @@ grant select, insert, update, delete on public.agenda_rule_releases to authentic
 
 -- 3) Sessão marcada dentro de um horário bloqueado (encaixe), para aparecer diferente na agenda.
 alter table public.appointments add column if not exists encaixe boolean not null default false;
+
+-- v-inbox (14/11/2026): anamnese para paciente ainda não cadastrado, link fixo e caixa "Anamneses recebidas"
+alter table public.share_links add column if not exists reusable boolean not null default false;
+
+create table if not exists public.anamnese_inbox (
+  id uuid primary key default gen_random_uuid(),
+  professional_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  link_id uuid references public.share_links(id) on delete set null,
+  template_id uuid,
+  title text not null default 'Anamnese',
+  sections jsonb not null default '[]'::jsonb,
+  consent_text text,
+  consent_at timestamptz,
+  patient_id uuid references public.patients(id) on delete set null,
+  report_id uuid references public.reports(id) on delete set null,
+  done_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists anamnese_inbox_prof_idx on public.anamnese_inbox (professional_id, done_at);
+alter table public.anamnese_inbox enable row level security;
+drop policy if exists anamnese_inbox_own on public.anamnese_inbox;
+create policy anamnese_inbox_own on public.anamnese_inbox for all to authenticated
+  using (professional_id = auth.uid() and public.is_professional())
+  with check (professional_id = auth.uid() and public.is_professional());
+-- só leitura/alteração/exclusão pelo profissional; a inclusão é feita pela função pública abaixo
+grant select, update, delete on public.anamnese_inbox to authenticated;
+
+-- Resposta da anamnese: com paciente vai para a ficha (como antes); sem paciente vai para "Anamneses recebidas".
+-- Link fixo (reusable) aceita várias respostas, com limite por hora para evitar abuso.
+create or replace function public.public_submit_anamnese(p_token text, p_answers jsonb, p_consent_text text)
+ returns void language plpgsql security definer set search_path to 'public'
+as $function$
+declare l public.share_links; t public.templates; src jsonb; secs jsonb := '[]'::jsonb; item jsonb; idx int := 0;
+begin
+  select * into l from public.share_links where token = p_token for update;
+  if not found or l.kind <> 'anamnese' or l.expires_at < now() then raise exception 'link_invalido'; end if;
+  if l.responded_at is not null and not l.reusable then raise exception 'ja_respondido'; end if;
+  if coalesce(length(trim(p_consent_text)), 0) = 0 then raise exception 'consentimento_obrigatorio'; end if;
+  if l.reusable and (select count(*) from public.anamnese_inbox where link_id = l.id and created_at > now() - interval '1 hour') >= 20 then
+    raise exception 'muitas_respostas';
+  end if;
+  if l.template_id is not null then select * into t from public.templates where id = l.template_id; end if;
+  if l.fields is null and t.id is null then raise exception 'link_invalido'; end if;
+  src := coalesce(l.fields, t.sections);
+  for item in select * from jsonb_array_elements(src) loop
+    secs := secs || jsonb_build_array(jsonb_build_object('title', item->>'title',
+      'text', left(coalesce(p_answers->>(idx::text), ''), 20000)));
+    idx := idx + 1;
+  end loop;
+  if l.patient_id is null then
+    insert into public.anamnese_inbox (professional_id, link_id, template_id, title, sections, consent_text, consent_at)
+    values (l.professional_id, l.id, l.template_id, coalesce(t.name, 'Anamnese'), secs, p_consent_text, now());
+  else
+    insert into public.reports (professional_id, patient_id, template_id, kind, title, session_date, sections, status)
+    values (l.professional_id, l.patient_id, l.template_id, 'anamnese', coalesce(t.name, 'Anamnese'),
+            (now() at time zone 'America/Sao_Paulo')::date, secs, 'rascunho');
+  end if;
+  update public.share_links set responded_at = now(), consent_at = now(), consent_text = p_consent_text where id = l.id;
+end $function$;
+revoke all on function public.public_submit_anamnese(text, jsonb, text) from public;
+grant execute on function public.public_submit_anamnese(text, jsonb, text) to anon, authenticated;
+
+-- Link fixo nunca aparece como "já respondido" para quem abre.
+do $$ declare d text; begin
+  d := pg_get_functiondef('public.public_get_link(text,text)'::regprocedure);
+  if position('not coalesce(l.reusable' in d) = 0 then
+    d := replace(d, '''responded'', l.responded_at is not null,', '''responded'', l.responded_at is not null and not coalesce(l.reusable, false),');
+    execute d;
+  end if;
+end $$;
+-- anamnese pode ser enviada sem paciente (paciente novo); a resposta vai para anamnese_inbox
+alter table public.share_links drop constraint if exists share_links_tipo_dados;
+alter table public.share_links add constraint share_links_tipo_dados check (
+  ((kind <> 'confirmacao') or (appointment_id is not null))
+  and ((kind <> 'orientacao') or (content is not null))
+  and ((kind in ('pesquisa', 'anamnese')) or (patient_id is not null)));

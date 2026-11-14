@@ -377,6 +377,10 @@ export const portalReports = () => sb.rpc('portal_list_reports').then(unwrap);
 export const createShareLink = (row) => sb.from('share_links').insert(own(row)).select('id,token,kind,expires_at').single().then(unwrap);
 export const listShareLinks = (patientId) =>
   sb.from('share_links').select('id,token,kind,expires_at,responded_at,opened_at,created_at,report_id,template_id,appointment_id,fields').eq('patient_id', patientId).order('created_at', { ascending: false }).then(unwrap);
+/* ---------- anamneses recebidas (respondidas por quem ainda não é paciente cadastrado) ---------- */
+export const listInbox = () => sb.from('anamnese_inbox').select('*').is('done_at', null).order('created_at', { ascending: false }).then((r) => (r.error ? [] : r.data));
+export const updateInbox = (id, patch) => sb.from('anamnese_inbox').update(patch).eq('id', id).then(unwrap);
+export const deleteInbox = (id) => sb.from('anamnese_inbox').delete().eq('id', id).then(unwrap);
 export const revokeShareLink = (id) => sb.from('share_links').delete().eq('id', id).then(unwrap);
 export const getPublicLink = (token, passwordHash = null) =>
   sb.rpc('public_get_link', { p_token: token, p_password_hash: passwordHash }).then(unwrap);

@@ -12,6 +12,7 @@ const MSG = {
   link_invalido: 'Este link não está mais disponível. Ele pode ter expirado ou sido cancelado. Peça um novo link ao(à) profissional.',
   ja_respondido: 'Esta anamnese já foi respondida. Obrigado(a)!',
   consentimento_obrigatorio: 'Marque a autorização antes de enviar.',
+  muitas_respostas: 'Muitas respostas neste link agora. Tente de novo daqui a pouco.',
   resposta_invalida: 'Não consegui registrar a resposta. Tente de novo.',
   relatorio_indisponivel: 'Este relatório não está disponível no momento.',
 };
@@ -80,7 +81,7 @@ function campo(s, i) {
   const hint = s.hint ? `<small class="muted">${esc(s.hint)}</small>` : '';
   let input;
   if (s.type === 'curto') input = `<input name="a${i}" value="${esc(s.value || '')}" aria-label="${esc(s.title)}">`;
-  else if (s.type === 'data') input = `<input type="date" name="a${i}" aria-label="${esc(s.title)}">`;
+  else if (s.type === 'data') input = `<input type="date" name="a${i}" value="${esc(s.value || '')}" aria-label="${esc(s.title)}">`;
   else if (s.type === 'marcar') input = `<select name="a${i}" aria-label="${esc(s.title)}"><option value="">—</option><option>Sim</option><option>Não</option><option>Não sei</option></select>`;
   else if (s.type === 'escolha') input = `<select name="a${i}" aria-label="${esc(s.title)}"><option value="">—</option>${(s.options || []).map((o) => `<option>${esc(o)}</option>`).join('')}</select>`;
   else input = `<textarea name="a${i}" rows="${s.lines ? Math.min(+s.lines + 2, 14) : s.type === 'longo' ? 4 : 2}" aria-label="${esc(s.title)}"></textarea>`;
@@ -91,7 +92,7 @@ function anamnese(main, token, info) {
   if (info.responded) { main.innerHTML = card('Obrigado!', `<p>Sua anamnese já foi enviada para ${esc(info.professional_name)}.</p>`); return; }
   main.innerHTML = `<section class="panel">
     <h1>${esc(info.title)}</h1>
-    <p class="muted">Formulário de <b>${esc(info.patient_name)}</b>, enviado por ${esc(info.professional_name)}${info.specialty ? ' (' + esc(info.specialty) + ')' : ''}. Responda com as suas palavras; se for responsável, responda pelo(a) paciente. Pode deixar em branco o que não souber. Este link vale até ${esc(fmtDate(info.expires_at))}.</p>
+    <p class="muted">${info.patient_name ? `Formulário de <b>${esc(info.patient_name)}</b>, enviado` : 'Formulário enviado'} por ${esc(info.professional_name)}${info.specialty ? ' (' + esc(info.specialty) + ')' : ''}. Responda com as suas palavras; se for responsável, responda pelo(a) paciente. Pode deixar em branco o que não souber. Este link vale até ${esc(fmtDate(info.expires_at))}.</p>
     <form id="pf">
       ${info.sections.map((s, i) => campo(s, i)).join('')}
       <label class="check pub-cons"><input type="checkbox" id="pf-cons"> <span>${esc(CONSENT)}</span></label>
@@ -99,6 +100,13 @@ function anamnese(main, token, info) {
       <p id="pf-err" class="small" role="alert"></p>
     </form></section>`;
 
+  // Rascunho neste celular: se fechar a página no meio, as respostas continuam aqui.
+  const RK = `potira.rasc.${token}`;
+  try { const v = JSON.parse(localStorage.getItem(RK) || '{}'); Object.entries(v).forEach(([k, val]) => { const el = $('#pf').elements[k]; if (el && val) el.value = val; }); } catch { /* sem rascunho */ }
+  $('#pf').addEventListener('input', () => {
+    const v = {}; info.sections.forEach((s, i) => { const el = $('#pf').elements[`a${i}`]; if (el && el.value) v[`a${i}`] = el.value; });
+    try { localStorage.setItem(RK, JSON.stringify(v)); } catch { /* sem armazenamento */ }
+  });
   $('#pf').onsubmit = async (e) => {
     e.preventDefault();
     if (!$('#pf-cons').checked) { $('#pf-err').textContent = errorText(new Error('consentimento_obrigatorio')); return; }
@@ -111,6 +119,7 @@ function anamnese(main, token, info) {
     const btn = $('[type=submit]', e.target); btn.disabled = true; btn.textContent = 'Enviando…';
     try {
       await api.submitPublicAnamnese(token, answers, CONSENT);
+      try { localStorage.removeItem(RK); } catch { /* ok */ }
       main.innerHTML = card('Obrigado!', `<p>Suas respostas foram enviadas para ${esc(info.professional_name)}. Não precisa fazer mais nada.</p>`);
     } catch (err) {
       $('#pf-err').textContent = errorText(err); btn.disabled = false; btn.textContent = 'Enviar respostas';
