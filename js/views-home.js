@@ -323,7 +323,7 @@ const linksPanel = (links) => `<div class="panel">
       : l.kind === 'confirmacao' ? (l.responded_at ? chip(`Respondeu em ${fmtDate(l.responded_at)}`, 'ok') : expired ? chip('Expirado') : chip('Sem resposta', 'warn'))
         : l.kind === 'orientacao' ? (l.opened_at ? chip(`Aberto em ${fmtDate(l.opened_at)}`, 'ok') : expired ? chip('Expirado') : chip('Ainda não abriu', 'warn'))
           : (expired ? chip('Expirado') : chip('Ativo', 'ok'));
-    return `<div class="small" style="margin-bottom:10px">${LINK_NOME[l.kind] || 'Link'} · enviado em ${fmtDate(l.created_at)}<br>${st} <button class="link" data-rlink="${l.id}">Revogar</button></div>`;
+    return `<div class="small" style="margin-bottom:10px">${LINK_NOME[l.kind] || 'Link'} · enviado em ${fmtDate(l.created_at)}<br>${st} ${l.kind === 'anamnese' && l.fields ? `<button class="link" data-reenv="${l.id}">Reenviar</button> ` : ''}<button class="link" data-rlink="${l.id}">Revogar</button></div>`;
   }).join('') : '<p class="muted small">Nenhum link enviado.</p>'}
 </div>`;
 
@@ -356,7 +356,7 @@ const anEssenciais = (p) => [
 ];
 const anSalvos = () => { try { const v = JSON.parse(localStorage.getItem(AN_KEY)); return Array.isArray(v) && v.length ? v : null; } catch { return null; } };
 
-async function anamneseLinkModal(p, id) {
+async function anamneseLinkModal(p, id, modeloId = null) {
   const tpls = api.templatesForMe(await api.listTemplates(), state.profile).filter((t) => t.kind === 'anamnese');
   const salvos = anSalvos();
   let fields = anEssenciais(p);
@@ -406,6 +406,7 @@ async function anamneseLinkModal(p, id) {
         } else fields = ess;
         draw();
       };
+      if (base && modeloId && tpls.some((x) => x.id === modeloId)) { base.value = modeloId; base.onchange(); }
     },
     onOk: (d) => {
       const limpos = fields.map((f) => ({ ...f, title: String(f.title || '').trim() })).filter((f) => f.title);
@@ -418,7 +419,21 @@ async function anamneseLinkModal(p, id) {
   const token = newToken(), expires = expiresIn(r.days);
   await api.createShareLink({ token, kind: 'anamnese', patient_id: id, fields: r.fields, expires_at: expires });
   await showLinkModal(linkUrl(token), expires, `Olá! Segue o link para preencher a anamnese de ${p.name} antes da nossa primeira conversa. Leva uns minutos e pode ser feito pelo celular.`, p.phone);
-  renderPatientDetail(id);
+  if (location.hash === `#/pacientes/${id}`) renderPatientDetail(id); else location.hash = `#/pacientes/${id}`;
+}
+
+/** Envia um modelo de anamnese para o paciente preencher: escolhe o paciente e abre a janela do link já com o modelo. */
+export async function enviarModeloParaPreencher(modeloId, patientId = null) {
+  let pid = patientId;
+  if (!pid) {
+    const pats = (await api.listPatients()).sort((a, b) => a.name.localeCompare(b.name));
+    if (!pats.length) { toast('Cadastre um paciente primeiro.', 'err'); return; }
+    pid = await openModal('Para qual paciente?', `<label class="field">Paciente<select name="pac">${pats.map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label>`,
+      { okText: 'Continuar', onOk: (d) => d.querySelector('[name=pac]').value });
+    if (!pid || pid === true) return;
+  }
+  const p = await api.getPatient(pid);
+  return anamneseLinkModal(p, pid, modeloId);
 }
 
 /* Arquivos do paciente na pasta do computador (laudos, exames e documentos gravados pela plataforma). */
@@ -476,8 +491,8 @@ async function orientacaoLinkModal(p, id) {
   renderPatientDetail(id);
 }
 
-async function relatorioLinkModal(p, id, reports, after = () => renderPatientDetail(id)) {
-  const revs = reports.filter((x) => x.status === 'revisado' && ['sessao', 'periodo', 'anamnese'].includes(x.kind));
+async function relatorioLinkModal(p, id, reports) {
+  const revs = reports.filter((x) => x.status === 'revisado' && (x.kind === 'sessao' || x.kind === 'periodo'));
   if (!revs.length) return toast('Revise um relatório antes de enviar por link.', 'err');
   const r = await openModal('Relatório por link', `
     <p>Quem tiver o link lê o relatório e baixa em PDF ou Word. Só aparecem as partes marcadas como visíveis ao paciente.</p>
@@ -491,15 +506,7 @@ async function relatorioLinkModal(p, id, reports, after = () => renderPatientDet
   await api.createShareLink({ token, kind: 'relatorio', patient_id: id, report_id: r.rep, expires_at: expires, password_hash });
   await showLinkModal(linkUrl(token), expires, `Olá, ${p.name}! Segue o link para acessar o seu relatório.`, p.phone,
     r.pw ? 'Envie a senha em outra mensagem, não junto com o link.' : '');
-  after();
-}
-
-/** Usado na tela do relatório/anamnese: gera o link do documento já revisado, sem sair da tela. */
-export async function enviarRelatorioPorLink(reportId) {
-  const rep = await api.getReport(reportId);
-  if (rep.status !== 'revisado') return toast('Marque como revisado antes de enviar por link.', 'err');
-  const p = await api.getPatient(rep.patients.id);
-  return relatorioLinkModal(p, p.id, [rep], () => {});
+  renderPatientDetail(id);
 }
 
 // Soma recebido e a receber das sessões realizadas (valor do atendimento ou valor padrão do paciente).
@@ -676,6 +683,13 @@ export async function renderPatientDetail(id) {
   escalasPanel($('#pl-escalas'), id).catch(() => { $('#pl-escalas').innerHTML = ''; });
   arquivosPanel($('#pl-arquivos'), p).catch(() => { $('#pl-arquivos').innerHTML = ''; });
   $('#link-rel').onclick = () => relatorioLinkModal(p, id, reports);
+  $$('[data-reenv]').forEach((b) => (b.onclick = async () => {
+    const l = links.find((x) => x.id === b.dataset.reenv);
+    const token = newToken(), expires = expiresIn(7);
+    await api.createShareLink({ token, kind: 'anamnese', patient_id: id, fields: l.fields, expires_at: expires });
+    await showLinkModal(linkUrl(token), expires, `Olá! Segue de novo o link para preencher a anamnese de ${p.name}. Pode ser feito pelo celular.`, p.phone);
+    renderPatientDetail(id);
+  }));
   $$('[data-rlink]').forEach((b) => (b.onclick = async () => {
     if (!(await confirmBox('Revogar este link? Quem já tiver o endereço deixa de ter acesso.', 'Revogar'))) return;
     await api.revokeShareLink(b.dataset.rlink); toast('Link revogado.'); renderPatientDetail(id);

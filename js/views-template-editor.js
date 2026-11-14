@@ -2,7 +2,7 @@
 // numa página só. O profissional rola, edita o título, a orientação e o tipo de cada campo.
 import * as api from './api.js';
 import { state, SPECIALTIES } from './state.js';
-import { $, $$, esc, toast, confirmBox, shell, loading, icon, callout, backLink } from './ui.js';
+import { $, $$, esc, toast, confirmBox, shell, loading, icon, callout, backLink, acoesModal } from './ui.js';
 import { getPrefs } from './prefs.js';
 
 const TYPES = [['longo', 'Texto longo'], ['curto', 'Texto curto'], ['data', 'Data'], ['marcar', 'Sim ou não'], ['escolha', 'Escolha']];
@@ -28,18 +28,19 @@ function preview(r) {
 
 export async function renderTemplateEditor(id) {
   const main = shell('modelos'); loading(main);
-  let t;
+  let t, guia = false;
   if (id === 'novo') {
     t = draft ? { ...draft } : { name: '', specialty: state.profile.specialty || 'Geral', kind: 'sessao', sections: [] };
     draft = null;
   } else {
     const found = (await api.listTemplates()).find((x) => x.id === id);
-    if (!found || !found.professional_id) {
-      main.innerHTML = callout('<p>Este modelo não pode ser editado aqui. Use “Duplicar e editar” para criar uma cópia sua.</p>', 'warn')
-        + `<p><a class="btn quiet" href="#/modelos">Voltar aos modelos</a></p>`;
+    if (!found) {
+      main.innerHTML = callout('<p>Modelo não encontrado.</p>', 'warn') + `<p><a class="btn quiet" href="#/modelos">Voltar aos modelos</a></p>`;
       return;
     }
-    t = { ...found };
+    // Modelo da Potira é só um guia: abre no editor e, ao salvar, vira um modelo do profissional. O original não muda.
+    if (!found.professional_id) { guia = true; t = { name: found.name, specialty: found.specialty, kind: found.kind, sections: found.sections, meta: {} }; }
+    else t = { ...found };
   }
   const rows = (t.sections || []).map((s) => ({ type: 'longo', ...s }));
   if (!rows.length) rows.push(blank());
@@ -53,6 +54,7 @@ export async function renderTemplateEditor(id) {
   main.innerHTML = `
     <div class="row" style="margin-bottom:10px">${backLink('#/modelos', 'Modelos')}<span class="grow"></span>
       <button class="btn quiet" id="tpl-cancel">Cancelar</button>${isNew ? '' : `<button class="btn quiet" id="tpl-copy">${icon('plus')}Salvar como cópia</button>`}<button class="btn" id="tpl-save">${icon('check')}Salvar modelo</button></div>
+    ${guia ? callout('<p>Este é um modelo da Potira, para servir de guia. Edite à vontade: ao salvar, ele vira um modelo <b>seu</b> e o original continua igual.</p>', 'ok') : ''}
     ${t.meta?.source ? callout(`<p>Importado de <b>${esc(t.meta.source)}</b>${t.meta.ai ? ' com ajuda da IA' : ''}. Confira os campos e acrescente o que faltar.${t.meta.noLayout ? ' A logo, a marca d’água, o cabeçalho e o rodapé só são lidos de arquivos Word (.docx).' : ''}</p>`, 'ok') : ''}
     ${lay ? `<section class="panel tpl-lay"><h2>Timbre do seu documento</h2>
       <p class="muted small">Lido do arquivo enviado. Os documentos feitos com este modelo saem com esta logo, marca d’água, cabeçalho e rodapé, no lugar do timbre das Configurações.</p>
@@ -179,9 +181,26 @@ export async function renderTemplateEditor(id) {
         state.profile = { ...state.profile, preferences: row.preferences };
       }
       toast(key && $('#tpl-def').checked ? 'Modelo salvo e definido como padrão.' : 'Modelo salvo.');
-      location.hash = '#/modelos';
+      const antes = location.hash;
+      await depoisDeSalvar(saved);
+      if (location.hash === antes) location.hash = '#/modelos';
     } catch (err) { toast(err.message, 'err'); btn.disabled = false; }
   };
   $('#tpl-save').onclick = salvar(false);
   if ($('#tpl-copy')) $('#tpl-copy').onclick = salvar(true);
+}
+
+/** Depois de salvar o modelo: o que fazer com ele agora. */
+async function depoisDeSalvar(t) {
+  const timbre = () => document.querySelector('#ds-timbre')?.checked || false;
+  const exp = () => import('./export.js');
+  await acoesModal('Modelo salvo. O que fazer agora?', `<p class="muted small">“${esc(t.name)}” está em Modelos de documento, no grupo ${t.kind === 'anamnese' ? 'Anamnese' : t.kind === 'periodo' ? 'Relatório por período' : 'Evolução'}, com a etiqueta “Meu”.</p>
+    <label class="check small"><input type="checkbox" id="ds-timbre"> Com a minha logo e marca d’água (sem marcar, sai em branco)</label>`, [
+    t.kind === 'anamnese' && { icon: 'users', label: 'Enviar para um paciente preencher', sub: 'Escolha o paciente e mande o link pelo WhatsApp',
+      run: async () => { const m = await import('./views-home.js'); await m.enviarModeloParaPreencher(t.id); return true; } },
+    (t.kind === 'anamnese' || t.kind === 'sessao') && { icon: 'mic', label: 'Usar agora com um paciente', sub: 'Abre um registro novo já com este modelo',
+      run: () => { location.hash = `#/nova?tipo=${t.kind}&modelo=${t.id}`; return new Promise((r) => setTimeout(() => r(true), 0)); } },
+    { icon: 'download', label: 'Baixar em PDF (em branco)', sub: 'Para imprimir e preencher à mão', run: async () => { (await exp()).exportModeloPdf({ template: t, professional: state.profile, timbre: timbre() }); return false; } },
+    { icon: 'download', label: 'Baixar em Word (para editar)', run: async () => { (await exp()).exportModeloWord({ template: t, professional: state.profile, timbre: timbre() }); return false; } },
+  ]);
 }

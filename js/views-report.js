@@ -7,7 +7,7 @@ import { brandOf } from './brand.js';
 import { sanitize, textToHtml, toolbarHtml, runCmd } from './richtext.js';
 import { KIND_LABEL } from './export.js';
 import {
-  $, $$, esc, fmtDate, fmtDateTime, fmtTime, toast, openModal, confirmBox, busy, autosize, debounce, wordCount,
+  $, $$, esc, fmtDate, fmtDateTime, fmtTime, toast, openModal, confirmBox, busy, autosize, debounce, wordCount, acoesModal,
   chip, statusChip, meta, callout, shell, loading, backLink, icon,
   celebrar,
 } from './ui.js';
@@ -46,7 +46,7 @@ export async function renderReport(id) {
         <button type="button" id="preview">${icon('eye')}Prévia do portal</button>
         <button type="button" id="word">${icon('download')}Word (para editar)</button>
         <button type="button" id="pdf">${icon('download')}PDF</button>
-        <button type="button" id="send-link">${icon('file')}Enviar por link ao paciente</button>
+        <label class="check small" style="padding:8px 12px;margin:0"><input type="checkbox" id="timbre">Com minha logo e marca d’água</label>
         <label class="check small" style="padding:8px 12px;margin:0"><input type="checkbox" id="onlyvis">Só as seções visíveis ao paciente</label></div></details>
       <details class="menu"><summary class="btn quiet sm" aria-label="Mais ações">${icon('more')}</summary><div class="menu-list">
         ${r.released_to_patient ? `<button type="button" id="unrelease">${icon('eyeoff')}Retirar do portal</button>` : ''}
@@ -163,6 +163,7 @@ export async function renderReport(id) {
         confirmedLive = true;
       }
       await busy(btn, 'Salvando…', async () => { await save(); setState(`Salvo às ${fmtTime(savedAt)}`, true); toast('Salvo.'); });
+      if (e.isTrusted) depoisDeSalvar(); // Ctrl+S salva sem abrir a janela
     };
     const secs = $('#secs');
     secs.addEventListener('input', (e) => {
@@ -317,7 +318,7 @@ export async function renderReport(id) {
     const secs = $('#onlyvis').checked ? sections.filter(visible) : sections;
     return {
       report: { ...r, title: $('#title').value.trim() || r.title, session_date: $('#date')?.value || r.session_date },
-      patientName: r.patients.name, professional: state.profile, sections: secs, layout,
+      patientName: r.patients.name, professional: state.profile, sections: secs, layout, timbre: $('#timbre').checked,
     };
   };
   if ($('#pl-metas-sessao')) import('./views-clinico.js').then((m) => m.metasDaSessao($('#pl-metas-sessao'), r)).catch(() => { const el = $('#pl-metas-sessao'); if (el) el.remove(); });
@@ -345,11 +346,21 @@ export async function renderReport(id) {
     } catch (err) { toast(err.message || String(err), 'err'); }
   };
   $('#word').onclick = () => exportWord(exportArgs());
-  $('#send-link').onclick = async () => {
-    if (dirty) await save();
-    const { enviarRelatorioPorLink } = await import('./views-home.js');
-    enviarRelatorioPorLink(id).catch((err) => toast(err.message || String(err), 'err'));
-  };
+  // Depois de "Salvar agora": baixar, guardar como modelo, enviar o formulário (anamnese) ou marcar como revisado.
+  const depoisDeSalvar = () => acoesModal('Salvo. O que fazer agora?', `<p class="muted small">Este registro fica na ficha de <b>${esc(r.patients.name)}</b>, na Linha do tempo, e na lista de Relatórios.</p>
+    <label class="check small"><input type="checkbox" id="ds-timbre"> Com a minha logo e marca d’água (sem marcar, sai em branco)</label>`, [
+    { icon: 'download', label: 'Baixar em PDF', run: () => { $('#timbre').checked = $('#ds-timbre').checked; $('#pdf').click(); return true; } },
+    { icon: 'download', label: 'Baixar em Word (para editar)', run: () => { exportWord({ ...exportArgs(), timbre: $('#ds-timbre').checked }); return false; } },
+    r.kind !== 'documento' && { icon: 'clipboard', label: 'Guardar como modelo meu', sub: 'Os campos deste registro viram um modelo, sem o que foi escrito',
+      run: async () => {
+        await api.saveTemplate({ name: $('#title').value.trim() || r.title, specialty: state.profile.specialty || 'Geral', kind: r.kind, meta: {},
+          sections: sections.map((s) => ({ title: s.title, hint: s.hint || '', type: s.type || 'longo', ...(s.options ? { options: s.options } : {}) })).filter((s) => s.title) });
+        toast('Guardado em Modelos de documento.'); return false;
+      } },
+    r.kind === 'anamnese' && { icon: 'users', label: 'Enviar para o paciente preencher', sub: 'Link com as perguntas deste modelo',
+      run: async () => { const m = await import('./views-home.js'); await m.enviarModeloParaPreencher(r.template_id, r.patients.id); return true; } },
+    !reviewed && $('#review') && { icon: 'check', label: 'Marcar como revisado', run: () => { setTimeout(() => $('#review')?.click(), 200); return true; } },
+  ]);
   $('#pdf').onclick = () => {
     const args = exportArgs();
     openModal('Prévia do PDF', `<iframe class="pdf-prev" title="Prévia do documento" srcdoc="${esc(previewHtml(args))}"></iframe>

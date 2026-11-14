@@ -4,6 +4,15 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 14/11/2026 — "O que fazer agora?" ao salvar, modelos da Potira como guia e timbre opcional
+
+- **Modelos da Potira abrem direto no editor**, como guia. Ao salvar, viram modelo do profissional (etiqueta "Meu"); o original não muda.
+- **Ao salvar um modelo**, abre a janela "O que fazer agora?": enviar para um paciente preencher (anamnese), usar agora com um paciente (anamnese e evolução), baixar em branco em PDF ou Word.
+- **Ao clicar em "Salvar agora" num registro** (anamnese, evolução, relatório): baixar em PDF ou Word, guardar como modelo meu, enviar o formulário para o paciente preencher (anamnese) e marcar como revisado, se quiser. Ctrl+S salva sem abrir a janela.
+- **Logo e marca d'água opcionais** em PDF e Word: padrão é em branco. Marcando, sai a logo do profissional e, como marca d'água, a do modelo enviado ou a própria logo bem clarinha. No Word a marca d'água não aparece (limitação do Word).
+- **Reenviar** anamnese por link na ficha do paciente (gera um link novo com as mesmas perguntas).
+- O link é só para o paciente **preencher**; tirado o link de leitura da anamnese adicionado mais cedo.
+
 ## 14/11/2026 — Salvar cópia de modelo, linhas de resposta e link da anamnese
 
 - **Corrigido o erro "Você não tem permissão para esta ação"** ao salvar um modelo copiado de um modelo da Potira (como a Anamnese geral): a cópia era gravada sem dono e o banco recusava. Agora toda cópia ou modelo novo nasce no nome de quem salvou. Os modelos da Potira continuam intocáveis para profissionais.

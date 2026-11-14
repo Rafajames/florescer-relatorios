@@ -1380,3 +1380,12 @@ polyline.desenha{stroke-dasharray:1;stroke-dashoffset:1;animation:traca .9s .15s
 /* Editor de modelo: orientação que cresce e contador de linhas */
 textarea.tpl-f-hint{resize:vertical;overflow:hidden;font-family:inherit;line-height:1.4;display:block}
 .tpl-f-lines{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 0}
+
+/* Janela "O que fazer agora?" */
+.acoes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:12px}
+.acao-btn{display:flex;align-items:flex-start;gap:10px;text-align:left;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);cursor:pointer;font:inherit;transition:transform .15s,border-color .15s}
+.acao-btn:hover{border-color:var(--petrol);transform:translateY(-2px)}
+.acao-btn:disabled{opacity:.6;cursor:wait}
+.acao-btn svg{flex:none;color:var(--petrol);margin-top:2px}
+.acao-btn small{display:block;color:var(--ink-2);font-size:12.5px;margin-top:2px}
+@media (prefers-reduced-motion: reduce){.acao-btn{transition:none}.acao-btn:hover{transform:none}}

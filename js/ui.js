@@ -268,3 +268,18 @@ document.addEventListener('click', (e) => {
   document.querySelectorAll('details.menu[open]').forEach((m) => { if (!m.contains(e.target) || e.target.closest('.menu-list a, .menu-list button')) m.removeAttribute('open'); });
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('details.menu[open]').forEach((m) => m.removeAttribute('open')); });
+
+/** Janela "O que fazer agora?": cada ação é um botão grande; ao terminar a ação, a janela fecha. */
+export function acoesModal(title, introHtml, acoes) {
+  return openModal(title, `${introHtml}<div class="acoes-grid">${acoes.filter(Boolean).map((a, i) =>
+    `<button type="button" class="acao-btn" data-acao="${i}">${icon(a.icon || 'check')}<span><b>${esc(a.label)}</b>${a.sub ? `<small>${esc(a.sub)}</small>` : ''}</span></button>`).join('')}</div>`,
+  { cancelText: 'Fechar', wide: true, onOpen: (d) => {
+    const lista = acoes.filter(Boolean);
+    d.querySelectorAll('[data-acao]').forEach((b) => (b.onclick = async () => {
+      b.disabled = true;
+      try { const r = await lista[+b.dataset.acao].run(d); if (r !== false) d.querySelector('[data-cancel]').click(); }
+      catch (err) { toast(err.message || String(err), 'err'); }
+      b.disabled = false;
+    }));
+  } });
+}

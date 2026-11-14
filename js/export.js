@@ -44,7 +44,7 @@ function header(professional, layout) {
   const b = brandOf(professional);
   const reg = [professional.specialty, professional.council_registry].filter(Boolean).join(' · ');
   const name = b.org_name || professional.clinic_name || professional.full_name || '';
-  const logo = (layout && layout.logo) || b.logo;
+  const logo = layout && layout.noLogo ? '' : (layout && layout.logo) || b.logo;
   const linhas = layout && layout.header ? String(layout.header).split('\n').map((l) => l.trim()).filter(Boolean) : null;
   const texto = linhas
     ? `<div class="clinic">${esc(linhas[0])}</div>${linhas.slice(1).map((l) => `<div class="prof">${esc(l)}</div>`).join('')}`
@@ -78,8 +78,19 @@ const signature = (professional, b, reg) => `<div class="sign">${b.signature ? `
 
 const whenOf = (r) => (r.kind === 'periodo' && r.period_start ? `${fmtDate(r.period_start)} a ${fmtDate(r.period_end)}` : fmtDate(r.session_date));
 
+/** timbre: undefined = como sempre foi; false = em branco (sem logo e sem marca d'água); true = logo e marca d'água
+ *  (a do modelo enviado ou, se não houver, a própria logo bem clarinha). */
+const comTimbre = (layout, professional, timbre) => {
+  if (timbre === undefined) return layout;
+  if (!timbre) return { ...(layout || {}), noLogo: true, watermark: null };
+  const logo = (layout && layout.logo) || brandOf(professional).logo;
+  return { ...(layout || {}), noLogo: false, watermark: (layout && layout.watermark) || (logo ? { image: logo, opacity: 0.08 } : null) };
+};
+
 /** report: { title, kind, session_date, period_start, period_end, ai_generated } */
-function buildHtml({ report, patientName, professional, sections, layout }) {
+function buildHtml({ report, patientName, professional, sections, layout: lay0, timbre, noWm }) {
+  let layout = comTimbre(lay0, professional, timbre);
+  if (noWm && layout) layout = { ...layout, watermark: null }; // o Word não mostra marca d'água posicionada
   const h = header(professional, layout);
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(report.title)}</title><style>${css(h.b.color, h.b)}</style></head><body>
   ${watermark(layout)}${h.html}
@@ -151,7 +162,22 @@ const toPdf = (html, dest) => {
 };
 
 export const previewHtml = (args) => buildHtml(args);
-export const exportWord = (args) => toWord(buildHtml({ ...args, layout: args.layout && { ...args.layout, watermark: null } }), `${args.report.title} ${args.patientName || ''}`, { patient: args.patientName, tipo: 'Relatórios' });
+/** Modelo em branco, para imprimir e preencher à mão. */
+const LINHA = '<p>_____________________________________________________________________________</p>';
+const campoEmBranco = (s) => {
+  if (s.type === 'data') return '<p>____/____/________</p>';
+  if (s.type === 'marcar') return '<p>☐ Sim &nbsp;&nbsp; ☐ Não</p>';
+  if (s.type === 'escolha') return `<p>${(s.options || []).map((o) => `☐ ${esc(o)}`).join(' &nbsp;&nbsp; ') || LINHA}</p>`;
+  return LINHA.repeat(s.type === 'curto' ? 1 : Math.min(Math.max(+s.lines || 3, 1), 12));
+};
+const modeloArgs = ({ template, professional, timbre }) => ({
+  report: { title: template.name, kind: template.kind === 'documento' ? 'sessao' : template.kind, session_date: '' },
+  patientName: '', professional, timbre, layout: template.meta?.layout?.use !== false ? template.meta?.layout : null,
+  sections: (template.sections || []).map((s) => ({ title: s.title, html: campoEmBranco(s) })),
+});
+export const exportModeloPdf = (a) => toPdf(buildHtml(modeloArgs(a)));
+export const exportModeloWord = (a) => toWord(buildHtml({ ...modeloArgs(a), noWm: true }), a.template.name);
+export const exportWord = (args) => toWord(buildHtml({ ...args, noWm: true }), `${args.report.title} ${args.patientName || ''}`, { patient: args.patientName, tipo: 'Relatórios' });
 export const exportPdf = (args) => toPdf(buildHtml(args), { patient: args.patientName, tipo: 'Relatórios' });
 export const exportDossierWord = (args) => toWord(buildDossier({ ...args, layout: args.layout && { ...args.layout, watermark: null } }), `Prontuario ${args.patient.name}`, { patient: args.patient.name, tipo: 'Relatórios' });
 export const exportDossierPdf = (args) => toPdf(buildDossier(args), { patient: args.patient.name, tipo: 'Relatórios' });

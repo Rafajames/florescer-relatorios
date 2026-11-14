@@ -531,17 +531,8 @@ export async function renderTemplates() {
     $$('.tpl-filtro .tab').forEach((x) => x.classList.toggle('on', x === b));
     $$('.tpl-grupo').forEach((g) => { g.style.display = !b.dataset.f || g.dataset.tipo === b.dataset.f ? '' : 'none'; });
   }));
-  const copiar = (t) => { setTemplateDraft({ name: t.name + ' (meu)', specialty: t.specialty, kind: t.kind, sections: t.sections, meta: {} }); location.hash = '#/modelos/novo'; };
-  // Abrir: o modelo próprio vai para o editor; o da Potira abre para leitura, com o botão de editar uma cópia.
-  $$('[data-open]').forEach((b) => (b.onclick = async () => {
-    const t = byId[b.dataset.open];
-    if (t.professional_id) { location.hash = `#/modelos/editar/${t.id}`; return; }
-    const TIPO_CAMPO = { longo: 'Texto longo', curto: 'Texto curto', data: 'Data', marcar: 'Sim ou não', escolha: 'Lista de opções' };
-    const r = await openModal(t.name, `<p class="muted small">${esc(KINDS[t.kind] || 'Evolução')}${t.specialty ? ' · ' + esc(t.specialty) : ''} · ${t.sections.length} campos. Este modelo é da Potira: para mudar, edite uma cópia sua.</p>
-      <ol class="tpl-campos">${t.sections.map((sec) => `<li><b>${esc(sec.title)}</b><span class="muted small"> · ${TIPO_CAMPO[sec.type] || 'Texto longo'}</span>${sec.hint ? `<br><span class="muted small">${esc(sec.hint)}</span>` : ''}</li>`).join('')}</ol>`,
-    { okText: 'Editar uma cópia', cancelText: 'Fechar', wide: true, onOk: () => true });
-    if (r) copiar(t);
-  }));
+  // Abrir: todo modelo vai para o editor. O da Potira serve de guia: ao salvar, vira cópia do profissional.
+  $$('[data-open]').forEach((b) => (b.onclick = () => { location.hash = `#/modelos/editar/${b.dataset.open}`; }));
   $('#new').onclick = () => { setTemplateDraft(null); location.hash = '#/modelos/novo'; };
   $('#imp').onchange = async (e) => {
     const file = e.target.files[0]; e.target.value = ''; if (!file) return;
