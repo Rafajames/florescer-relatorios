@@ -9,6 +9,7 @@ import { simboloColorido } from './marca.js';
 import { loadFin, chartHtml, atividades, spark, porDia, iso as isoD } from './home-fin.js';
 import { appointmentModal, lembretesModal } from './views-administrativo.js';
 import { metasPanel, escalasPanel } from './views-clinico.js';
+import { formCadastro, ligarCadastro, lerCadastro, painelCadastro } from './cadastro.js';
 import {
   $, $$, esc, fmtDate, fmtDateTime, toast, openModal, confirmBox, busy, statusChip, chip, meta, callout,
   shell, loading, pageHeader, backLink, icon, greeting, longDate, emptyState, todayISO,
@@ -278,22 +279,18 @@ const ART = {
    PACIENTES
    ===================================================================== */
 async function patientModal(existing = {}) {
-  return openModal(existing.id ? 'Editar paciente' : 'Novo paciente', `
-    <label class="field">Nome ou identificação<input name="name" required value="${esc(existing.name || '')}"><small>Pode usar iniciais ou nome social.</small></label>
-    <label class="field">E-mail do paciente<input type="email" name="email" value="${esc(existing.email || '')}"><small>Necessário para o paciente acessar o portal. Confira se está correto.</small></label>
-    <div class="grid2">
-      <label class="field">Telefone<input name="phone" value="${esc(existing.phone || '')}"></label>
-      <label class="field">Data de nascimento<input type="date" name="birth_date" value="${esc(existing.birth_date || '')}"></label>
-    </div>
-    <label class="field">Observações<textarea name="notes" rows="3">${esc(existing.notes || '')}</textarea></label>`,
-  {
-    onOk: (d) => {
-      const g = (n) => d.querySelector(`[name=${n}]`).value.trim();
-      return api.savePatient({
-        ...(existing.id ? { id: existing.id } : {}),
-        name: g('name'), email: g('email') || null, phone: g('phone') || null,
-        birth_date: g('birth_date') || null, notes: g('notes') || null,
-      }).then((r) => { if (!existing.id) celebrar('paciente', 'Primeiro paciente cadastrado. Que floresça!'); return r; });
+  const admin = existing.id ? await api.getPatientAdmin(existing.id).catch(() => null) : null;
+  return openModal(existing.id ? 'Editar cadastro' : 'Novo paciente', formCadastro(existing, admin?.guardian || ''), {
+    wide: true,
+    onOpen: ligarCadastro,
+    onOk: async (d) => {
+      const dados = lerCadastro(d);
+      const r = await api.savePatient({ ...(existing.id ? { id: existing.id } : {}), ...dados });
+      // mantém o campo antigo de responsável (usado em documentos e no Administrativo) igual ao principal
+      const pri = dados.guardians.find((g) => g.financeiro) || dados.guardians[0];
+      if (pri) await api.savePatientAdmin({ patient_id: r.id, guardian: (pri.nome + (pri.parentesco ? ` (${pri.parentesco})` : '')).slice(0, 200) }).catch(() => {});
+      if (!existing.id) celebrar('paciente', 'Primeiro paciente cadastrado. Que floresça!');
+      return r;
     },
   });
 }
@@ -696,6 +693,7 @@ export async function renderPatientDetail(id) {
         <div id="pl-escalas" data-aba="clinico"></div>
         <div id="pl-arquivos" data-aba="arquivos"></div>
         <div data-aba="arquivos">${linksPanel(links)}</div>
+        ${painelCadastro(p)}
         <div class="panel" data-aba="resumo">
           <div class="panel-head"><h3>Consentimento (LGPD)</h3>${active ? chip('Ativo', 'ok') : chip('Pendente', 'warn')}</div>
           ${consents.length ? consents.map((c) => `
@@ -787,6 +785,7 @@ export async function renderPatientDetail(id) {
     await api.revokeShareLink(b.dataset.rlink); toast('Link revogado.'); renderPatientDetail(id);
   }));
   if ($('#edit-mail')) $('#edit-mail').onclick = editIt;
+  if ($('#cad-edit')) $('#cad-edit').onclick = editIt;
   $('#archive').onclick = async () => { await api.savePatient({ id, archived: !p.archived }); toast(p.archived ? 'Paciente reativado.' : 'Paciente arquivado.'); renderPatientDetail(id); };
   $('#del').onclick = async () => {
     if (!(await confirmBox(`Excluir ${p.name} e TODOS os relatórios dele? Esta ação não pode ser desfeita.`, 'Excluir definitivamente'))) return;

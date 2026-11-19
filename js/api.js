@@ -95,7 +95,7 @@ export const mfaSelfReset = () => sb.rpc('mfa_self_reset').then(unwrap);
 /* ---------- pacientes ---------- */
 export const listPatients = async (includeArchived = false) => {
   if (STAFF) return (await staffPatients()).filter((x) => includeArchived || !x.archived).map((x) => ({ ...x, consents: [], reports: [] }));
-  let q = sb.from('patients').select('id,name,email,phone,birth_date,archived,created_at,consents(id,revoked_at),reports(session_date,status,kind)').order('name');
+  let q = sb.from('patients').select('id,name,email,phone,birth_date,archived,created_at,social_name,cpf,whatsapp,cep,street,street_number,complement,district,city,uf,guardians,insurance_card,consents(id,revoked_at),reports(session_date,status,kind)').order('name');
   if (!includeArchived) q = q.eq('archived', false);
   return q.then(unwrap);
 };

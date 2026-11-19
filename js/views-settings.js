@@ -413,8 +413,11 @@ export async function renderSettings(params) {
     });
     $('#csv').onclick = (e) => busy(e.currentTarget, 'Gerando…', async () => {
       const list = await api.listPatients(true);
-      const head = ['Nome', 'E-mail', 'Telefone', 'Nascimento', 'Arquivado', 'Cadastrado em'];
-      const rows = list.map((x) => [x.name, x.email, x.phone, x.birth_date, x.archived ? 'sim' : 'não', x.created_at?.slice(0, 10)]);
+      const head = ['Nome', 'Nome social', 'CPF', 'E-mail', 'Telefone', 'WhatsApp', 'Nascimento', 'CEP', 'Endereço', 'Número', 'Complemento', 'Bairro', 'Cidade', 'UF',
+        'Responsável', 'CPF do responsável', 'Telefone do responsável', 'Carteirinha', 'Arquivado', 'Cadastrado em'];
+      const rows = list.map((x) => { const r = (x.guardians || []).find((g) => g.financeiro) || (x.guardians || [])[0] || {};
+        return [x.name, x.social_name, x.cpf, x.email, x.phone, x.whatsapp, x.birth_date, x.cep, x.street, x.street_number, x.complement, x.district, x.city, x.uf,
+          r.nome, r.cpf, r.telefone, x.insurance_card, x.archived ? 'sim' : 'não', x.created_at?.slice(0, 10)]; });
       download(`florescer-pacientes-${todayISO()}.csv`, '﻿' + [head, ...rows].map((r) => r.map(csvCell).join(';')).join('\n'), 'text/csv');
     });
     try {

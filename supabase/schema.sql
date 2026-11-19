@@ -1528,3 +1528,34 @@ alter table public.share_links add constraint share_links_tipo_dados check (
   ((kind <> 'confirmacao') or (appointment_id is not null))
   and ((kind <> 'orientacao') or (content is not null))
   and ((kind in ('pesquisa', 'anamnese')) or (patient_id is not null)));
+
+-- ===================== v19 (19/11/2026): cadastro completo do paciente =====================
+-- Identificação, contato, endereço, responsáveis e dados administrativos. Tudo opcional (pacientes antigos
+-- continuam válidos). CPF guardado só com números. Responsáveis em lista (até 3), cada um com nome, CPF,
+-- parentesco, telefone, e-mail e se é responsável legal e/ou financeiro (quem recebe recibo e nota fiscal).
+alter table public.patients
+  add column if not exists social_name    text,
+  add column if not exists cpf            text,
+  add column if not exists rg             text,
+  add column if not exists rg_issuer      text,
+  add column if not exists sex            text,
+  add column if not exists whatsapp       text,
+  add column if not exists phone_alt      text,
+  add column if not exists cep            text,
+  add column if not exists street         text,
+  add column if not exists street_number  text,
+  add column if not exists complement     text,
+  add column if not exists district       text,
+  add column if not exists city           text,
+  add column if not exists uf             text,
+  add column if not exists insurance_card text,
+  add column if not exists entry_date     date,
+  add column if not exists origin         text,
+  add column if not exists guardians      jsonb not null default '[]'::jsonb;
+alter table public.patients drop constraint if exists patients_cadastro_ok;
+alter table public.patients add constraint patients_cadastro_ok check (
+  (cpf is null or cpf ~ '^\d{11}$')
+  and (cep is null or cep ~ '^\d{8}$')
+  and (uf is null or uf ~ '^[A-Z]{2}$')
+  and (sex is null or sex in ('feminino', 'masculino', 'outro'))
+  and jsonb_typeof(guardians) = 'array' and jsonb_array_length(guardians) <= 3);

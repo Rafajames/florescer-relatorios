@@ -173,7 +173,7 @@ Situação em 19/11/2026 (tudo testado só no ambiente simulado; conferir no sit
 
 ## 10. Planejado em 19/11/2026 (prioridade do James)
 
-- **Cadastro completo com CPF e endereço** — decisão do James: os campos têm que existir (CPF, endereço, responsável financeiro, carteirinha etc.). Detalhes em [IMPORTACAO-PACIENTES.md](IMPORTACAO-PACIENTES.md), parte 1. Vem antes da importação e da emissão fiscal.
+- **Cadastro completo — feito em 19/11, falta conferir no site real:** criar um paciente com CPF, CEP e dois responsáveis; reabrir, editar e ver o quadro Cadastro; baixar o CSV. Ainda não usam os campos novos: recibo/declarações (CPF e endereço no documento), atualização pela anamnese e cadastro feito pela secretária.
 - **Importação de pacientes por planilha (Excel/CSV)** — para profissionais e clínicas que vêm de outro sistema. Prévia, duplicados, planilha modelo e desfazer. [IMPORTACAO-PACIENTES.md](IMPORTACAO-PACIENTES.md), parte 2.
 - **Assistente de IA com ferramentas** — 6 tipos de pedido (ajuda, consultas, ações, escrita, atalhos, visão do dia); primeira versão sugerida: ajuda, consultas e ações. [ASSISTENTE-IA.md](ASSISTENTE-IA.md).
 - **Página de Ajuda sem IA** — mesmo conteúdo usado pelo Assistente; necessária para quem ainda não configurou chave.

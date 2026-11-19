@@ -6,7 +6,7 @@ Situação: **planejado, ainda não implementado** (19/11/2026). Complementa a s
 
 Profissionais e **clínicas** que chegam de outro sistema já têm seus pacientes numa planilha (Excel/CSV). Sem importação, teriam de cadastrar um por um — barreira de entrada, principalmente para clínicas com centenas de pacientes. Hoje a Potira só **exporta** a lista em CSV (Configurações); não importa.
 
-## Parte 1 — Cadastro completo (vem antes da importação)
+## Parte 1 — Cadastro completo (feito em 19/11/2026, ver ATUALIZACOES)
 
 Hoje `patients` tem só nome, e-mail, telefone, nascimento e observações (responsável e convênio em `patient_admin`). **Faltam CPF e endereço**, necessários para recibo, cobrança, nota fiscal, declarações e convênio. Decisão do James (19/11/2026): esses campos **têm que existir** na plataforma.
 

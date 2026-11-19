@@ -1036,3 +1036,13 @@ textarea.tpl-f-hint{resize:vertical;overflow:hidden;font-family:inherit;line-hei
   .ed-barra{backdrop-filter:none;-webkit-backdrop-filter:none;background:var(--paper)}
   .ed-barra .menu-list,.ag-acoes .menu-list,.inbox .menu-list{left:14px;right:14px}
 }
+
+/* cadastro completo do paciente (v19) */
+.cad-sec{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--petrol,#134B5F);margin:18px 0 6px}
+.modal-body .cad-sec:first-child{margin-top:0}
+.cad-resp{border:1px solid var(--line-2);border-radius:12px;padding:10px 12px;margin:8px 0}
+.cad-resp-topo{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.cad-checks{gap:4px 18px;flex-wrap:wrap}
+.cad-linha{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid var(--line-2)}
+.cad-linha > span:last-child{text-align:right}
+.cad-r{padding:6px 0}

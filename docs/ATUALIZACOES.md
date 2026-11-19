@@ -4,6 +4,16 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 19/11/2026 — Cadastro completo do paciente
+
+- **Banco (v19, já aplicado):** colunas novas em `patients`, todas opcionais: nome social, CPF (só números, validado), RG e órgão emissor, sexo, WhatsApp, telefone alternativo, endereço (CEP, rua, número, complemento, bairro, cidade, UF), carteirinha do convênio, data de entrada, origem e `guardians` (lista de até 3 responsáveis: nome, parentesco, CPF, telefone, e-mail, legal, financeiro).
+- **Formulário** "Novo paciente" / "Editar cadastro" (`js/cadastro.js`) em seções: Identificação, Contato, Endereço, Responsáveis, Administrativo e Observações. Máscaras de CPF, CEP e telefone; CPF do paciente e dos responsáveis validado; CEP preenche rua, bairro, cidade e UF pelo ViaCEP (gratuito; se falhar, preenche à mão).
+- **Responsáveis:** pelo menos um bloco sempre visível, até 3, com marcação de responsável legal e financeiro. O principal (financeiro, ou o primeiro) é copiado para o campo antigo de responsável, então documentos e Administrativo continuam funcionando. Pacientes antigos abrem com o responsável que já existia.
+- **Ficha:** quadro "Cadastro" no Resumo, com os dados preenchidos, responsáveis e aviso quando falta CPF ou endereço (botão "Completar").
+- **Planilha de pacientes (CSV)** em Configurações passou a incluir os campos novos.
+- Conta de testes: responsáveis, cidade e data de entrada preenchidos nos pacientes.
+- Testado no ambiente simulado (formulário em 390 px, máscaras, CPF inválido barrado, adicionar/remover responsável, quadro da ficha). **Não testado no site real** (sem acesso ao Supabase daqui): salvar, reabrir e conferir a ficha.
+
 ## 19/11/2026 — Conta fictícia de testes e planejamento (Assistente, cadastro completo, importação)
 
 - Criada no Supabase a conta **Testes de IA** (terapeuta ocupacional, `testes.ia@example.com`) com 10 pacientes fictícios, 90 sessões, 41 evoluções, cobranças nos 4 modos, metas, despesas e lista de espera. Detalhes e roteiro de testes em [CONTA-TESTES.md](CONTA-TESTES.md). Nenhuma alteração de código ou de estrutura do banco.
