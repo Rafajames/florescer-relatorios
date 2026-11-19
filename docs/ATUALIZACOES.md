@@ -6,6 +6,10 @@ Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do
 
 ## 18/11/2026 — Redesign, entrega 1 de 3: marca, moldura e Início
 
+### Apresentação (página inicial pública) no novo visual
+- Logo oficial no topo (claro/escuro), lótus discreta no fundo do destaque, cartões com sombra e cantos do novo padrão, ícones em petróleo, rosa e turquesa, símbolo oficial em "Por que Potira?" e prévia com item ativo rosa. Textos e seções não mudaram.
+- Testado no ambiente simulado (1366 e 390 px, claro e escuro), sem erros no console nem rolagem lateral. Não testado em aparelhos reais.
+
 ### Redesign, entrega 1 de 3 (revisada pela imagem de referência)
 - Menu: Início, Pacientes, Agenda, Atendimentos, Documentos, Financeiro, Relatórios, Configurações, Ajuda e Suporte. Item ativo em rosa (cor de destaque da marca, com texto que se ajusta à cor), flor de lótus discreta no fundo do menu. Notas Fiscais não aparece (a funcionalidade ainda não existe; ficará dentro de Financeiro).
 - Rotas: Agenda = Administrativo; Atendimentos = lista de relatórios/sessões; Documentos = modelos de documento; Relatórios = relatório por período. Nada mudou nas páginas, só nos nomes do menu. No celular a barra inferior passa a ter Agenda no lugar de Relatórios; o resto fica em "Mais".

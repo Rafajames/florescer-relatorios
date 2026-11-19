@@ -2,6 +2,7 @@
 // As entradas ficam separadas: profissional (#/entrar e #/criar-conta) e paciente (#/paciente).
 import { $, icon, esc } from './ui.js';
 import { settings } from './state.js';
+import { logoPagina, simboloTile } from './marca.js';
 
 const RECURSOS = [
   ['file', 'Registro clínico', 'Anamnese, evolução, relatório por período e documento livre, com modelos por área ou a partir do seu próprio Word.'],
@@ -35,7 +36,7 @@ export function renderLanding() {
   $('#app').innerHTML = `
   <div class="land">
     <header class="land-top"><div class="land-wrap land-nav">
-      <a class="land-marca" href="#/" aria-label="Potira, início"><span class="mark">${icon('flower')}</span><b>Potira</b></a>
+      <a class="land-marca" href="#/" aria-label="Potira, início">${logoPagina()}</a>
       <nav class="land-links" aria-label="Seções">
         <button type="button" data-ir="recursos">Recursos</button>
         <button type="button" data-ir="como">Como funciona</button>
@@ -137,7 +138,7 @@ export function renderLanding() {
       </section>
 
       <section id="nome" class="land-nome">
-        <div class="land-nome-flor">${icon('flower')}</div>
+        <div class="land-nome-flor">${simboloTile()}</div>
         <div>
           <span class="land-selo escuro">Sobre o nome</span>
           <h2>Por que Potira?</h2>
