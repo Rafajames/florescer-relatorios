@@ -8,7 +8,7 @@ import json, os, re
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 src = os.path.join(root, 'assets', 'brand')
 NOMES = {
-    'logoClaro': 'potira-logo-claro.svg', 'logoEscuro': 'potira-logo-escuro.svg', 'logoNegativo': 'potira-logo-negativo.svg',
+    'logoHClaro': 'potira-logo-horizontal-claro.svg', 'logoHEscuro': 'potira-logo-horizontal-escuro.svg', 'logoClaro': 'potira-logo-claro.svg', 'logoEscuro': 'potira-logo-escuro.svg', 'logoNegativo': 'potira-logo-negativo.svg',
     'simboloColorido': 'potira-simbolo-colorido.svg', 'simboloNegativo': 'potira-simbolo-negativo.svg',
     'simboloMono': 'potira-simbolo-monocromatico.svg',
 }
@@ -23,7 +23,7 @@ for chave, arq in NOMES.items():
     s = nova + s[len(raiz):]
     pref = 'pt-' + chave + '-'
     for i in set(re.findall(r'id="([^"]+)"', s)):
-        s = s.replace(f'id="{i}"', f'id="{pref}{i}"').replace(f'url(#{i})', f'url(#{pref}{i})')
+        s = s.replace(f'id="{i}"', f'id="{pref}{i}"').replace(f'url(#{i})', f'url(#{pref}{i})').replace(f'href="#{i}"', f'href="#{pref}{i}"')
     out[chave] = s
 with open(os.path.join(root, 'js', 'marca-svg.js'), 'w', encoding='utf-8') as f:
     f.write('// GERADO por tools/gerar-marca.py a partir de assets/brand/*.svg. Não edite à mão.\n')

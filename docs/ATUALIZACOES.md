@@ -6,6 +6,11 @@ Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do
 
 ## 18/11/2026 — Redesign, entrega 1 de 3: marca, moldura e Início
 
+### Marca Potira refeita pela imagem enviada
+- Os SVGs de `assets/brand/` não eram a marca do James. Refiz em vetor a lótus com a figura no centro e o nome "Potira", a partir da imagem (logo clara, escura, negativa, horizontal, símbolos e ícones). É uma reprodução próxima, não idêntica; o nome foi vetorizado da imagem e pode ter pequenas irregularidades. Se houver os SVGs originais, basta substituí-los.
+- Menu usa a logo empilhada; topo da apresentação usa a horizontal. Favicons e ícones atualizados. Sem "Gestão em Saúde".
+- Testado no ambiente simulado (menu, apresentação, celular, claro e escuro).
+
 ### Apresentação (página inicial pública) no novo visual
 - Logo oficial no topo (claro/escuro), lótus discreta no fundo do destaque, cartões com sombra e cantos do novo padrão, ícones em petróleo, rosa e turquesa, símbolo oficial em "Por que Potira?" e prévia com item ativo rosa. Textos e seções não mudaram.
 - Testado no ambiente simulado (1366 e 390 px, claro e escuro), sem erros no console nem rolagem lateral. Não testado em aparelhos reais.

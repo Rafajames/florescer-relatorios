@@ -7,9 +7,9 @@ import { MARCA_SVG as S } from './marca-svg.js';
 export const logoMenu = () =>
   `<span class="logo-tile" role="img" aria-label="Potira"><span class="mq-l">${S.logoNegativo}</span><span class="mq-d">${S.logoEscuro}</span></span>`;
 
-/** Logo em páginas claras ou escuras (apresentação, entrada, portal): sem fundo no claro; com fundo oficial no escuro. */
+/** Logo horizontal em páginas claras ou escuras (apresentação, entrada, portal): sem fundo no claro; com fundo oficial no escuro. */
 export const logoPagina = () =>
-  `<span class="logo-page" role="img" aria-label="Potira"><span class="mq-l">${S.logoClaro}</span><span class="mq-d">${S.logoEscuro}</span></span>`;
+  `<span class="logo-page" role="img" aria-label="Potira"><span class="mq-l">${S.logoHClaro}</span><span class="mq-d">${S.logoHEscuro}</span></span>`;
 
 /** Só o desenho do símbolo colorido (para colocar dentro de um .mark.potira). */
 export const simboloColorido = () => S.simboloColorido;

@@ -11,7 +11,7 @@
 }
 
 /* logo com fundo próprio (menu): vira um selo arredondado, legível em qualquer cor de menu */
-.logo-tile{display:block;width:100%;max-width:176px;border-radius:14px;overflow:hidden;line-height:0}
+.logo-tile{display:block;width:100%;max-width:132px;border-radius:14px;overflow:hidden;line-height:0}
 /* logo em página: sem fundo no claro; no escuro leva o fundo oficial como selo */
 .logo-page{display:block;width:var(--logo-w,168px);max-width:100%;line-height:0}
 :root[data-theme=dark] .logo-page{border-radius:14px;overflow:hidden}

@@ -1,11 +1,14 @@
 # Identidade vetorial Potira
 
+Redesenhada em vetor a partir da imagem da marca enviada pelo James (lótus com a figura no centro). Gerada por `tools/desenhar-marca.py` (nome em `tools/marca-nome.path`); depois rode `python3 tools/gerar-marca.py`. Se o James enviar os SVGs originais, eles substituem estes.
+
 Marca institucional sem subtítulo. Não acrescentar “Gestão em Saúde”.
 
 ## Logotipos
 - `potira-logo-claro.svg`: fundo claro; símbolo colorido e nome petróleo.
 - `potira-logo-escuro.svg`: fundo escuro; símbolo colorido e nome branco.
 - `potira-logo-negativo.svg`: logo branca sobre fundo petróleo.
+- `potira-logo-horizontal-claro.svg` e `-escuro.svg`: símbolo ao lado do nome, para barras de topo.
 
 ## Símbolos
 - `potira-simbolo-colorido.svg`: símbolo isolado em cores.
