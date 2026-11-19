@@ -10,6 +10,9 @@ Plataforma web de registro clínico, agenda e cobrança para profissionais de sa
 4. `docs/CLINICA.md` — desenho da conta de clínica (não implementado; uma pergunta em espera).
 5. `docs/ESPECIFICACAO-EVOLUCAO-POTIRA.md` — plano técnico para autônomos e clínicas, cadastro completo, emissão fiscal e redesign integral (proposta, ainda não implementada).
 6. `docs/CLAUDE-IMPLEMENTAR-REDESIGN-POTIRA.md` — roteiro aprovado para integrar os SVGs oficiais e implementar o redesign visual.
+7. `docs/ASSISTENTE-IA.md` — Assistente de IA com ferramentas (planejado).
+8. `docs/IMPORTACAO-PACIENTES.md` — cadastro completo (CPF, endereço) e importação por planilha (planejado).
+9. `docs/CONTA-TESTES.md` — conta fictícia "Testes de IA" e roteiro de testes.
 
 ## Como entregar
 

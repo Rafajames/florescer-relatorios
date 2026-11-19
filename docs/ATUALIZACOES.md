@@ -4,6 +4,13 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 19/11/2026 — Conta fictícia de testes e planejamento (Assistente, cadastro completo, importação)
+
+- Criada no Supabase a conta **Testes de IA** (terapeuta ocupacional, `testes.ia@example.com`) com 10 pacientes fictícios, 90 sessões, 41 evoluções, cobranças nos 4 modos, metas, despesas e lista de espera. Detalhes e roteiro de testes em [CONTA-TESTES.md](CONTA-TESTES.md). Nenhuma alteração de código ou de estrutura do banco.
+- Documentado o **Assistente de IA** (6 tipos de pedido, regras, ferramentas): [ASSISTENTE-IA.md](ASSISTENTE-IA.md).
+- Documentados o **cadastro completo** (CPF, endereço, responsável financeiro) e a **importação de pacientes por planilha**: [IMPORTACAO-PACIENTES.md](IMPORTACAO-PACIENTES.md).
+- PENDENCIAS §10 com os três itens. Nada disso foi implementado ainda.
+
 ## 19/11/2026 — Nova apresentação (página inicial pública)
 
 ### Documentação atualizada

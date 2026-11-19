@@ -2,7 +2,7 @@
 
 O que foi proposto e ainda não foi feito, e o que foi feito mas ainda precisa de revisão ou teste. Quem pegar um item deve seguir as [DIRETRIZES.md](DIRETRIZES.md) e, ao concluir, tirar o item daqui e registrar em [ATUALIZACOES.md](ATUALIZACOES.md).
 
-Última revisão desta lista: 12/11/2026.
+Última revisão desta lista: 19/11/2026.
 
 ## 1. Feito, mas ainda não conferido com dados reais
 
@@ -170,3 +170,11 @@ Situação em 19/11/2026 (tudo testado só no ambiente simulado; conferir no sit
 - **Documentos:** ainda mostram a área ("Terapia Ocupacional") e não a profissão; trocar se o James quiser.
 - **Limites conhecidos:** o ícone da aba do navegador segue o tema do sistema, não o botão de tema da Potira; ícone de tela inicial do iPhone exige PNG (não feito; "instalar como aplicativo" está adiado). A logo foi vetorizada de uma imagem de baixa resolução: se aparecerem os arquivos originais, substituem os de `assets/brand/`.
 - Roteiro: `docs/CLAUDE-IMPLEMENTAR-REDESIGN-POTIRA.md`.
+
+## 10. Planejado em 19/11/2026 (prioridade do James)
+
+- **Cadastro completo com CPF e endereço** — decisão do James: os campos têm que existir (CPF, endereço, responsável financeiro, carteirinha etc.). Detalhes em [IMPORTACAO-PACIENTES.md](IMPORTACAO-PACIENTES.md), parte 1. Vem antes da importação e da emissão fiscal.
+- **Importação de pacientes por planilha (Excel/CSV)** — para profissionais e clínicas que vêm de outro sistema. Prévia, duplicados, planilha modelo e desfazer. [IMPORTACAO-PACIENTES.md](IMPORTACAO-PACIENTES.md), parte 2.
+- **Assistente de IA com ferramentas** — 6 tipos de pedido (ajuda, consultas, ações, escrita, atalhos, visão do dia); primeira versão sugerida: ajuda, consultas e ações. [ASSISTENTE-IA.md](ASSISTENTE-IA.md).
+- **Página de Ajuda sem IA** — mesmo conteúdo usado pelo Assistente; necessária para quem ainda não configurou chave.
+- **Conta fictícia de testes** criada para o Assistente: [CONTA-TESTES.md](CONTA-TESTES.md). Ajustar o roteiro de datas depois da semana de 19/11/2026.
