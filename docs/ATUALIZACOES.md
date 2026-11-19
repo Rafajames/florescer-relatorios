@@ -6,6 +6,13 @@ Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do
 
 ## 19/11/2026 — Nova apresentação (página inicial pública)
 
+### Redesign, entrega 2 de 3: telas internas no padrão do Início
+- Abas viram uma barra de pílulas (aba ativa em petróleo), que rola de lado quando não cabe: vale para Agenda, Financeiro, ficha do paciente, editor, Documentos e Configurações.
+- Painéis, tabelas, números (stats), cartões de paciente, de configurações e de registro: brancos, cantos do novo padrão e sombra discreta, sem borda. Títulos na fonte da marca (Bricolage). Campos com cantos mais arredondados.
+- Regras repetidas desses componentes em `app.css` foram juntadas numa só (saíram 8 regras duplicadas).
+- Corrigida a rolagem lateral do Financeiro em tablet (~768 a 1100 px): a tabela de cobranças vira duas colunas nessa faixa.
+- Varredura no ambiente simulado: 17 telas × 4 larguras (390, 768, 1024, 1366), claro; Financeiro também no escuro. Sem rolagem lateral. O Resumo do Financeiro dá erro só no simulado (dados de teste sem data de pagamento); conferir no site real.
+
 ### Logo sem selo e menos repetição
 - Logo e símbolo sem o quadrado de fundo em todo o sistema (topo da apresentação no tema escuro, topo do celular, entrada, Portal do paciente, primeiro acesso e páginas por link). A entrada ganhou a logo nova no lugar da flor antiga.
 - Sem informações repetidas: Configurações, Sobre e Sair ficam só no menu do perfil (canto superior direito: Meu perfil, Sobre a Potira, Sair). Saíram de "Mais", do rodapé do menu lateral e do cabeçalho de Configurações (que também tinha Ajuda). Barra do celular da secretária(o) troca Sair por Ajuda; a do administrador fica com Início e Segurança.

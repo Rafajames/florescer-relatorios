@@ -162,8 +162,8 @@ Avisos do Supabase que continuam abertos. **Tratar antes de abrir a plataforma p
 ## 9. Identidade visual e redesign
 
 - **Entrega 1 de 3 feita em 18/11/2026**, refeita pela imagem de referência (menu novo, Início com indicadores e evolução financeira). Aguardando avaliação do James; Notas Fiscais entra em Financeiro quando existir. Ver [ATUALIZACOES.md](ATUALIZACOES.md). Testada só com dados simulados; conferir no site real com uma conta.
-- **Entrega 2 (pendente):** Pacientes e ficha, relatórios e editor, modelos, Agenda, Financeiro, Configurações, Administração, Ajuda e Sobre, onboarding.
+- **Entrega 2 feita em 19/11/2026** (abas em pílula, cartões com sombra, títulos na fonte da marca, tabela do Financeiro em tablet). Aguardando avaliação do James.
+- **Próximos (sugeridos e aprovados em 19/11):** sino de avisos no topo, Início mais curto no celular, mensagens para conta nova.
 - **Entrega 3 (pendente):** apresentação, entrada/criar conta/recuperar, Portal do paciente, páginas públicas por link; revisão final de temas, 390 px, foco e contraste.
-- **Achado para a entrega 2:** em Financeiro, a fileira de abas passa da largura da tela em ~768 px (rolagem horizontal da página; já existia antes do redesign).
 - **Limites conhecidos:** o ícone da aba do navegador segue o tema do sistema, não o botão de tema da Potira; ícone de tela inicial do iPhone exige PNG (não feito: os SVGs não são rasterizados e "instalar como aplicativo" está adiado). A pasta `local/` (protótipo antigo) ficou fora do redesign, por decisão do James.
 - Roteiro: `docs/CLAUDE-IMPLEMENTAR-REDESIGN-POTIRA.md`.
