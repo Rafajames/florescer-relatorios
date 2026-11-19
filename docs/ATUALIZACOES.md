@@ -4,6 +4,12 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 18/11/2026 — Identidade vetorial e roteiro de redesign
+
+- Adicionados nove arquivos SVG em `assets/brand/`: logotipos claro, escuro e negativo; símbolos colorido, negativo e monocromático; ícones claro, escuro e negativo.
+- Criado `docs/CLAUDE-IMPLEMENTAR-REDESIGN-POTIRA.md`, roteiro para o Claude integrar a identidade e executar o redesign visual completo, preservando a arquitetura e as funcionalidades existentes.
+- Esta entrega adiciona ativos e instruções; a implementação visual no código ainda não foi executada.
+
 ## 18/11/2026 — Especificação de evolução do Potira
 
 - Criada [ESPECIFICACAO-EVOLUCAO-POTIRA.md](ESPECIFICACAO-EVOLUCAO-POTIRA.md), com o plano técnico para atender autônomos e clínicas, ampliar o cadastro de pacientes, planejar a emissão de NFS-e e reformular toda a interface.
