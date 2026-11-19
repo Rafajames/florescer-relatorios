@@ -1559,3 +1559,48 @@ alter table public.patients add constraint patients_cadastro_ok check (
   and (uf is null or uf ~ '^[A-Z]{2}$')
   and (sex is null or sex in ('feminino', 'masculino', 'outro'))
   and jsonb_typeof(guardians) = 'array' and jsonb_array_length(guardians) <= 3);
+
+-- ===================== v20 (19/11/2026): Medicina e Psiquiatria separadas; lote de importação de pacientes =====================
+-- 1) Medicina e Psiquiatria como áreas separadas; modelos do sistema para cada uma (só cria se não existir).
+update public.profiles set specialty = 'Psiquiatria' where specialty = 'Psiquiatria / Medicina';
+update public.templates set specialty = 'Psiquiatria' where specialty = 'Psiquiatria / Medicina';
+insert into public.templates (professional_id, name, specialty, kind, sections)
+select null, v.name, v.spec, v.kind, v.sections::jsonb from (values
+ ('Anamnese médica', 'Medicina', 'anamnese', '[
+  {"title":"Queixa principal e duração","hint":"Motivo da consulta, nas palavras do paciente.","type":"longo"},
+  {"title":"História da doença atual","hint":"Início, evolução, sintomas associados, fatores de melhora e piora.","type":"longo"},
+  {"title":"Antecedentes pessoais","hint":"Doenças, cirurgias, internações, vacinas.","type":"longo"},
+  {"title":"Alergias","hint":"Medicamentos, alimentos e outras.","type":"curto"},
+  {"title":"Medicamentos em uso","hint":"Nome, dose e frequência citados pelo paciente.","type":"longo"},
+  {"title":"Antecedentes familiares","hint":"Condições relevantes na família.","type":"longo"},
+  {"title":"Hábitos de vida","hint":"Tabagismo, álcool, atividade física, sono, alimentação.","type":"longo"},
+  {"title":"Revisão de sistemas","hint":"Queixas por sistema, se houver.","type":"longo"}
+ ]'),
+ ('Evolução médica (SOAP)', 'Medicina', 'sessao', '[
+  {"title":"Subjetivo","hint":"Queixas e relato do paciente desde a última consulta."},
+  {"title":"Objetivo / exame físico","hint":"Sinais vitais, exame físico e exames trazidos."},
+  {"title":"Avaliação / hipótese diagnóstica","hint":"Impressão clínica e CID, se aplicável."},
+  {"title":"Plano e conduta","hint":"Prescrições, exames solicitados, orientações e retorno."}
+ ]'),
+ ('Anamnese psiquiátrica', 'Psiquiatria', 'anamnese', '[
+  {"title":"Queixa principal","hint":"Motivo da consulta, nas palavras do paciente.","type":"longo"},
+  {"title":"História da doença atual","hint":"Início, curso, gatilhos, tratamentos anteriores.","type":"longo"},
+  {"title":"Antecedentes psiquiátricos e clínicos","hint":"Diagnósticos, internações, doenças clínicas.","type":"longo"},
+  {"title":"Medicamentos em uso","hint":"Nome, dose, adesão e efeitos colaterais.","type":"longo"},
+  {"title":"Uso de substâncias","hint":"Álcool, tabaco e outras.","type":"longo"},
+  {"title":"Antecedentes familiares","hint":"Condições psiquiátricas e clínicas na família.","type":"longo"},
+  {"title":"História pessoal e social","hint":"Desenvolvimento, escolaridade, trabalho, relações.","type":"longo"},
+  {"title":"Exame do estado mental","hint":"Aparência, humor, pensamento, sensopercepção, juízo.","type":"longo"}
+ ]'),
+ ('Evolução psiquiátrica', 'Psiquiatria', 'sessao', '[
+  {"title":"Relato desde a última consulta","hint":"Sintomas, sono, humor, eventos importantes."},
+  {"title":"Exame do estado mental","hint":"Achados relevantes da consulta."},
+  {"title":"Medicação e adesão","hint":"Uso, efeitos colaterais, ajustes."},
+  {"title":"Conduta e retorno","hint":"Prescrição, orientações, encaminhamentos e retorno."}
+ ]')
+) as v(name, spec, kind, sections)
+where not exists (select 1 from public.templates t where t.professional_id is null and t.name = v.name);
+
+-- 2) Importação de pacientes por planilha: cada importação tem um lote, para poder desfazer.
+alter table public.patients add column if not exists import_batch uuid;
+create index if not exists patients_import_batch_idx on public.patients (import_batch) where import_batch is not null;

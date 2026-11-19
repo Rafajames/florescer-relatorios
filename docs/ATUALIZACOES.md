@@ -4,6 +4,29 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 19/11/2026 (tarde) — Assistente de IA, importação de pacientes, Ajuda nova e Medicina
+
+### Assistente de IA (`js/agente.js`)
+- Botão do Assistente no canto inferior direito, só para o profissional com IA de texto conectada (some sem chave, para secretária e na tela de Nova sessão). Painel lateral no computador, tela cheia no celular.
+- Funciona com Gemini, Claude (Anthropic), OpenAI e Groq, usando a mesma chave de Configurações, com ferramentas (function calling).
+- Ferramentas: consultar a Ajuda; buscar pacientes; listar sessões; resumo financeiro; pendências (quem deve, sessões sem evolução, rascunhos); ler evoluções para resumir; abrir telas. Ações com **confirmação obrigatória** (card Confirmar/Cancelar): agendar sessão, mudar situação da sessão, cadastrar paciente e lançar gasto. Nota fiscal responde que ainda não existe. Nada é apagado.
+- Privacidade: a IA recebe pacientes como código ([P1]) com iniciais e idade; o nome volta só na tela. Evoluções só vão quando a IA precisa resumir. Conversa só em memória, limpa ao sair da conta.
+- Testado no simulado com IA falsa nos 4 formatos (Claude, Gemini, OpenAI, Groq): dois "Lucas" → pergunta qual; agendar com confirmação; cancelar não altera nada; pendências; dúvida respondida pela Ajuda. **Não testado com IA real nem com o banco real.**
+
+### Importação de pacientes (`js/importar.js`)
+- Pacientes → **Importar planilha**: Excel (.xlsx/.xls, leitor SheetJS carregado do CDN só nessa hora) ou CSV (`;`, `,` ou tab; UTF-8 ou o formato do Excel em português).
+- Liga as colunas sozinho pelos nomes mais comuns (Paciente, Dt. Nascimento, Celular, Nome da mãe, Convênio…); dá para ajustar. Prévia com situação de cada linha.
+- Converte datas (dd/mm/aaaa, aaaa-mm-dd, número do Excel), telefones, CPF (repõe zero à esquerda) e CEP; inválidos viram aviso e ficam em branco. Responsável entra como legal e financeiro; convênio vai para o Administrativo.
+- Repetidos não entram: mesmo CPF, ou mesmo nome + nascimento, de quem já está cadastrado ou repetido na planilha.
+- Grava em blocos de 200 com um lote (`patients.import_batch`, v20); **Desfazer a última importação** apaga o lote. Planilha modelo para baixar. Arquivo lido só no navegador.
+- Testado no simulado com CSV (Windows-1252, cabeçalhos variados, repetidos, CPF/data/e-mail inválidos) e Excel; desfazer conferido. **Não testado com o banco real.**
+
+### Ajuda
+- Central de Ajuda com tópicos novos: cadastro completo e responsáveis, importação, agenda, financeiro e cobranças, chaves de IA (trocar, mais de uma, remover) e Assistente. É a mesma base que o Assistente consulta e funciona sem IA.
+
+### Medicina
+- Áreas "Medicina" e "Psiquiatria" separadas (antes "Psiquiatria / Medicina"; quem tinha o valor antigo passou para Psiquiatria). Modelos do sistema novos: Anamnese médica, Evolução médica (SOAP), Anamnese psiquiátrica e Evolução psiquiátrica (v20). Menu do perfil: Médica/Médico e Médica/Médico psiquiatra.
+
 ## 19/11/2026 — Cadastro completo do paciente
 
 - **Banco (v19, já aplicado):** colunas novas em `patients`, todas opcionais: nome social, CPF (só números, validado), RG e órgão emissor, sexo, WhatsApp, telefone alternativo, endereço (CEP, rua, número, complemento, bairro, cidade, UF), carteirinha do convênio, data de entrada, origem e `guardians` (lista de até 3 responsáveis: nome, parentesco, CPF, telefone, e-mail, legal, financeiro).

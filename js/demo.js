@@ -32,7 +32,7 @@ const BY = {
     tr: 'Nutricionista: Como foram as refeições? Paciente: Consegui tomar café da manhã quase todos os dias. (texto fictício)', notes: 'Trouxe diário alimentar. (anotação fictícia)', draft: 'Registre o relato alimentar, a conduta e as orientações.' },
 };
 BY['Terapia Ocupacional'] = { ...DEFAULT, anam: ['Dificuldade nas atividades de vida diária após lesão na mão.', 'Sem outras doenças informadas.', 'Destro; trabalha com digitação.', 'Voltar a escrever e usar o teclado sem dor.', 'Apoio da família em casa.'], ev: ['Relata menos dor ao escrever.', 'Treino de preensão e coordenação fina.', 'Boa adesão às atividades.', 'Progresso na força de pinça.', 'Atividades funcionais em casa.'] };
-BY['Psiquiatria / Medicina'] = { ...DEFAULT, anam: ['Insônia e irritabilidade há dois meses.', 'Sem comorbidades; nega uso de medicações.', 'Trabalho com muita pressão; consumo moderado de café.', 'Melhorar o sono e o humor.', 'Antecedentes familiares: não informados.'], ev: ['Sono ainda irregular; humor melhor.', 'Exame sem alterações relevantes.', 'Orientações de higiene do sono.', 'Boa evolução.', 'Retorno em 30 dias.'] };
+BY['Psiquiatria'] = BY['Medicina'] = BY['Psiquiatria / Medicina'] = { ...DEFAULT, anam: ['Insônia e irritabilidade há dois meses.', 'Sem comorbidades; nega uso de medicações.', 'Trabalho com muita pressão; consumo moderado de café.', 'Melhorar o sono e o humor.', 'Antecedentes familiares: não informados.'], ev: ['Sono ainda irregular; humor melhor.', 'Exame sem alterações relevantes.', 'Orientações de higiene do sono.', 'Boa evolução.', 'Retorno em 30 dias.'] };
 
 const pick = (spec) => ({ ...DEFAULT, ...(BY[spec] || {}) });
 const fill = (tpl, texts, fallbackTitles) => {

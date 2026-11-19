@@ -2,7 +2,7 @@ export const state = { user: null, profile: null };
 
 export const SPECIALTIES = [
   'Psicologia', 'Fonoaudiologia', 'Fisioterapia', 'Nutrição',
-  'Terapia Ocupacional', 'Psiquiatria / Medicina', 'Enfermagem', 'Serviço Social', 'Outra'
+  'Terapia Ocupacional', 'Medicina', 'Psiquiatria', 'Enfermagem', 'Serviço Social', 'Outra'
 ];
 
 export let DEFAULT_CONSENT =

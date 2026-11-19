@@ -9,6 +9,7 @@ import * as lists from './views-lists.js';
 import * as settings from './views-settings.js';
 import * as portal from './views-portal.js';
 import { renderHelp, renderAbout } from './views-help.js';
+import { atualizarAssistente, encerrarAssistente } from './agente.js';
 import { renderOnboarding } from './views-onboarding.js';
 import { applySettings } from './state.js';
 import { PROVIDERS } from './ai.js';
@@ -119,6 +120,7 @@ async function doRoute() {
     const tela = TELAS[path.split('/')[1]];
     if (tela) document.title = `${tela} · ${document.title}`; // document.title já traz a marca (applyBrand)
     await hit[1](hit[0], new URLSearchParams(query));
+    try { atualizarAssistente(); } catch { /* o Assistente nunca pode travar a tela */ }
     // número de anamneses recebidas no menu: um detalhe, nunca pode travar a tela
     if (!isPatient && !isStaff && !state.profile.is_admin) { try { home.atualizarSelo?.(); } catch { /* ignora */ } }
   } catch (err) {
@@ -144,7 +146,7 @@ window.addEventListener('beforeunload', (e) => { if (window.__dirty) { e.prevent
 if (api.configured) {
   api.sb.auth.onAuthStateChange((event, sess) => {
     // não chamar o Supabase dentro do callback: agenda para depois
-    if (event === 'SIGNED_OUT') setTimeout(() => { api.setStaff(null); state.profile = null; state.user = null; route(); }, 0);
+    if (event === 'SIGNED_OUT') setTimeout(() => { encerrarAssistente(); api.setStaff(null); state.profile = null; state.user = null; route(); }, 0);
     else if (event === 'SIGNED_IN' && (!state.user || state.user.id !== sess?.user?.id)) setTimeout(() => { state.profile = null; route(); }, 0);
     else if (event === 'PASSWORD_RECOVERY') setTimeout(() => promptNewPassword(), 0);
   });

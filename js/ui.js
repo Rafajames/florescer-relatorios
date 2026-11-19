@@ -169,7 +169,7 @@ const TAB_ADMIN = [['admin', '#/admin', 'home', 'Início'], ['config', '#/config
 const PROFISSAO = {
   'Psicologia': ['Psicóloga', 'Psicólogo'], 'Fonoaudiologia': ['Fonoaudióloga', 'Fonoaudiólogo'], 'Fisioterapia': ['Fisioterapeuta', 'Fisioterapeuta'],
   'Nutrição': ['Nutricionista', 'Nutricionista'], 'Terapia Ocupacional': ['Terapeuta ocupacional', 'Terapeuta ocupacional'],
-  'Psiquiatria / Medicina': ['Médica', 'Médico'], 'Enfermagem': ['Enfermeira', 'Enfermeiro'], 'Serviço Social': ['Assistente social', 'Assistente social'],
+  'Medicina': ['Médica', 'Médico'], 'Psiquiatria': ['Médica psiquiatra', 'Médico psiquiatra'], 'Psiquiatria / Medicina': ['Médica', 'Médico'], 'Enfermagem': ['Enfermeira', 'Enfermeiro'], 'Serviço Social': ['Assistente social', 'Assistente social'],
 };
 export function profissao(p) {
   if (!p || !p.specialty || p.specialty === 'Outra') return (p && p.credentials && p.credentials.category) || 'Profissional';

@@ -107,6 +107,26 @@ export const savePatient = (p) => {
     : sb.from('patients').insert(rest).select().single().then(unwrap);
 };
 export const deletePatient = (id) => sb.from('patients').delete().eq('id', id).then(unwrap);
+/** Importação por planilha: grava em blocos de 200 com o mesmo lote (para desfazer). `admins[i]` vai para patient_admin do paciente i. */
+export async function importPatients(rows, admins = [], progresso) {
+  const batch = crypto.randomUUID();
+  let n = 0;
+  for (let i = 0; i < rows.length; i += 200) {
+    const bloco = rows.slice(i, i + 200).map((r) => ({ ...r, import_batch: batch }));
+    const salvos = await sb.from('patients').insert(bloco).select('id').then(unwrap);
+    const adm = salvos.map((s, j) => ({ ...(admins[i + j] || {}), patient_id: s.id })).filter((a) => Object.keys(a).length > 1);
+    if (adm.length) await sb.from('patient_admin').upsert(adm).then(unwrap);
+    n += salvos.length;
+    if (progresso) progresso(n);
+  }
+  return { batch, n };
+}
+export const countImportBatch = async (batch) => {
+  const { count, error } = await sb.from('patients').select('id', { count: 'exact', head: true }).eq('import_batch', batch);
+  if (error) throw error;
+  return count || 0;
+};
+export const undoImportBatch = (batch) => sb.from('patients').delete().eq('import_batch', batch).then(unwrap);
 
 /* ---------- consentimentos ---------- */
 export const listConsents = (patientId) =>

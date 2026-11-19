@@ -1,6 +1,6 @@
 # Importação de pacientes e cadastro completo (planejado)
 
-Situação: **planejado, ainda não implementado** (19/11/2026). Complementa a seção 4 de [ESPECIFICACAO-EVOLUCAO-POTIRA.md](ESPECIFICACAO-EVOLUCAO-POTIRA.md).
+Situação: **implementado em 19/11/2026** (cadastro completo e importação com prévia, repetidos, planilha modelo e desfazer). Falta: atualizar repetidos, coluna de profissional (clínica) e mapeamento pela IA. Complementa a seção 4 de [ESPECIFICACAO-EVOLUCAO-POTIRA.md](ESPECIFICACAO-EVOLUCAO-POTIRA.md).
 
 ## Por que é prioridade
 

@@ -171,10 +171,15 @@ Situação em 19/11/2026 (tudo testado só no ambiente simulado; conferir no sit
 - **Limites conhecidos:** o ícone da aba do navegador segue o tema do sistema, não o botão de tema da Potira; ícone de tela inicial do iPhone exige PNG (não feito; "instalar como aplicativo" está adiado). A logo foi vetorizada de uma imagem de baixa resolução: se aparecerem os arquivos originais, substituem os de `assets/brand/`.
 - Roteiro: `docs/CLAUDE-IMPLEMENTAR-REDESIGN-POTIRA.md`.
 
-## 10. Planejado em 19/11/2026 (prioridade do James)
+## 10. Entregue em 19/11/2026 — conferir no site real
 
-- **Cadastro completo — feito em 19/11, falta conferir no site real:** criar um paciente com CPF, CEP e dois responsáveis; reabrir, editar e ver o quadro Cadastro; baixar o CSV. Ainda não usam os campos novos: recibo/declarações (CPF e endereço no documento), atualização pela anamnese e cadastro feito pela secretária.
-- **Importação de pacientes por planilha (Excel/CSV)** — para profissionais e clínicas que vêm de outro sistema. Prévia, duplicados, planilha modelo e desfazer. [IMPORTACAO-PACIENTES.md](IMPORTACAO-PACIENTES.md), parte 2.
-- **Assistente de IA com ferramentas** — 6 tipos de pedido (ajuda, consultas, ações, escrita, atalhos, visão do dia); primeira versão sugerida: ajuda, consultas e ações. [ASSISTENTE-IA.md](ASSISTENTE-IA.md).
-- **Página de Ajuda sem IA** — mesmo conteúdo usado pelo Assistente; necessária para quem ainda não configurou chave.
-- **Conta fictícia de testes** criada para o Assistente: [CONTA-TESTES.md](CONTA-TESTES.md). Ajustar o roteiro de datas depois da semana de 19/11/2026.
+- **Cadastro completo:** criar um paciente com CPF, CEP e dois responsáveis; reabrir, editar e ver o quadro Cadastro; baixar o CSV.
+- **Importação:** importar uma planilha real (Excel e CSV) na conta de testes, conferir os pacientes e testar "Desfazer a última importação". Conferir se o leitor de Excel carrega do CDN (cdn.sheetjs.com).
+- **Assistente:** percorrer o roteiro de [CONTA-TESTES.md](CONTA-TESTES.md) com Gemini e com Claude (ou OpenAI). Ver se o modelo configurado aceita ferramentas (no Groq, alguns modelos não aceitam).
+- **Medicina:** criar conta com área Medicina e ver os modelos médicos.
+
+### Ainda não feito (próximos passos)
+- Assistente: gerar recibo/cobrança pelo chat, remarcar, horário livre, visão do dia ("Como está meu dia?"), rascunhar evolução e mensagens.
+- Usar CPF/endereço/responsável em recibo, declarações e na atualização pela anamnese; cadastro completo também para a secretária.
+- Importação: atualizar pacientes repetidos (hoje só pula); coluna "profissional responsável" quando existir a conta de clínica; sugestão de colunas pela IA.
+- Nota fiscal (depende de escolher o provedor e os custos).

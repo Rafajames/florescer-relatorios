@@ -1,6 +1,6 @@
 # Assistente de IA da Potira (planejado)
 
-Situação: **planejado, ainda não implementado** (19/11/2026). Ao implementar, seguir [DIRETRIZES.md](DIRETRIZES.md) e o fluxo do James: estruturar → perguntar prioridade → programar → testar.
+Situação: **primeira versão implementada em 19/11/2026** (ajuda, consultas e ações; ver ATUALIZACOES). Visão do dia, recibo/cobrança pelo chat e escrita ainda não. Ao implementar, seguir [DIRETRIZES.md](DIRETRIZES.md) e o fluxo do James: estruturar → perguntar prioridade → programar → testar.
 
 ## Objetivo
 

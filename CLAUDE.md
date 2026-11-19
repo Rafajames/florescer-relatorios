@@ -10,8 +10,8 @@ Plataforma web de registro clínico, agenda e cobrança para profissionais de sa
 4. `docs/CLINICA.md` — desenho da conta de clínica (não implementado; uma pergunta em espera).
 5. `docs/ESPECIFICACAO-EVOLUCAO-POTIRA.md` — plano técnico para autônomos e clínicas, cadastro completo, emissão fiscal e redesign integral (proposta, ainda não implementada).
 6. `docs/CLAUDE-IMPLEMENTAR-REDESIGN-POTIRA.md` — roteiro aprovado para integrar os SVGs oficiais e implementar o redesign visual.
-7. `docs/ASSISTENTE-IA.md` — Assistente de IA com ferramentas (planejado).
-8. `docs/IMPORTACAO-PACIENTES.md` — cadastro completo (CPF, endereço) e importação por planilha (planejado).
+7. `docs/ASSISTENTE-IA.md` — Assistente de IA com ferramentas (primeira versão feita).
+8. `docs/IMPORTACAO-PACIENTES.md` — cadastro completo (CPF, endereço) e importação por planilha (feitos).
 9. `docs/CONTA-TESTES.md` — conta fictícia "Testes de IA" e roteiro de testes.
 
 ## Como entregar
@@ -26,7 +26,7 @@ Plataforma web de registro clínico, agenda e cobrança para profissionais de sa
 ## Mapa do código
 
 - `js/main.js` rotas · `js/ui.js` moldura, janelas (`openModal`, `confirmBox`), avisos · `js/api.js` todo acesso ao banco
-- `js/views-home.js` Início, Pacientes e ficha do paciente · `js/home-fin.js` dados e gráficos do Início · `js/views-session.js` nova sessão · `js/views-report.js` editor do relatório
+- `js/views-home.js` Início, Pacientes e ficha do paciente · `js/cadastro.js` formulário do cadastro completo · `js/importar.js` importação por planilha · `js/agente.js` Assistente de IA (ferramentas e painel) · `js/home-fin.js` dados e gráficos do Início · `js/views-session.js` nova sessão · `js/views-report.js` editor do relatório
 - `js/views-administrativo.js` agenda, frequência, declarações, convênios · `js/views-financeiro.js` cobranças, valores, despesas, documentos, dados de pagamento
 - `js/cobranca.js` PIX, WhatsApp, textos e regras de cobrança · `js/cobrar.js` janelas de cobrar, registrar pagamento e agendar cobrança
 - `js/pasta.js` pasta dos documentos no computador do profissional

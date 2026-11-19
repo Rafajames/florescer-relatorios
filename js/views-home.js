@@ -302,7 +302,7 @@ export async function renderPatients() {
   let all = await api.listPatients(false);
   let showArchived = false;
 
-  main.innerHTML = pageHeader('Pacientes', `${all.filter((x) => !x.archived).length} em atendimento`, `<button class="btn quiet" id="demo">${all.some(isDemo) ? 'Remover paciente de teste' : 'Criar paciente de teste'}</button><button class="btn quiet" id="an-novo">${icon('file')}Enviar anamnese</button><button class="btn" id="add">${icon('plus')}Novo paciente</button>`) + `<div id="inbox"></div>
+  main.innerHTML = pageHeader('Pacientes', `${all.filter((x) => !x.archived).length} em atendimento`, `<button class="btn quiet" id="demo">${all.some(isDemo) ? 'Remover paciente de teste' : 'Criar paciente de teste'}</button><button class="btn quiet" id="an-novo">${icon('file')}Enviar anamnese</button><button class="btn quiet" id="importar">${icon('download')}Importar planilha</button><button class="btn" id="add">${icon('plus')}Novo paciente</button>`) + `<div id="inbox"></div>
     <div class="row lista-busca">
       <input id="q" type="search" placeholder="Buscar por nome ou e-mail" style="max-width:340px;margin:0" aria-label="Buscar paciente">
       <div class="pilulas" role="group" aria-label="Filtro">${[['', 'Todos'], ['semconsent', 'Sem consentimento'], ['rascunho', 'Com rascunhos']].map(([v, t], i) => `<button type="button" class="pilula${i ? '' : ' on'}" data-f="${v}">${t}</button>`).join('')}</div>
@@ -345,6 +345,7 @@ export async function renderPatients() {
   const addP = async () => { const p = await patientModal(); if (p && p.id) goto(`#/pacientes/${p.id}`); };
   $('#add').onclick = addP;
   $('#an-novo').onclick = () => enviarModeloParaPreencher(null);
+  $('#importar').onclick = () => import('./importar.js').then((m) => m.abrirImportacao(() => renderPatients()));
   inboxPanel();
   $('#demo').onclick = async (e) => {
     if (all.some(isDemo)) {
