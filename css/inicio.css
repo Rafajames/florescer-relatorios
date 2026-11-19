@@ -1,9 +1,10 @@
 /* Potira — Início do profissional (renderDashboard em js/views-home.js).
    Cartões de leitura rápida com dados que já existem; nenhuma métrica nova.
-   Celular primeiro: uma coluna, com "Sessões de hoje", "Agenda" e "O que precisa da sua atenção" no topo. */
+   Celular primeiro: uma coluna (indicadores, sessões de hoje, compromissos, atenção, financeiro...).
+   Computador: grade por áreas nomeadas (a-fin, a-quick, a-hoje, a-prox, ...). */
 
 /* ---------- grade ---------- */
-.dash{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s-3);align-items:start}
+.dash{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s-3);align-items:stretch}
 .dcard{position:relative;min-width:0;overflow:hidden;padding:18px;border-radius:var(--r-card);background:var(--paper)}
 .dcard>h3,.dcard .h{display:flex;gap:6px;align-items:baseline;margin:0;padding-right:64px;font:600 14.5px var(--sans)}
 .dcard>h3 small{font-weight:500;font-size:12px;color:var(--ink-3)}
@@ -45,7 +46,7 @@
 .quick{display:flex;flex-direction:column;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
 .quick select{width:100%;min-width:0;margin:0}
 .quick .btn{display:inline-flex;flex-direction:row;justify-content:center}
-.quick .btn.bloom{background:var(--bloom);border-color:var(--bloom)}.quick .btn.bloom:hover{background:var(--bloom-2)}
+.quick .btn.bloom{background:var(--bloom);border-color:var(--bloom);color:var(--on-bloom,#fff)}.quick .btn.bloom:hover{background:var(--bloom-2)}
 .quick .quick-vazio{align-self:center}
 
 /* ---------- agenda do dia ---------- */
@@ -88,13 +89,60 @@
 .wk b{font-size:13px}
 .wk span{font-size:11.5px;color:var(--ink-2);white-space:nowrap}
 
+/* ---------- indicadores ---------- */
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-3);margin-bottom:var(--s-3)}
+.kpi{display:flex;align-items:center;gap:12px;min-width:0;padding:14px;border-radius:var(--r-card);background:var(--paper);box-shadow:var(--shadow-1);color:inherit;text-decoration:none}
+.kpi-ic{display:grid;place-items:center;flex:0 0 auto;width:42px;height:42px;border-radius:14px}
+.kpi-ic svg{width:21px;height:21px}
+.k-pet{background:var(--petrol-tint);color:var(--petrol)}.k-blo{background:var(--bloom-tint);color:var(--bloom)}
+.k-ok{background:var(--ok-tint);color:var(--ok)}.k-tur{background:color-mix(in srgb,var(--turq) 14%,var(--paper));color:var(--turq)}
+.kpi-tx{display:grid;min-width:0;line-height:1.25}
+.kpi-tx b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 21px/1.15 var(--display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi-tx span{font-size:12.5px;font-weight:600;color:var(--ink)}
+.kpi-tx small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;color:var(--ink-3)}
+
+/* ---------- evolução financeira ---------- */
+.fin-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.fin-head h3{padding-right:0}
+.seg{display:inline-flex;padding:3px;border-radius:99px;background:var(--soft)}
+.seg button{appearance:none;min-height:32px;padding:0 12px;border:0;border-radius:99px;background:transparent;font:600 12.5px var(--sans);color:var(--ink-2);cursor:pointer}
+.seg button.on{background:var(--paper);color:var(--ink);box-shadow:var(--shadow-1)}
+.fin-tot{margin-top:var(--s-4)}
+.fin-chart{display:flex;align-items:stretch;gap:3px;height:150px;margin-top:var(--s-4)}
+.fc{position:relative;flex:1;display:flex;align-items:flex-end;justify-content:center;min-width:0;padding-bottom:20px}
+.fc i{display:block;width:70%;max-width:26px;min-height:0;border-radius:8px 8px 3px 3px;background:linear-gradient(var(--turq),color-mix(in srgb,var(--turq) 55%,var(--paper)))}
+.fc span{position:absolute;bottom:0;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:10.5px;color:var(--ink-3)}
+
+/* ---------- ações rápidas ---------- */
+.dcard.quick-card{align-self:start;background:var(--bloom);color:var(--on-bloom,#fff)}
+.dcard.quick-card>h3{padding-right:0}
+.qa{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:var(--s-4)}
+.qa a{display:flex;align-items:center;gap:10px;min-height:var(--tap);padding:0 12px;border-radius:var(--r-md);background:color-mix(in srgb,var(--on-bloom,#fff) 18%,transparent);color:inherit;font-size:13.5px;font-weight:600;text-decoration:none}
+.qa a:hover{background:color-mix(in srgb,var(--on-bloom,#fff) 28%,transparent)}
+.qa svg{flex:0 0 auto;width:18px;height:18px}
+
+/* ---------- últimas atividades ---------- */
+.acts{display:grid;margin-top:var(--s-2)}
+.acts a{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 0;border-bottom:1px solid var(--line);color:inherit;text-decoration:none}
+.acts a:last-child{border-bottom:0}
+.acts .ai{display:grid;place-items:center;flex:0 0 auto;width:34px;height:34px;border-radius:50%;background:var(--soft);color:var(--petrol)}
+.acts .ai svg{width:16px;height:16px}
+.acts .t{flex:1;min-width:0}
+.acts .t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:600}
+.acts .t span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--ink-2)}
+.acts time{flex:0 0 auto;font-size:12px;color:var(--ink-3)}
+
 /* ---------- computador e tablet ---------- */
 @media (min-width:761px){
   .dash{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-4)}
   .dcard{padding:22px}
   .dcard>h3,.dcard .h{padding-right:90px}
   .dcard .ill{top:12px;right:14px;transform:none}
-  .dcard.wide,.dcard.tall{grid-column:span 2}
+  .dash{grid-template-areas:"fin fin" "hoje hoje" "quick prox" "att ativ" "rel sete" "todo todo"}
+  .a-fin{grid-area:fin}.a-hoje{grid-area:hoje}.a-quick{grid-area:quick}.a-prox{grid-area:prox}.a-att{grid-area:att}.a-ativ{grid-area:ativ}.a-rel{grid-area:rel}.a-sete{grid-area:sete}.a-todo{grid-area:todo}
+  .kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--s-4);margin-bottom:var(--s-4)}
+  .kpi{padding:18px}
+  .fin-chart{height:190px}
   .bignum{font-size:46px}
   .hero-row .side{padding-left:18px;border-left:1px solid var(--line)}
   .quick{flex-direction:row;flex-wrap:wrap}
@@ -103,6 +151,5 @@
   .wk .bar{height:150px}
 }
 @media (min-width:1181px){
-  .dash{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 380px}
-  .dcard.tall{grid-column:auto;grid-row:span 2}
+  .dash{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 380px;grid-template-areas:"fin fin quick" "hoje hoje prox" "att ativ prox" "rel sete todo"}
 }

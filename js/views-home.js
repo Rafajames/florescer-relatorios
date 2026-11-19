@@ -5,6 +5,7 @@ import { createDemo, removeDemo, isDemo } from './demo.js';
 import { exportDossierWord, exportDossierPdf, exportAuditoriaPdf, KIND_LABEL, brl, ATT_STATUS } from './export.js';
 import { newToken, sha256, waLink, cobravel, cobrancaVencida } from './cobranca.js';
 import { abrirCobranca, registrarPagamento, agendarCobranca } from './cobrar.js';
+import { loadFin, chartHtml, atividades } from './home-fin.js';
 import { appointmentModal, lembretesModal } from './views-administrativo.js';
 import { metasPanel, escalasPanel } from './views-clinico.js';
 import {
@@ -106,6 +107,19 @@ export async function renderDashboard() {
     const comAberto = new Set(abertas.filter((a) => cobravel(a, p)).map((a) => a.patient_id));
     cobHoje = admins.filter((a) => comAberto.has(a.patient_id) && cobrancaVencida(a, todayISO())).length;
   } catch { cobHoje = 0; }
+  const fin = await loadFin(p, cobravel);
+  const mesAtual = today.slice(0, 7);
+  const recebidoMes = fin ? fin.entradas.filter((e) => e.d.startsWith(mesAtual)).reduce((t, e) => t + e.v, 0) : 0;
+  const proximos = valid.filter((a) => a.status === 'agendado' && a.date > today).slice(0, 4);
+  const acts = atividades(reports, fin ? fin.entradas : []);
+  const when = (q) => (q === today ? 'Hoje' : fmtDate(q));
+  const kpi = (href, ic, cls, val, lbl, sub) => `<a class="kpi" href="${href}"><span class="kpi-ic ${cls}">${icon(ic)}</span><span class="kpi-tx"><b>${val}</b><span>${lbl}</span><small>${sub}</small></span></a>`;
+  const kpisHtml = `<div class="kpis" aria-label="Resumo">
+    ${kpi('#/administrativo', 'calendar', 'k-pet', todayAps.length, 'Sessões hoje', `${doneAps} ${doneAps === 1 ? 'realizada' : 'realizadas'}`)}
+    ${kpi('#/pacientes', 'users', 'k-blo', patients.length, 'Pacientes', patients.length === 1 ? 'em atendimento' : 'em atendimento')}
+    ${fin ? kpi('#/financeiro?aba=resumo', 'wallet', 'k-ok', brl(recebidoMes), 'Recebido no mês', 'pela data do pagamento') : ''}
+    ${fin ? kpi('#/financeiro?aba=cobrancas', 'clock', 'k-tur', brl(fin.aberto), 'A receber', `${fin.nAberto} ${fin.nAberto === 1 ? 'sessão em aberto' : 'sessões em aberto'}`) : kpi('#/relatorios?status=rascunho', 'file', 'k-tur', drafts.length, 'Rascunhos', 'para revisar')}
+  </div>`;
   // Novidades vindas dos pacientes; "visto" fica guardado neste navegador.
   let nov = []; try { nov = await api.listNovidades(); } catch { nov = []; }
   // "visto" fica no perfil (vale no computador e no celular); o navegador guarda uma cópia para o caso de falhar
@@ -117,8 +131,9 @@ export async function renderDashboard() {
     ${novItem(novas[0], 0)}
     ${novas.length > 1 ? `<button type="button" class="link small" id="nov-mais">Ver as outras ${novas.length - 1}</button>` : ''}</section>` : '';
   main.innerHTML = pageHeader(`${greeting()}, ${esc(first)}`, esc(longDate())) + (cobHoje ? callout(`<p><b>${cobHoje} cobrança${cobHoje === 1 ? '' : 's'} agendada${cobHoje === 1 ? '' : 's'} para hoje.</b> A mensagem e o PIX já estão prontos; é só conferir e enviar.</p>`, '', '<a class="btn sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a>') : '') + novHtml + niverHtml + `<div id="inbox"></div>
+  ${kpisHtml}
   <div class="dash">
-    <section class="dcard wide" aria-label="Sessões de hoje">
+    <section class="dcard a-hoje" aria-label="Sessões de hoje">
       <h3>Sessões de hoje</h3><span class="ill">${ART.clip}</span>
       <div class="hero-row">
         <div class="bignum">${todayAps.length}<small>${todayAps.length === 1 ? 'sessão' : 'sessões'}</small></div>
@@ -143,27 +158,48 @@ export async function renderDashboard() {
       </div>
     </section>
 
-    <section class="dcard tall" aria-label="Agenda">
-      <h3>Agenda <small>• ${esc(new Date().toLocaleDateString('pt-BR', { month: 'long' }))}</small></h3><span class="ill">${ART.cal}</span>
-      <div class="midnum dash-gap">${todayAps.length}<small>hoje</small></div>
-      <div class="muted small dash-gap-s">${doneAps} de ${todayAps.length} ${todayAps.length === 1 ? 'feita' : 'feitas'}</div>
+    <section class="dcard a-prox" aria-label="Próximos compromissos">
+      <h3>Próximos compromissos <small>• ${esc(new Date().toLocaleDateString('pt-BR', { month: 'long' }))}</small></h3><span class="ill">${ART.cal}</span>
       <div class="daypills">${dayPill(today, true)}${days.map((d) => dayPill(d, false)).join('')}</div>
       <div class="agl">${todayAps.length ? todayAps.map((a) => `<div class="agi hoje-it">
           <span class="ck ${a.status === 'realizado' ? 'ok' : a.status.startsWith('falta') ? 'no' : ''}"></span><span class="tm">${hh(a.time) || '—'}</span>
           <a class="nm" href="#/pacientes/${a.patient_id}"><b>${esc(a.patients?.name || 'Paciente')}</b><span>${esc(ATT_STATUS[a.status] || '')}${a.duration_min ? ` · ${a.duration_min} min` : ''}${a.confirm_status === 'confirmado' ? ' · confirmou' : a.confirm_status === 'remarcar' ? ' · pediu para remarcar' : ''}</span></a>
           <span class="hoje-act">${a.status === 'agendado' ? `<a class="btn sm" href="#/nova?paciente=${a.patient_id}&sessao=${a.id}">Iniciar</a><button class="btn quiet sm" data-hfalta="${a.id}">Falta</button>`
             : a.status === 'realizado' ? `<a class="btn quiet sm" href="#/nova?paciente=${a.patient_id}&sessao=${a.id}">Evolução</a>` : ''}</span></div>`).join('')
-        : '<p class="empty-mini">Nenhuma sessão agendada para hoje.</p>'}</div>
+        : '<p class="empty-mini">Nenhuma sessão agendada para hoje.</p>'}
+        ${proximos.map((a) => `<a class="agi" href="#/administrativo"><span class="ck"></span><span class="tm">${hh(a.time) || '—'}</span><span class="nm"><b>${esc(a.patients?.name || 'Paciente')}</b><span>${fmtDate(a.date)}${a.duration_min ? ` · ${a.duration_min} min` : ''}</span></span></a>`).join('')}</div>
       <div class="foot">${amanhaAps.length ? `<button class="btn quiet" id="h-lembretes">Lembretes de amanhã (${amanhaAps.length})</button>` : ''}<a class="btn quiet" href="#/administrativo">Ver agenda</a><a class="btn" href="#/administrativo">${icon('plus')}Agendar</a></div>
     </section>
 
-    <section class="dcard atencao" aria-label="O que precisa da sua atenção">
+    <section class="dcard atencao a-att" aria-label="O que precisa da sua atenção">
       <h3>O que precisa da sua atenção</h3>
       <div class="att">${attention.length ? attention.map((x) => `<a href="${x.h}"><span class="dot ${x.c}"></span><span class="t"><b>${x.t}</b><span>${x.s}</span></span><span class="go2">${x.b}</span></a>`).join('')
         : '<p class="empty-mini">Tudo em dia: nenhum rascunho e nenhum paciente sem consentimento.</p>'}</div>
     </section>
 
-    <section class="dcard" aria-label="Relatórios">
+    ${fin ? `<section class="dcard a-fin" aria-label="Evolução financeira">
+      <div class="fin-head"><h3>Evolução financeira</h3>
+        <div class="seg" role="group" aria-label="Período">${[7, 30, 90].map((d) => `<button type="button" data-fin="${d}" class="${d === 30 ? 'on' : ''}" aria-pressed="${d === 30}">${d} dias</button>`).join('')}</div></div>
+      <div id="fin-body">${chartHtml(fin, 30)}</div>
+      <div class="foot"><a class="btn quiet" href="#/financeiro?aba=resumo">Ver financeiro</a></div>
+    </section>` : ''}
+
+    <section class="dcard quick-card a-quick" aria-label="Ações rápidas">
+      <h3>Ações rápidas</h3>
+      <div class="qa">
+        <a href="#/nova" data-new>${icon('mic')}<span>Nova sessão</span></a>
+        <a href="#/pacientes">${icon('users')}<span>Pacientes</span></a>
+        <a href="#/administrativo">${icon('calendar')}<span>Agendar</span></a>
+        <a href="#/financeiro?aba=cobrancas">${icon('wallet')}<span>Cobranças</span></a>
+      </div>
+    </section>
+
+    <section class="dcard a-ativ" aria-label="Últimas atividades">
+      <h3>Últimas atividades</h3>
+      ${acts.length ? `<div class="acts">${acts.map((x) => `<a href="${x.h}"><span class="ai">${icon(x.ic)}</span><span class="t"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></span><time>${when(x.q)}</time></a>`).join('')}</div>` : '<p class="empty-mini">Ainda não há atividades.</p>'}
+    </section>
+
+    <section class="dcard a-rel" aria-label="Relatórios">
       <h3>Relatórios</h3><span class="ill">${ART.chart}</span>
       <div class="lbl">Neste mês</div>
       <div class="midnum">${monthR.length}<small>${monthR.length === 1 ? 'relatório' : 'relatórios'}</small></div>
@@ -171,7 +207,7 @@ export async function renderDashboard() {
       <div class="segbar thick">${monthR.length ? `<i class="c-pet" style="width:${pct(mRel, monthR.length)}%">${pct(mRel, monthR.length) >= 12 ? pct(mRel, monthR.length) + '%' : ''}</i><i class="c-light" style="width:${pct(mRev, monthR.length)}%"></i><i class="c-blo" style="width:${pct(mDraft, monthR.length)}%"></i>` : ''}</div>
     </section>
 
-    <section class="dcard" aria-label="Últimos 7 dias">
+    <section class="dcard a-sete" aria-label="Últimos 7 dias">
       <h3>Últimos 7 dias</h3>
       <div class="lbl">Registros feitos</div>
       <div class="midnum">${total7}<small>${total7 === 1 ? 'registro' : 'registros'}</small></div>
@@ -179,12 +215,7 @@ export async function renderDashboard() {
       <div class="wk">${week.map((d, i) => `<div class="${iso(d) === today ? 'today' : ''}"><div class="bar"><i style="height:${(counts[i] / maxC) * 100}%"></i></div><b>${counts[i]}</b><span>${d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')} ${d.getDate()}</span></div>`).join('')}</div>
     </section>
 
-    <section class="dcard wide" aria-label="Últimos registros">
-      <h3>Últimos registros</h3>
-      ${reports.length ? `<div class="list dash-gap-s">${reports.slice(0, 6).map(reportLine).join('')}</div>` : '<p class="empty-mini">Ainda não há relatórios.</p>'}
-    </section>
-
-    ${doneN < todo.length ? `<aside class="dcard" aria-label="Deixe o sistema pronto">
+    ${doneN < todo.length ? `<aside class="dcard a-todo" aria-label="Deixe o sistema pronto">
       <h3>Deixe o sistema pronto</h3>
       <div class="progress dash-gap" role="progressbar" aria-valuenow="${doneN}" aria-valuemax="${todo.length}"><i style="width:${(doneN / todo.length) * 100}%"></i></div>
       <p class="muted small">${doneN} de ${todo.length} passos</p>
@@ -192,6 +223,10 @@ export async function renderDashboard() {
     </aside>` : ''}
   </div>`;
 
+  $$('[data-fin]').forEach((b) => (b.onclick = () => {
+    $$('[data-fin]').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', String(x === b)); });
+    $('#fin-body').innerHTML = chartHtml(fin, Number(b.dataset.fin));
+  }));
   if (!p.is_admin) import('./tour.js').then((m) => m.maybeTour()).catch(() => {});
   if ($('#h-lembretes')) $('#h-lembretes').onclick = () => lembretesModal({ aps: amanhaAps, patients, title: `Lembretes de amanhã (${fmtDate(amanhaISO)})` });
   // anamnese respondida: abre a própria anamnese (a mais recente do paciente), não só a ficha

@@ -9,7 +9,7 @@
   color-scheme:light;
   /* identidade Potira: petróleo #134B5F, amora #B83D6F, turquesa #087D91 */
   --petrol:#134B5F; --petrol-2:#0F3B4A; --petrol-3:#087D91; --petrol-tint:#E3F0F4;
-  --bloom:#B83D6F; --bloom-2:#9C315B; --bloom-tint:#FBE6EF;
+  --bloom:#B83D6F; --bloom-2:#9C315B; --bloom-tint:#FBE6EF; --turq:#087D91;
   /* neutros */
   --mist:#EDF1F3; --paper:#FFFFFF; --field:#FFFFFF; --soft:#F4F7F8; --hover:#F6F9FA; --track:#D5E0E4;
   --ink:#14232A; --ink-2:#556870; --ink-3:#66777E;
@@ -36,7 +36,7 @@
 :root[data-theme=dark]{
   color-scheme:dark;
   --petrol:#3E9DBE; --petrol-2:#2F86A5; --petrol-3:#67B9D6; --petrol-tint:#16323D;
-  --bloom:#E2639A; --bloom-2:#C94E83; --bloom-tint:#3A1D2A;
+  --bloom:#E2639A; --bloom-2:#C94E83; --bloom-tint:#3A1D2A; --turq:#3FB4C7;
   --mist:#0C1418; --paper:#152127; --field:#101A1F; --soft:#1A2830; --hover:#1D2B33; --track:#2A3C46;
   --ink:#E7EFF2; --ink-2:#9FB3BC; --ink-3:#7F96A1;
   --line:#243540; --line-2:#1D2C35; --edge:#3A4D57; --edge-2:#4B606B; --skel:#22323A; --skel-2:#2B3E48;
@@ -53,7 +53,7 @@
   :root:not([data-theme=light]){
     color-scheme:dark;
     --petrol:#3E9DBE; --petrol-2:#2F86A5; --petrol-3:#67B9D6; --petrol-tint:#16323D;
-    --bloom:#E2639A; --bloom-2:#C94E83; --bloom-tint:#3A1D2A;
+    --bloom:#E2639A; --bloom-2:#C94E83; --bloom-tint:#3A1D2A; --turq:#3FB4C7;
     --mist:#0C1418; --paper:#152127; --field:#101A1F; --soft:#1A2830; --hover:#1D2B33; --track:#2A3C46;
     --ink:#E7EFF2; --ink-2:#9FB3BC; --ink-3:#7F96A1;
     --line:#243540; --line-2:#1D2C35; --edge:#3A4D57; --edge-2:#4B606B; --skel:#22323A; --skel-2:#2B3E48;

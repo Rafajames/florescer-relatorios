@@ -403,3 +403,12 @@ Admin: uso (só totais), convites (exigência opcional, desligada por padrão), 
 ### Agenda: botão Hoje só aparece quando não está em hoje
 - Na Lista, Semana e Mês, o botão Hoje some quando o período mostrado já inclui hoje.
 - Testado no ambiente simulado (lista, semana e mês). Não testado com dados reais.
+
+### Redesign, entrega 1 de 3 (revisada pela imagem de referência)
+- Menu: Início, Pacientes, Agenda, Atendimentos, Documentos, Financeiro, Relatórios, Configurações, Ajuda e Suporte. Item ativo em rosa (cor de destaque da marca, com texto que se ajusta à cor), flor de lótus discreta no fundo do menu. Notas Fiscais não aparece (a funcionalidade ainda não existe; ficará dentro de Financeiro).
+- Rotas: Agenda = Administrativo; Atendimentos = lista de relatórios/sessões; Documentos = modelos de documento; Relatórios = relatório por período. Nada mudou nas páginas, só nos nomes do menu. No celular a barra inferior passa a ter Agenda no lugar de Relatórios; o resto fica em "Mais".
+- "Atendimentos" foi usado a pedido do James, embora as DIRETRIZES evitem a palavra; nos textos segue "sessões".
+- Início: indicadores (sessões hoje, pacientes, recebido no mês, a receber), Evolução financeira (7/30/90 dias, com os mesmos pagamentos do Resumo do Financeiro), Ações rápidas, Sessões de hoje (com "Iniciar sessão"), Próximos compromissos (Iniciar/Falta/lembretes mantidos), Últimas atividades (relatórios e pagamentos), atenção, relatórios do mês e últimos 7 dias. Só dados reais; sem pagamentos, os valores aparecem zerados.
+- Novo `js/home-fin.js`. Botões de destaque usam texto escuro quando a cor da marca é clara.
+- Testado no ambiente simulado: 390/768/1024/1280/1366 px, claro/escuro, marca clara, alternância 7/30/90, movimento reduzido; sem erros no console e sem rolagem lateral. Não testado com dados reais nem no iPhone.
+

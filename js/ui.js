@@ -141,25 +141,24 @@ export const callout = (html, kind = '', action = '') =>
 const NAV = [
   ['painel', '#/painel', 'home', 'Início'],
   ['pacientes', '#/pacientes', 'users', 'Pacientes'],
-  ['relatorios', '#/relatorios', 'file', 'Relatórios'],
-  ['periodo', '#/periodo', 'calendar', 'Relatório por período'],
-  ['modelos', '#/modelos', 'layout', 'Modelos de documento'],
-  ['administrativo', '#/administrativo', 'clipboard', 'Administrativo'],
+  ['administrativo', '#/administrativo', 'calendar', 'Agenda'],
+  ['relatorios', '#/relatorios', 'clipboard', 'Atendimentos'],
+  ['modelos', '#/modelos', 'file', 'Documentos'],
   ['financeiro', '#/financeiro', 'wallet', 'Financeiro'],
+  ['periodo', '#/periodo', 'chart', 'Relatórios'],
   ['config', '#/config', 'sliders', 'Configurações'],
-  ['ajuda', '#/ajuda', 'info', 'Ajuda'],
+  ['ajuda', '#/ajuda', 'help', 'Ajuda e Suporte'],
 ];
-const NAV_SEC = { painel: 'Menu', administrativo: 'Gestão', config: 'Ajustes' };
 const NAV_PATIENT = [['portal', '#/portal', 'file', 'Meus relatórios']];
 const TAB = [
   ['painel', '#/painel', 'home', 'Início'],
   ['pacientes', '#/pacientes', 'users', 'Pacientes'],
   ['nova', '#/nova', 'plus', 'Novo', true],
-  ['relatorios', '#/relatorios', 'file', 'Relatórios'],
+  ['administrativo', '#/administrativo', 'calendar', 'Agenda'],
   ['mais', '#/mais', 'more', 'Mais'],
 ];
 // itens que ficam no botão "Mais" do celular
-export const NAV_MORE = NAV.filter(([k]) => !['painel', 'pacientes', 'relatorios'].includes(k));
+export const NAV_MORE = NAV.filter(([k]) => !['painel', 'pacientes', 'administrativo'].includes(k));
 
 const TAB_STAFF = [['administrativo', '#/administrativo', 'clipboard', 'Agenda'], ['financeiro', '#/financeiro', 'wallet', 'Financeiro'], ['sair', '#', 'logout', 'Sair']];
 const TAB_ADMIN = [['admin', '#/admin', 'home', 'Início'], ['config', '#/config?aba=seguranca', 'shield', 'Segurança'], ['sair', '#', 'logout', 'Sair']];
@@ -182,7 +181,7 @@ export function shell(active) {
       <aside class="rail">
         <a class="brand" href="${home}" ${own ? '' : 'aria-label="Potira, início"'}>${own ? `<span class="mark ${br.logo ? 'has-logo' : 'potira'}">${br.logo ? `<img src="${esc(br.logo)}" alt="">` : simboloColorido()}</span><b>${esc(br.org_name || 'Potira')}</b>` : logoMenu()}</a>
         <nav class="nav" aria-label="Principal">
-          ${nav.map(([k, h, ic, l]) => `${NAV_SEC[k] && nav === NAV ? `<span class="nav-sec">${NAV_SEC[k]}</span>` : ''}<a href="${h}" class="${k === active ? 'on' : ''}" ${k === active ? 'aria-current="page"' : ''}>${icon(ic)}${l}</a>`).join('')}
+          ${nav.map(([k, h, ic, l]) => `<a href="${h}" class="${k === active ? 'on' : ''}${k === 'ajuda' ? ' nav-help' : ''}" ${k === active ? 'aria-current="page"' : ''}>${icon(ic)}${l}</a>`).join('')}
         </nav>
         <div class="theme-row"><span>${icon('sun')}Tema</span><span class="theme-tog" role="group" aria-label="Tema"><button type="button" data-theme-set="light" title="Claro" aria-label="Tema claro">${icon('sun')}</button><button type="button" data-theme-set="dark" title="Escuro" aria-label="Tema escuro">${icon('moon')}</button></span></div>
         <a class="rail-credit" href="#/sobre">${icon('info')}Sobre a Potira</a>

@@ -49,6 +49,7 @@ export function applyBrand(b) {
   s.setProperty('--petrol', ui); s.setProperty('--petrol-2', darken(ui));
   s.setProperty('--rail-bg', c); s.setProperty('--rail-bg-2', darken(c));
   s.setProperty('--bloom', a); s.setProperty('--bloom-2', darken(a, 0.18));
+  s.setProperty('--on-bloom', lum(a) > 175 ? '#10252d' : '#ffffff'); // texto legível sobre a cor de destaque
   // Menu colorido: texto claro sobre cor escura e texto escuro sobre cor clara.
   s.setProperty('--rail-ink', lum(c) > 165 ? '#10252d' : '#ffffff');
   document.title = b?.org_name ? `${b.org_name}` : 'Potira - relatórios clínicos';

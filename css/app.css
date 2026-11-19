@@ -42,7 +42,7 @@ kbd{font:500 11px var(--sans);border:1px solid var(--line);border-bottom-width:2
 /* ---------- botões e campos ---------- */
 .btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:9px;border:1px solid var(--petrol);background:var(--petrol);color:#fff;font:600 14px var(--sans);cursor:pointer;text-decoration:none;white-space:nowrap}
 .btn:hover{background:var(--petrol-2)}
-.btn.bloom{background:var(--bloom);border-color:var(--bloom)} .btn.bloom:hover{background:var(--bloom-2)}
+.btn.bloom{background:var(--bloom);border-color:var(--bloom);color:var(--on-bloom,#fff)} .btn.bloom:hover{background:var(--bloom-2)}
 .btn.quiet{background:var(--paper);color:var(--petrol);border-color:var(--line)} .btn.quiet:hover{background:var(--petrol-tint);border-color:#B9D3DA}
 .btn.danger{background:var(--paper);color:var(--danger);border-color:#EBC4BE} .btn.danger:hover{background:var(--danger-tint)}
 .btn.sm{min-height:32px;padding:0 11px;font-size:13px}
@@ -472,7 +472,7 @@ h1{font-size:34px;line-height:1.12} h2{font-size:22px;line-height:1.2} h3{font-w
 .onb-card{border-radius:18px}
 .callout{border-radius:12px;padding:14px 16px}
 @media (max-width:760px){h1{font-size:28px}.sheet{padding:28px 22px}.stat b{font-size:30px}.now{padding:22px}}
-.now .btn.bloom{background:var(--bloom);border-color:var(--bloom)} .now .btn.bloom:hover{background:var(--bloom-2)}
+.now .btn.bloom{background:var(--bloom);border-color:var(--bloom);color:var(--on-bloom,#fff)} .now .btn.bloom:hover{background:var(--bloom-2)}
 .auth-hero h1{max-width:18ch}
 /* crítica: sem cartão dentro de cartão na semana */
 .wd{border:0;border-radius:10px;background:transparent;border-bottom:1px solid var(--line-2)}
