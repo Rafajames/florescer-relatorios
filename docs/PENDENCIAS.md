@@ -100,7 +100,7 @@ O desenho completo, com papéis, permissões, layout e as perguntas em aberto, e
 - O gestor cria o perfil da clínica e convida os profissionais.
 - Respondido em 12/11/2026 (noite): o profissional da clínica conta as próprias sessões e só vê o valor da sessão se o gestor permitir; nenhum profissional vê registro de outro (só o paciente vê os seus, de todos); um dono principal, que pode habilitar outro administrador.
 - **Em espera:** o que acontece com os registros quando um profissional sai da clínica (pergunta 4 do CLINICA.md).
-- **Continua sem implementar: o James pediu só o mapeamento.** Programar apenas quando ele pedir.
+- **Público autônomo + clínica confirmado em 18/11/2026.** A especificação de evolução foi registrada em [ESPECIFICACAO-EVOLUCAO-POTIRA.md](ESPECIFICACAO-EVOLUCAO-POTIRA.md). A conta de clínica continua não implementada; seguir o documento e resolver a pergunta sobre a saída de profissional antes de programar.
 
 ## 3C. Ideias ainda não feitas
 
@@ -150,3 +150,10 @@ Avisos do Supabase que continuam abertos. **Tratar antes de abrir a plataforma p
 - **Onde aparece:** disponível para o paciente ver (no Portal do paciente e/ou na página de confirmação por link) e, se o profissional quiser, no Início dele.
 - **Contato pelo paciente:** botão para falar com o profissional pelo WhatsApp, ou pelo contato que ele disponibilizar (telefone, e-mail, Instagram, endereço). Só aparece o que o profissional liberar.
 - Dados só públicos e opcionais; nada clínico. Confirmar com o James antes de programar.
+
+## 8. Especificação de evolução (18/11/2026)
+
+- **Confirmado:** público = profissionais autônomos e clínicas; cadastro de pacientes completo; redesign de toda a plataforma.
+- Documento: [ESPECIFICACAO-EVOLUCAO-POTIRA.md](ESPECIFICACAO-EVOLUCAO-POTIRA.md).
+- **Ainda não implementado:** redesign, novos campos/relacionamentos, conta de clínica e módulo fiscal. Esta atualização foi documental.
+- Antes da implementação: aprovar protótipos; decidir o destino dos registros quando profissional sair da clínica; decidir titularidade fiscal, emissor/provedor, municípios e custos.
