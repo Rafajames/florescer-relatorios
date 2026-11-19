@@ -5,7 +5,8 @@ import { createDemo, removeDemo, isDemo } from './demo.js';
 import { exportDossierWord, exportDossierPdf, exportAuditoriaPdf, KIND_LABEL, brl, ATT_STATUS } from './export.js';
 import { newToken, sha256, waLink, cobravel, cobrancaVencida } from './cobranca.js';
 import { abrirCobranca, registrarPagamento, agendarCobranca } from './cobrar.js';
-import { loadFin, chartHtml, atividades } from './home-fin.js';
+import { simboloColorido } from './marca.js';
+import { loadFin, chartHtml, atividades, spark, porDia, iso as isoD } from './home-fin.js';
 import { appointmentModal, lembretesModal } from './views-administrativo.js';
 import { metasPanel, escalasPanel } from './views-clinico.js';
 import {
@@ -62,9 +63,6 @@ export async function renderDashboard() {
   const amanhaISO = iso(new Date(Date.now() + 864e5));
   const amanhaAps = valid.filter((a) => a.date === amanhaISO && a.status === 'agendado');
   const hh = (t) => (t || '').slice(0, 5);
-  const days = [...new Set(valid.map((a) => a.date))].filter((d) => d > today).slice(0, 4);
-  const dayPill = (d, on) => { const dt = new Date(d + 'T12:00:00'); const n = valid.filter((a) => a.date === d).length;
-    return `<a class="dp ${on ? 'on' : ''}" href="#/administrativo"><small>${on ? 'Hoje' : dt.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</small>${dt.getDate()}<i>${'•'.repeat(Math.min(n, 6))}</i></a>`; };
   const weekAps = valid.filter((a) => { const d = new Date(a.date + 'T12:00:00'); return (d - new Date(today + 'T12:00:00')) / 864e5 < 7; }).length;
 
   // relatórios do mês
@@ -111,14 +109,28 @@ export async function renderDashboard() {
   const mesAtual = today.slice(0, 7);
   const recebidoMes = fin ? fin.entradas.filter((e) => e.d.startsWith(mesAtual)).reduce((t, e) => t + e.v, 0) : 0;
   const proximos = valid.filter((a) => a.status === 'agendado' && a.date > today).slice(0, 4);
-  const acts = atividades(reports, fin ? fin.entradas : []);
-  const when = (q) => (q === today ? 'Hoje' : fmtDate(q));
-  const kpi = (href, ic, cls, val, lbl, sub) => `<a class="kpi" href="${href}"><span class="kpi-ic ${cls}">${icon(ic)}</span><span class="kpi-tx"><b>${val}</b><span>${lbl}</span><small>${sub}</small></span></a>`;
+  const acts = atividades(reports, fin ? fin.entradas : [], patients);
+  const when = (q) => { const d = q.slice(0, 10), t = q.length > 10 ? new Date(q).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''; return `${d === today ? 'Hoje' : fmtDate(d)}${t ? `, ${t}` : ''}`; };
+  const trendChip = (pctv, txt) => (pctv == null ? '' : `<span class="kpi-tr ${pctv < 0 ? 'down' : ''}">${pctv < 0 ? '↓' : '↑'} ${txt || `${pctv > 0 ? '+' : ''}${pctv}%`}</span>`);
+  const varPct = (a, b) => (b ? Math.round(((a - b) / b) * 100) : null);
+  // mês corrente x mesmo período do mês anterior
+  const diaMes = Number(today.slice(8, 10));
+  const antIni = (() => { const d = new Date(today.slice(0, 7) + '-01T12:00:00'); d.setMonth(d.getMonth() - 1); return isoD(d); })();
+  const antFim = antIni.slice(0, 8) + String(diaMes).padStart(2, '0');
+  const ativos = patients.filter((x) => !x.archived);
+  const novosMes = ativos.filter((x) => (x.created_at || '').startsWith(mesAtual)).length;
+  const sessoesR = reports.filter((r) => r.kind === 'sessao');
+  const sessMes = sessoesR.filter((r) => (r.session_date || '').startsWith(mesAtual)).length;
+  const sessAnt = sessoesR.filter((r) => r.session_date >= antIni && r.session_date <= antFim).length;
+  const recAnt = fin ? fin.entradas.filter((e) => e.d >= antIni && e.d <= antFim).reduce((t, e) => t + e.v, 0) : 0;
+  let acum = ativos.filter((x) => (x.created_at || '').slice(0, 10) < isoD(new Date(Date.now() - 29 * 864e5))).length;
+  const pacSpark = porDia(ativos.map((x) => ({ d: (x.created_at || '').slice(0, 10) })), 30, 'd', () => 1).map((v) => (acum += v));
+  const kpi = (href, ic, cls, val, lbl, extra) => `<a class="kpi" href="${href}"><span class="kpi-top"><span class="kpi-ic ${cls}">${icon(ic)}</span><span class="kpi-tx"><b>${val}</b><span>${lbl}</span></span></span><span class="kpi-pe">${extra}</span></a>`;
   const kpisHtml = `<div class="kpis" aria-label="Resumo">
-    ${kpi('#/administrativo', 'calendar', 'k-pet', todayAps.length, 'Sessões hoje', `${doneAps} ${doneAps === 1 ? 'realizada' : 'realizadas'}`)}
-    ${kpi('#/pacientes', 'users', 'k-blo', patients.length, 'Pacientes', patients.length === 1 ? 'em atendimento' : 'em atendimento')}
-    ${fin ? kpi('#/financeiro?aba=resumo', 'wallet', 'k-ok', brl(recebidoMes), 'Recebido no mês', 'pela data do pagamento') : ''}
-    ${fin ? kpi('#/financeiro?aba=cobrancas', 'clock', 'k-tur', brl(fin.aberto), 'A receber', `${fin.nAberto} ${fin.nAberto === 1 ? 'sessão em aberto' : 'sessões em aberto'}`) : kpi('#/relatorios?status=rascunho', 'file', 'k-tur', drafts.length, 'Rascunhos', 'para revisar')}
+    ${kpi('#/pacientes', 'users', 'k-blo', ativos.length, ativos.length === 1 ? 'Paciente ativo' : 'Pacientes ativos', `${novosMes ? trendChip(1, `+${novosMes} no mês`) : '<span></span>'}${spark(pacSpark, 's-blo')}`)}
+    ${kpi('#/relatorios', 'calendar', 'k-tur', sessMes, 'Sessões este mês', `${trendChip(varPct(sessMes, sessAnt))}${spark(porDia(sessoesR.map((r) => ({ d: r.session_date })), 30, 'd', () => 1), 's-tur')}`)}
+    ${fin ? kpi('#/financeiro?aba=resumo', 'wallet', 'k-ok', brl(recebidoMes), 'Receitas este mês', `${trendChip(varPct(recebidoMes, recAnt))}${spark(porDia(fin.entradas, 30), 's-ok')}`) : ''}
+    ${kpi('#/relatorios?status=rascunho', 'file', 'k-lil', drafts.length, drafts.length === 1 ? 'Documento pendente' : 'Documentos pendentes', '<span></span><span class="kpi-btn">Ver detalhes →</span>')}
   </div>`;
   // Novidades vindas dos pacientes; "visto" fica guardado neste navegador.
   let nov = []; try { nov = await api.listNovidades(); } catch { nov = []; }
@@ -130,7 +142,7 @@ export async function renderDashboard() {
   const novHtml = novas.length ? `<section class="panel novidades dash-above"><div class="panel-head"><button type="button" class="nov-tit" id="nov-all" title="Ver todas as novidades"><h3>${icon('sparkle')}Novidades <span class="nov-n">${novas.length}</span></h3></button><button class="btn quiet sm" id="nov-ok">Marcar como visto</button></div>
     ${novItem(novas[0], 0)}
     ${novas.length > 1 ? `<button type="button" class="link small" id="nov-mais">Ver as outras ${novas.length - 1}</button>` : ''}</section>` : '';
-  main.innerHTML = pageHeader(`${greeting()}, ${esc(first)}`, esc(longDate())) + (cobHoje ? callout(`<p><b>${cobHoje} cobrança${cobHoje === 1 ? '' : 's'} agendada${cobHoje === 1 ? '' : 's'} para hoje.</b> A mensagem e o PIX já estão prontos; é só conferir e enviar.</p>`, '', '<a class="btn sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a>') : '') + novHtml + niverHtml + `<div id="inbox"></div>
+  main.innerHTML = pageHeader(`Olá, ${esc(first)}!`, `Que bom ter você por aqui hoje · ${esc(longDate())}`) + (cobHoje ? callout(`<p><b>${cobHoje} cobrança${cobHoje === 1 ? '' : 's'} agendada${cobHoje === 1 ? '' : 's'} para hoje.</b> A mensagem e o PIX já estão prontos; é só conferir e enviar.</p>`, '', '<a class="btn sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a>') : '') + novHtml + niverHtml + `<div id="inbox"></div>
   ${kpisHtml}
   <div class="dash">
     <section class="dcard a-hoje" aria-label="Sessões de hoje">
@@ -159,16 +171,15 @@ export async function renderDashboard() {
     </section>
 
     <section class="dcard a-prox" aria-label="Próximos compromissos">
-      <h3>Próximos compromissos <small>• ${esc(new Date().toLocaleDateString('pt-BR', { month: 'long' }))}</small></h3><span class="ill">${ART.cal}</span>
-      <div class="daypills">${dayPill(today, true)}${days.map((d) => dayPill(d, false)).join('')}</div>
-      <div class="agl">${todayAps.length ? todayAps.map((a) => `<div class="agi hoje-it">
-          <span class="ck ${a.status === 'realizado' ? 'ok' : a.status.startsWith('falta') ? 'no' : ''}"></span><span class="tm">${hh(a.time) || '—'}</span>
-          <a class="nm" href="#/pacientes/${a.patient_id}"><b>${esc(a.patients?.name || 'Paciente')}</b><span>${esc(ATT_STATUS[a.status] || '')}${a.duration_min ? ` · ${a.duration_min} min` : ''}${a.confirm_status === 'confirmado' ? ' · confirmou' : a.confirm_status === 'remarcar' ? ' · pediu para remarcar' : ''}</span></a>
-          <span class="hoje-act">${a.status === 'agendado' ? `<a class="btn sm" href="#/nova?paciente=${a.patient_id}&sessao=${a.id}">Iniciar</a><button class="btn quiet sm" data-hfalta="${a.id}">Falta</button>`
-            : a.status === 'realizado' ? `<a class="btn quiet sm" href="#/nova?paciente=${a.patient_id}&sessao=${a.id}">Evolução</a>` : ''}</span></div>`).join('')
-        : '<p class="empty-mini">Nenhuma sessão agendada para hoje.</p>'}
-        ${proximos.map((a) => `<a class="agi" href="#/administrativo"><span class="ck"></span><span class="tm">${hh(a.time) || '—'}</span><span class="nm"><b>${esc(a.patients?.name || 'Paciente')}</b><span>${fmtDate(a.date)}${a.duration_min ? ` · ${a.duration_min} min` : ''}</span></span></a>`).join('')}</div>
-      <div class="foot">${amanhaAps.length ? `<button class="btn quiet" id="h-lembretes">Lembretes de amanhã (${amanhaAps.length})</button>` : ''}<a class="btn quiet" href="#/administrativo">Ver agenda</a><a class="btn" href="#/administrativo">${icon('plus')}Agendar</a></div>
+      <div class="dc-head"><h3>${icon('calendar')}Próximos compromissos</h3><a class="dc-link" href="#/administrativo">Ver agenda ${icon('right')}</a></div>
+      <div class="comp">${[...todayAps, ...proximos].length ? [...todayAps.map((a) => ({ a, hoje: true })), ...proximos.map((a) => ({ a, hoje: false }))].map(({ a, hoje }, i) => `<div class="cp">
+          <span class="cp-h ${i % 2 ? 'tu' : 'ro'}">${hh(a.time) || '—'}</span>
+          <div class="cp-c ${hoje ? 'hoje-it' : ''}"><span class="cp-ic">${icon('users')}</span>
+            <a class="nm" href="#/pacientes/${a.patient_id}"><b>${esc(a.patients?.name || 'Paciente')}</b><span>${hoje ? `Hoje · ${esc(ATT_STATUS[a.status] || '')}` : fmtDate(a.date)}${a.duration_min ? ` · ${a.duration_min} min` : ''}${a.confirm_status === 'confirmado' ? ' · confirmou' : a.confirm_status === 'remarcar' ? ' · pediu para remarcar' : ''}</span></a>
+            ${hoje && a.status === 'agendado' ? `<span class="hoje-act"><a class="btn sm" href="#/nova?paciente=${a.patient_id}&sessao=${a.id}">Iniciar</a><button class="btn quiet sm" data-hfalta="${a.id}">Falta</button></span>`
+              : hoje && a.status === 'realizado' ? `<span class="hoje-act"><a class="btn quiet sm" href="#/nova?paciente=${a.patient_id}&sessao=${a.id}">Evolução</a></span>` : `<a class="cp-go" href="#/administrativo" aria-label="Abrir agenda">${icon('right')}</a>`}
+          </div></div>`).join('') : '<p class="empty-mini">Nenhum compromisso agendado.</p>'}</div>
+      <div class="foot">${amanhaAps.length ? `<button class="btn quiet" id="h-lembretes">Lembretes de amanhã (${amanhaAps.length})</button>` : ''}<a class="btn" href="#/administrativo">${icon('plus')}Agendar</a></div>
     </section>
 
     <section class="dcard atencao a-att" aria-label="O que precisa da sua atenção">
@@ -178,25 +189,27 @@ export async function renderDashboard() {
     </section>
 
     ${fin ? `<section class="dcard a-fin" aria-label="Evolução financeira">
-      <div class="fin-head"><h3>Evolução financeira</h3>
+      <div class="dc-head"><h3>${icon('chart')}Evolução financeira</h3>
         <div class="seg" role="group" aria-label="Período">${[7, 30, 90].map((d) => `<button type="button" data-fin="${d}" class="${d === 30 ? 'on' : ''}" aria-pressed="${d === 30}">${d} dias</button>`).join('')}</div></div>
       <div id="fin-body">${chartHtml(fin, 30)}</div>
-      <div class="foot"><a class="btn quiet" href="#/financeiro?aba=resumo">Ver financeiro</a></div>
+      <div class="fin-pe"><span>A receber: <b>${brl(fin.aberto)}</b> · ${fin.nAberto} ${fin.nAberto === 1 ? 'sessão em aberto' : 'sessões em aberto'}</span><a class="dc-link" href="#/financeiro?aba=resumo">Ver financeiro ${icon('right')}</a></div>
     </section>` : ''}
 
     <section class="dcard quick-card a-quick" aria-label="Ações rápidas">
-      <h3>Ações rápidas</h3>
+      <span class="qc-flor" aria-hidden="true">${simboloColorido()}</span>
+      <h3>${icon('heart')}Ações rápidas</h3>
+      <p class="qc-sub">Acesse as principais funcionalidades com um clique.</p>
       <div class="qa">
-        <a href="#/nova" data-new>${icon('mic')}<span>Nova sessão</span></a>
-        <a href="#/pacientes">${icon('users')}<span>Pacientes</span></a>
-        <a href="#/administrativo">${icon('calendar')}<span>Agendar</span></a>
-        <a href="#/financeiro?aba=cobrancas">${icon('wallet')}<span>Cobranças</span></a>
+        <a href="#/pacientes">${icon('users')}<span>Cadastrar paciente</span></a>
+        <a href="#/nova" data-new>${icon('mic')}<span>Registrar sessão</span></a>
+        <a href="#/administrativo">${icon('calendar')}<span>Agendar sessão</span></a>
+        <a href="#/financeiro">${icon('wallet')}<span>Consultar financeiro</span></a>
       </div>
     </section>
 
     <section class="dcard a-ativ" aria-label="Últimas atividades">
-      <h3>Últimas atividades</h3>
-      ${acts.length ? `<div class="acts">${acts.map((x) => `<a href="${x.h}"><span class="ai">${icon(x.ic)}</span><span class="t"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></span><time>${when(x.q)}</time></a>`).join('')}</div>` : '<p class="empty-mini">Ainda não há atividades.</p>'}
+      <div class="dc-head"><h3>${icon('clock')}Últimas atividades</h3><a class="dc-link" href="#/relatorios">Ver todas ${icon('right')}</a></div>
+      ${acts.length ? `<div class="acts">${acts.map((x) => `<a href="${x.h}"><span class="ai ${x.c}">${icon(x.ic)}</span><span class="t">${esc(x.t)}</span><time>${when(x.q)}</time></a>`).join('')}</div>` : '<p class="empty-mini">Ainda não há atividades.</p>'}
     </section>
 
     <section class="dcard a-rel" aria-label="Relatórios">

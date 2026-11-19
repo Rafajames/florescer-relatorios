@@ -12,6 +12,12 @@
 
 /* logo com fundo próprio (menu): vira um selo arredondado, legível em qualquer cor de menu */
 .logo-tile{display:block;width:100%;max-width:132px;border-radius:14px;overflow:hidden;line-height:0}
+/* logo do menu: sem selo; versão clara só quando o menu tem cor clara (no tema escuro o menu é sempre escuro) */
+.logo-menu{display:block;width:100%;max-width:150px;margin:0 auto;line-height:0}
+.logo-menu .lm-cla{display:none}
+:root[data-rail-light]:not([data-theme=dark]) .logo-menu .lm-cla{display:block}
+:root[data-rail-light]:not([data-theme=dark]) .logo-menu .lm-esc{display:none}
+@media (prefers-color-scheme:dark){:root[data-rail-light]:not([data-theme]) .logo-menu .lm-cla{display:none}:root[data-rail-light]:not([data-theme]) .logo-menu .lm-esc{display:block}}
 /* logo em página: sem fundo no claro; no escuro leva o fundo oficial como selo */
 .logo-page{display:block;width:var(--logo-w,168px);max-width:100%;line-height:0}
 :root[data-theme=dark] .logo-page{border-radius:14px;overflow:hidden}

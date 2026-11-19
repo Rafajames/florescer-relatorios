@@ -160,6 +160,8 @@ const TAB = [
 // itens que ficam no botão "Mais" do celular
 export const NAV_MORE = NAV.filter(([k]) => !['painel', 'pacientes', 'administrativo'].includes(k));
 
+// versão carimbada por tools/stamp.py (?v= no endereço deste arquivo)
+const VERSAO = new URL(import.meta.url).searchParams.get('v') || 'teste';
 const TAB_STAFF = [['administrativo', '#/administrativo', 'clipboard', 'Agenda'], ['financeiro', '#/financeiro', 'wallet', 'Financeiro'], ['sair', '#', 'logout', 'Sair']];
 const TAB_ADMIN = [['admin', '#/admin', 'home', 'Início'], ['config', '#/config?aba=seguranca', 'shield', 'Segurança'], ['sair', '#', 'logout', 'Sair']];
 
@@ -174,6 +176,8 @@ export function shell(active) {
   const br = isPatient ? { logo: '', org_name: '' } : brandOf(p);
   const own = Boolean(br.logo || br.org_name); // marca própria do profissional; sem ela, aparece a logo Potira
   const home = isPatient ? '#/portal' : isStaff ? '#/administrativo' : isAdm ? '#/admin' : '#/painel';
+  const quem = (isStaff ? p.staff_name : p?.full_name) || state.user?.email || '';
+  const papel = isPatient ? 'Paciente' : isStaff ? `Secretária(o) de ${p.full_name}` : isAdm ? 'Administrador' : (p?.specialty || 'Profissional');
   const isHome = ['painel', 'admin', 'portal'].includes(active) || (isStaff && active === 'administrativo');
   $('#app').innerHTML = `
     <div class="app">
@@ -181,15 +185,11 @@ export function shell(active) {
       <aside class="rail">
         <a class="brand" href="${home}" ${own ? '' : 'aria-label="Potira, início"'}>${own ? `<span class="mark ${br.logo ? 'has-logo' : 'potira'}">${br.logo ? `<img src="${esc(br.logo)}" alt="">` : simboloColorido()}</span><b>${esc(br.org_name || 'Potira')}</b>` : logoMenu()}</a>
         <nav class="nav" aria-label="Principal">
-          ${nav.map(([k, h, ic, l]) => `<a href="${h}" class="${k === active ? 'on' : ''}${k === 'ajuda' ? ' nav-help' : ''}" ${k === active ? 'aria-current="page"' : ''}>${icon(ic)}${l}</a>`).join('')}
+          ${nav.filter(([k]) => k !== 'ajuda').map(([k, h, ic, l]) => `<a href="${h}" class="${k === active ? 'on' : ''}${k === 'ajuda' ? ' nav-help' : ''}" ${k === active ? 'aria-current="page"' : ''}>${icon(ic)}${l}</a>`).join('')}
         </nav>
+        ${nav.some(([k]) => k === 'ajuda') ? `<a class="rail-help ${active === 'ajuda' ? 'on' : ''}" href="#/ajuda" ${active === 'ajuda' ? 'aria-current="page"' : ''}>${icon('help')}Ajuda e Suporte</a>` : ''}
         <div class="theme-row"><span>${icon('sun')}Tema</span><span class="theme-tog" role="group" aria-label="Tema"><button type="button" data-theme-set="light" title="Claro" aria-label="Tema claro">${icon('sun')}</button><button type="button" data-theme-set="dark" title="Escuro" aria-label="Tema escuro">${icon('moon')}</button></span></div>
         <a class="rail-credit" href="#/sobre">${icon('info')}Sobre a Potira</a>
-        <div class="rail-foot">
-          <span class="avatar">${esc(initials((isStaff ? p.staff_name : p?.full_name) || state.user?.email))}</span>
-          <div class="who"><b>${esc((isStaff ? p.staff_name : p?.full_name) || state.user?.email || '')}</b><span>${esc(isPatient ? 'Paciente' : isStaff ? `Secretária(o) de ${p.full_name}` : isAdm ? 'Administrador' : (p?.specialty || 'Profissional'))}</span></div>
-          <button class="icon-btn" id="logout" title="Sair" aria-label="Sair">${icon('logout')}</button>
-        </div>
       </aside>
       <div class="stage">
         <div class="topbar ${isHome ? 'top-home' : ''}">
@@ -200,9 +200,23 @@ export function shell(active) {
           <button class="search-trigger" id="open-search" aria-label="Buscar">${icon('search')}<span>Buscar paciente ou relatório</span><kbd>Ctrl K</kbd></button>
           <button class="icon-btn help-btn" id="open-help" title="Atalhos do teclado (?)" aria-label="Atalhos do teclado">${icon('info')}</button>
           <a class="btn bloom" href="#/nova" data-new>${icon('plus')}<span>Novo</span></a>`}
+          <details class="top-user">
+            <summary aria-label="Menu do perfil"><span class="tu-ic">${icon('users')}</span><span class="tu-nome">${esc(quem)}</span>${icon('chev', 'tu-seta')}<span class="avatar">${esc(initials(quem))}</span></summary>
+            <div class="tu-menu" role="menu">
+              <div class="tu-head"><b>${esc(quem)}</b><span>${esc(papel)}</span></div>
+              ${isPatient ? '' : `<a href="${isStaff ? '#/administrativo' : '#/config'}" role="menuitem">${icon('sliders')}${isStaff ? 'Agenda' : 'Configurações'}</a>`}
+              <a href="#/sobre" role="menuitem">${icon('info')}Sobre a Potira</a>
+              <button type="button" id="logout" role="menuitem">${icon('logout')}Sair</button>
+            </div>
+          </details>
         </div>
         ${nt ? `<div class="notice ${nt.level === 'warn' ? 'warn' : ''}" role="status">${icon('info')}<span>${esc(nt.text)}</span></div>` : ''}
         <main id="main" class="page"></main>
+        <footer class="app-foot">
+          <span class="af-seg">${icon('shield')}Seus dados estão seguros</span><span class="af-sep" aria-hidden="true"></span>
+          <span class="af-seg af-lema">Potira · Cuidado, tecnologia e bem-estar</span>
+          <span class="af-dir"><span>Versão ${esc(VERSAO)}</span><span class="af-on ${navigator.onLine ? '' : 'off'}" id="af-on">${navigator.onLine ? 'Online' : 'Sem internet'}</span></span>
+        </footer>
       </div>
       ${isPatient ? '' : `<nav class="tabbar" aria-label="Atalhos" ${isAdm ? 'style="grid-template-columns:repeat(3,1fr)"' : ''}>
         ${(isStaff ? TAB_STAFF : isAdm ? TAB_ADMIN : TAB).map(([k, h, ic, l, cta]) => `<a href="${h}" ${cta ? 'data-new' : ''} ${k === 'sair' ? 'data-logout' : ''} class="${k === active || (k === 'mais' && NAV_MORE.some(([m]) => m === active)) ? 'on' : ''} ${cta ? 'cta' : ''}">${cta ? `<span class="circle">${icon(ic)}</span>` : icon(ic)}${l}</a>`).join('')}
@@ -216,6 +230,10 @@ export function shell(active) {
   markTheme();
   const s = $('#open-search');
   if (s) s.onclick = () => import('./search.js').then((m) => m.openSearch());
+  const um = $('.top-user');
+  if (um) document.addEventListener('click', (e) => { if (um.open && !um.contains(e.target)) um.open = false; });
+  const on = () => { const el = $('#af-on'); if (el) { el.textContent = navigator.onLine ? 'Online' : 'Sem internet'; el.classList.toggle('off', !navigator.onLine); } };
+  window.onoffline = on; window.ononline = on;
   const skip = $('#skip');
   if (skip) skip.onclick = () => { const m = $('#main'); m.setAttribute('tabindex', '-1'); m.focus(); };
   // Voltar: usa o histórico do navegador; sem histórico, vai para o início do perfil.

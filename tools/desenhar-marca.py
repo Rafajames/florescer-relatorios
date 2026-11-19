@@ -42,6 +42,7 @@ def empilhada(fundo, sim, cor_nome, titulo='Potira'):
     return svg(' '.join(map(str, VB)), 630, 475, r + sim + nome(cor_nome), titulo)
 escreve('potira-logo-claro.svg', empilhada(None, simbolo('c'), '#074459'))
 escreve('potira-logo-escuro.svg', empilhada(PETROLEO_ESC, simbolo('e'), '#FFFFFF'))
+escreve('potira-logo-menu.svg', empilhada(None, simbolo('m'), '#FFFFFF'))  # menu escuro, sem fundo
 escreve('potira-logo-negativo.svg', empilhada(PETROLEO, simbolo('n', 'um', '#FFFFFF'), '#FFFFFF'))
 
 # --- logo horizontal (símbolo à esquerda, nome à direita): para barras de topo

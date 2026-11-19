@@ -6,6 +6,14 @@ Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do
 
 ## 18/11/2026 — Redesign, entrega 1 de 3: marca, moldura e Início
 
+### Início e moldura mais próximos da imagem de referência
+- Nome do profissional no canto superior direito (com iniciais); ao clicar abre Configurações, Sobre a Potira e Sair. O rodapé do menu com o nome saiu; Ajuda e Suporte ficou no fim do menu.
+- Rodapé com "Seus dados estão seguros", lema, versão (carimbo do stamp.py) e Online/Sem internet (estado real do navegador).
+- Logo do menu direto sobre o petróleo, sem selo (versão com nome petróleo quando a cor da marca é clara).
+- Início: "Olá, nome!", indicadores com variação em relação ao mesmo período do mês anterior e minigráfico dos últimos 30 dias (pacientes ativos, sessões no mês, receitas no mês, documentos pendentes); gráfico de linhas de receitas e despesas (7/30/90 dias); Ações rápidas em blocos; Últimas atividades (pacientes novos, registros e pagamentos, com hora); Próximos compromissos com horário em destaque (Iniciar/Falta mantidos). Sessões de hoje, atenção, relatórios do mês, 7 dias e checklist continuam abaixo.
+- Fora por falta de dado ou função: sino de notificações, foto do profissional e Notas Fiscais.
+- Testado no ambiente simulado (360, 390, 768, 1280, 1440 px; claro e escuro), sem erros e sem rolagem lateral.
+
 ### Marca Potira refeita pela imagem enviada
 - Os SVGs de `assets/brand/` não eram a marca do James. Refiz em vetor a lótus com a figura no centro e o nome "Potira", a partir da imagem (logo clara, escura, negativa, horizontal, símbolos e ícones). É uma reprodução próxima, não idêntica; o nome foi vetorizado da imagem e pode ter pequenas irregularidades. Se houver os SVGs originais, basta substituí-los.
 - Menu usa a logo empilhada; topo da apresentação usa a horizontal. Favicons e ícones atualizados. Sem "Gestão em Saúde".

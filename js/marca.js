@@ -3,9 +3,9 @@
 // (data-theme manual e modo automático), então a logo nunca destoa do resto da tela.
 import { MARCA_SVG as S } from './marca-svg.js';
 
-/** Logo no menu lateral: versão negativa no tema claro e versão escura no tema escuro. Cada versão leva o próprio fundo oficial. */
+/** Logo no menu lateral, direto sobre a cor do menu: nome branco em menu escuro; nome petróleo quando a cor da marca é clara (data-rail-light). */
 export const logoMenu = () =>
-  `<span class="logo-tile" role="img" aria-label="Potira"><span class="mq-l">${S.logoNegativo}</span><span class="mq-d">${S.logoEscuro}</span></span>`;
+  `<span class="logo-menu" role="img" aria-label="Potira"><span class="lm-esc">${S.logoMenu}</span><span class="lm-cla">${S.logoClaro}</span></span>`;
 
 /** Logo horizontal em páginas claras ou escuras (apresentação, entrada, portal): sem fundo no claro; com fundo oficial no escuro. */
 export const logoPagina = () =>

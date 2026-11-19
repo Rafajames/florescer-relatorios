@@ -52,6 +52,7 @@ export function applyBrand(b) {
   s.setProperty('--on-bloom', lum(a) > 175 ? '#10252d' : '#ffffff'); // texto legível sobre a cor de destaque
   // Menu colorido: texto claro sobre cor escura e texto escuro sobre cor clara.
   s.setProperty('--rail-ink', lum(c) > 165 ? '#10252d' : '#ffffff');
+  document.documentElement.toggleAttribute('data-rail-light', lum(c) > 165);
   document.title = b?.org_name ? `${b.org_name}` : 'Potira - relatórios clínicos';
 }
 

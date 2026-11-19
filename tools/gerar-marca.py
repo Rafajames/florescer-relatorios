@@ -8,7 +8,7 @@ import json, os, re
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 src = os.path.join(root, 'assets', 'brand')
 NOMES = {
-    'logoHClaro': 'potira-logo-horizontal-claro.svg', 'logoHEscuro': 'potira-logo-horizontal-escuro.svg', 'logoClaro': 'potira-logo-claro.svg', 'logoEscuro': 'potira-logo-escuro.svg', 'logoNegativo': 'potira-logo-negativo.svg',
+    'logoHClaro': 'potira-logo-horizontal-claro.svg', 'logoHEscuro': 'potira-logo-horizontal-escuro.svg', 'logoMenu': 'potira-logo-menu.svg', 'logoClaro': 'potira-logo-claro.svg', 'logoEscuro': 'potira-logo-escuro.svg', 'logoNegativo': 'potira-logo-negativo.svg',
     'simboloColorido': 'potira-simbolo-colorido.svg', 'simboloNegativo': 'potira-simbolo-negativo.svg',
     'simboloMono': 'potira-simbolo-monocromatico.svg',
 }
