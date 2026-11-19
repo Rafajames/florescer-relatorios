@@ -9,6 +9,7 @@ Plataforma web de registro clínico, agenda e cobrança para profissionais de sa
 3. `docs/ATUALIZACOES.md` — o que já foi feito.
 4. `docs/CLINICA.md` — desenho da conta de clínica (não implementado; uma pergunta em espera).
 5. `docs/ESPECIFICACAO-EVOLUCAO-POTIRA.md` — plano técnico para autônomos e clínicas, cadastro completo, emissão fiscal e redesign integral (proposta, ainda não implementada).
+6. `docs/CLAUDE-IMPLEMENTAR-REDESIGN-POTIRA.md` — roteiro aprovado para integrar os SVGs oficiais e implementar o redesign visual.
 
 ## Como entregar
 
@@ -37,3 +38,8 @@ Plataforma web de registro clínico, agenda e cobrança para profissionais de sa
 - Não guardar arquivos de comprovante: só as informações do pagamento.
 - Não recriar o cadastro de secretária(o), a aba Equipe nem a opção "Sou paciente" em Criar conta: o paciente entra pelo Portal do paciente (`#/paciente`); equipe só na futura conta de clínica.
 - Não trocar "sessão" por "atendimento", não voltar o menu para branco, não recriar a cobrança em Word.
+
+## Identidade visual Potira
+
+- SVGs oficiais: `assets/brand/` (logo claro/escuro/negativo, símbolo e ícones).
+- Para executar o redesign visual aprovado, seguir `docs/CLAUDE-IMPLEMENTAR-REDESIGN-POTIRA.md` integralmente.
