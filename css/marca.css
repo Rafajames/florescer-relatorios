@@ -13,7 +13,7 @@
 /* logo com fundo próprio (menu): vira um selo arredondado, legível em qualquer cor de menu */
 .logo-tile{display:block;width:100%;max-width:132px;border-radius:14px;overflow:hidden;line-height:0}
 /* logo do menu: sem selo; versão clara só quando o menu tem cor clara (no tema escuro o menu é sempre escuro) */
-.logo-menu{display:block;width:100%;max-width:150px;margin:0 auto;line-height:0}
+.logo-menu{display:block;width:100%;max-width:104px;margin:0 auto;line-height:0}
 .logo-menu .lm-cla{display:none}
 :root[data-rail-light]:not([data-theme=dark]) .logo-menu .lm-cla{display:block}
 :root[data-rail-light]:not([data-theme=dark]) .logo-menu .lm-esc{display:none}

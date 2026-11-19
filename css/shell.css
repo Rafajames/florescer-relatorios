@@ -112,6 +112,19 @@
   .rail a.rail-help:hover{background:color-mix(in srgb,var(--rail-ink,#fff) 13%,transparent);color:var(--rail-ink,#fff)}
   .rail a.rail-help.on{background:var(--bloom);color:var(--on-bloom,#fff);font-weight:600}
   .rail a.rail-help svg{width:20px;height:20px}
+  /* recolher o menu: botão no rodapé do menu; recolhido mostra só os ícones (escolha guardada no navegador) */
+  .rail .brand-sim{display:none;width:42px;margin:0 auto}
+  .rail .rail-tog{display:flex;align-items:center;gap:12px;min-height:38px;padding:0 12px;border:0;border-radius:12px;background:none;font:500 13.5px var(--sans);color:color-mix(in srgb,var(--rail-ink,#fff) 70%,transparent);cursor:pointer;text-align:left}
+  .rail .rail-tog:hover{background:color-mix(in srgb,var(--rail-ink,#fff) 13%,transparent);color:var(--rail-ink,#fff)}
+  .rail .rail-tog svg{width:18px;height:18px;transition:transform .2s ease}
+  .app.rail-min{--rail:84px}
+  .rail-min .rail{padding:18px 10px}
+  .rail-min .rail .brand-full,.rail-min .rail .nl,.rail-min .rail .theme-row>span:first-child,.rail-min .rail::after{display:none}
+  .rail-min .rail .brand-sim{display:block}
+  .rail-min .rail .nav a,.rail-min .rail a.rail-help,.rail-min .rail .rail-tog{justify-content:center;padding:0}
+  .rail-min .rail .rail-tog svg{transform:rotate(180deg)}
+  .rail-min .rail .theme-row{justify-content:center;padding:8px 0}
+  .rail-min .rail .theme-tog{flex-direction:column}
   .rail .theme-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;font-size:14px;color:color-mix(in srgb,var(--rail-ink,#fff) 88%,transparent)}
   .rail .theme-row>span:first-child{display:flex;align-items:center;gap:9px}
   .rail .theme-row svg{width:17px;height:17px}

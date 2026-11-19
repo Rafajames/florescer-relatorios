@@ -177,18 +177,20 @@ export function shell(active) {
   const meta = state.user?.user_metadata || {};
   const foto = isStaff ? '' : String(meta.avatar_url || meta.picture || '');
   const home = isPatient ? '#/portal' : isStaff ? '#/administrativo' : isAdm ? '#/admin' : '#/painel';
+  let railMin = false; try { railMin = localStorage.getItem('potira.menu.recolhido') === '1'; } catch { /* sem armazenamento */ }
   const quem = (isStaff ? p.staff_name : p?.full_name) || state.user?.email || '';
   const papel = isPatient ? 'Paciente' : isStaff ? `Secretária(o) de ${p.full_name}` : isAdm ? 'Administrador' : (p?.specialty || 'Profissional');
   const isHome = ['painel', 'admin', 'portal'].includes(active) || (isStaff && active === 'administrativo');
   $('#app').innerHTML = `
-    <div class="app">
+    <div class="app ${railMin ? 'rail-min' : ''}">
       <button type="button" class="skip" id="skip">Pular para o conteúdo</button>
       <aside class="rail">
-        <a class="brand" href="${home}" aria-label="Potira, início">${logoMenu()}</a>
+        <a class="brand" href="${home}" aria-label="Potira, início"><span class="brand-full">${logoMenu()}</span><span class="brand-sim">${simboloColorido()}</span></a>
         <nav class="nav" aria-label="Principal">
-          ${nav.filter(([k]) => k !== 'ajuda').map(([k, h, ic, l]) => `<a href="${h}" class="${k === active ? 'on' : ''}${k === 'ajuda' ? ' nav-help' : ''}" ${k === active ? 'aria-current="page"' : ''}>${icon(ic)}${l}</a>`).join('')}
+          ${nav.filter(([k]) => k !== 'ajuda').map(([k, h, ic, l]) => `<a href="${h}" class="${k === active ? 'on' : ''}" title="${esc(l)}" ${k === active ? 'aria-current="page"' : ''}>${icon(ic)}<span class="nl">${l}</span></a>`).join('')}
         </nav>
-        ${nav.some(([k]) => k === 'ajuda') ? `<a class="rail-help ${active === 'ajuda' ? 'on' : ''}" href="#/ajuda" ${active === 'ajuda' ? 'aria-current="page"' : ''}>${icon('help')}Ajuda e Suporte</a>` : ''}
+        ${nav.some(([k]) => k === 'ajuda') ? `<a class="rail-help ${active === 'ajuda' ? 'on' : ''}" href="#/ajuda" title="Ajuda e Suporte" ${active === 'ajuda' ? 'aria-current="page"' : ''}>${icon('help')}<span class="nl">Ajuda e Suporte</span></a>` : ''}
+        <button type="button" class="rail-tog" id="rail-tog" title="Recolher ou abrir o menu" aria-label="${railMin ? 'Abrir menu' : 'Recolher menu'}" aria-pressed="${railMin}">${icon('left')}<span class="nl">Recolher menu</span></button>
         <div class="theme-row"><span>${icon('sun')}Tema</span><span class="theme-tog" role="group" aria-label="Tema"><button type="button" data-theme-set="light" title="Claro" aria-label="Tema claro">${icon('sun')}</button><button type="button" data-theme-set="dark" title="Escuro" aria-label="Tema escuro">${icon('moon')}</button></span></div>
       </aside>
       <div class="stage">
@@ -230,6 +232,12 @@ export function shell(active) {
   markTheme();
   const s = $('#open-search');
   if (s) s.onclick = () => import('./search.js').then((m) => m.openSearch());
+  const rt = $('#rail-tog');
+  if (rt) rt.onclick = () => {
+    const min = !$('.app').classList.contains('rail-min');
+    $('.app').classList.toggle('rail-min', min); rt.setAttribute('aria-pressed', String(min)); rt.setAttribute('aria-label', min ? 'Abrir menu' : 'Recolher menu');
+    try { localStorage.setItem('potira.menu.recolhido', min ? '1' : '0'); } catch { /* sem armazenamento */ }
+  };
   const um = $('.top-user');
   if (um) document.addEventListener('click', (e) => { if (um.open && !um.contains(e.target)) um.open = false; });
   const on = () => { const el = $('#af-on'); if (el) { el.textContent = navigator.onLine ? 'Online' : 'Sem internet'; el.classList.toggle('off', !navigator.onLine); } };
