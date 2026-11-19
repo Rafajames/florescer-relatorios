@@ -161,6 +161,8 @@ Avisos do Supabase que continuam abertos. **Tratar antes de abrir a plataforma p
 
 ## 9. Identidade visual e redesign
 
+- **Entrar com Google (pedido em 19/11/2026):** o perfil já mostra a foto do Google, mas o login com Google não existe. Falta: criar cliente OAuth no Google Cloud, ativar o provedor Google no Supabase (projeto dadkcfhwtmuizcjywcpw) com o endereço de retorno do site, e pôr o botão na tela de entrada. Depende do James criar o cliente no Google Cloud.
+
 - **Entrega 1 de 3 feita em 18/11/2026**, refeita pela imagem de referência (menu novo, Início com indicadores e evolução financeira). Aguardando avaliação do James; Notas Fiscais entra em Financeiro quando existir. Ver [ATUALIZACOES.md](ATUALIZACOES.md). Testada só com dados simulados; conferir no site real com uma conta.
 - **Entrega 2 feita em 19/11/2026** (abas em pílula, cartões com sombra, títulos na fonte da marca, tabela do Financeiro em tablet). Aguardando avaliação do James.
 - **Próximos (sugeridos e aprovados em 19/11):** sino de avisos no topo, Início mais curto no celular, mensagens para conta nova.

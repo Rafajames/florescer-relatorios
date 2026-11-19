@@ -6,6 +6,11 @@ Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do
 
 ## 19/11/2026 — Nova apresentação (página inicial pública)
 
+### Logo do profissional só nos documentos; foto do Google no perfil
+- Menu, topo do celular e telas de entrada mostram sempre a marca Potira. A logo e o nome do consultório continuam nos documentos (PDF e Word); as cores escolhidas seguem mudando o menu. Texto de Configurações → Aparência ajustado.
+- Círculo do perfil (canto superior direito): usa a foto da conta Google quando a pessoa entrou pelo Google e a conta tem foto; senão, as iniciais. Se a foto não carregar, voltam as iniciais.
+- A entrada com Google ainda não existe: precisa ativar o Google no Supabase (Authentication → Providers) com um cliente OAuth do Google Cloud, e depois pôr o botão "Entrar com Google". Ver PENDENCIAS.
+
 ### Redesign, entrega 2 de 3: telas internas no padrão do Início
 - Abas viram uma barra de pílulas (aba ativa em petróleo), que rola de lado quando não cabe: vale para Agenda, Financeiro, ficha do paciente, editor, Documentos e Configurações.
 - Painéis, tabelas, números (stats), cartões de paciente, de configurações e de registro: brancos, cantos do novo padrão e sombra discreta, sem borda. Títulos na fonte da marca (Bricolage). Campos com cantos mais arredondados.

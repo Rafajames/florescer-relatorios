@@ -139,7 +139,7 @@ export async function renderSettings(params) {
       </section>
       <form id="bf">
       <section class="panel"><h2>Aparência e marca</h2>
-        <p class="muted">A plataforma passa a ter a sua cara: logo, cores e nome aparecem no menu, na tela de login e nos documentos.</p>
+        <p class="muted">Sua marca nos documentos: a logo e o nome saem no cabeçalho dos PDFs e do Word; as cores também mudam o menu da plataforma.</p>
         <div class="grid2">
           <label class="field">Nome que aparece na plataforma<input name="org_name" value="${esc(draft.org_name)}" placeholder="Ex.: Espaço Florescer"></label>
           <label class="field">Frase da tela de login<input name="tagline" value="${esc(draft.tagline)}" placeholder="Ex.: Cuidado com escuta e ciência."></label>

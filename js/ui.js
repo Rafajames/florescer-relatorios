@@ -1,6 +1,5 @@
 import { state, settings } from './state.js';
 import { icon } from './icons.js';
-import { brandOf } from './brand.js';
 import { setLook } from './theme.js';
 import { logoMenu, simboloColorido } from './marca.js';
 
@@ -173,8 +172,10 @@ export function shell(active) {
   const NAV_STAFF = NAV.filter(([k]) => ['administrativo', 'financeiro', 'ajuda'].includes(k));
   const nav = isPatient ? NAV_PATIENT : isStaff ? NAV_STAFF : (p && p.is_admin ? [['admin', '#/admin', 'home', 'Início'], ['config', '#/config?aba=seguranca', 'shield', 'Minha segurança']] : NAV);
   const nt = settings.notice && settings.notice.on && settings.notice.text ? settings.notice : null;
-  const br = isPatient ? { logo: '', org_name: '' } : brandOf(p);
-  const own = Boolean(br.logo || br.org_name); // marca própria do profissional; sem ela, aparece a logo Potira
+  // A logo do profissional fica só nos documentos; na moldura aparece sempre a Potira.
+  // Foto do perfil: a da conta Google (quando entrou pelo Google e ela tem foto); senão, as iniciais.
+  const meta = state.user?.user_metadata || {};
+  const foto = isStaff ? '' : String(meta.avatar_url || meta.picture || '');
   const home = isPatient ? '#/portal' : isStaff ? '#/administrativo' : isAdm ? '#/admin' : '#/painel';
   const quem = (isStaff ? p.staff_name : p?.full_name) || state.user?.email || '';
   const papel = isPatient ? 'Paciente' : isStaff ? `Secretária(o) de ${p.full_name}` : isAdm ? 'Administrador' : (p?.specialty || 'Profissional');
@@ -183,7 +184,7 @@ export function shell(active) {
     <div class="app">
       <button type="button" class="skip" id="skip">Pular para o conteúdo</button>
       <aside class="rail">
-        <a class="brand" href="${home}" ${own ? '' : 'aria-label="Potira, início"'}>${own ? `<span class="mark ${br.logo ? 'has-logo' : 'potira'}">${br.logo ? `<img src="${esc(br.logo)}" alt="">` : simboloColorido()}</span><b>${esc(br.org_name || 'Potira')}</b>` : logoMenu()}</a>
+        <a class="brand" href="${home}" aria-label="Potira, início">${logoMenu()}</a>
         <nav class="nav" aria-label="Principal">
           ${nav.filter(([k]) => k !== 'ajuda').map(([k, h, ic, l]) => `<a href="${h}" class="${k === active ? 'on' : ''}${k === 'ajuda' ? ' nav-help' : ''}" ${k === active ? 'aria-current="page"' : ''}>${icon(ic)}${l}</a>`).join('')}
         </nav>
@@ -192,7 +193,7 @@ export function shell(active) {
       </aside>
       <div class="stage">
         <div class="topbar ${isHome ? 'top-home' : ''}">
-          <a class="top-brand" href="${home}" aria-label="${own ? esc(br.org_name || 'Início') : 'Potira, início'}"><span class="mark ${br.logo ? 'has-logo' : 'potira'}">${br.logo ? `<img src="${esc(br.logo)}" alt="">` : simboloColorido()}</span></a>
+          <a class="top-brand" href="${home}" aria-label="Potira, início"><span class="mark potira">${simboloColorido()}</span></a>
           <button class="icon-btn back-btn" id="go-back" title="Voltar" aria-label="Voltar">${icon('left')}</button>
           <button class="icon-btn theme-btn" data-theme-flip title="Alternar tema claro/escuro" aria-label="Alternar tema">${icon('moon')}</button>
           ${isPatient || isAdm ? '<span class="grow"></span>' : `
@@ -200,7 +201,7 @@ export function shell(active) {
           <button class="icon-btn help-btn" id="open-help" title="Atalhos do teclado (?)" aria-label="Atalhos do teclado">${icon('info')}</button>
           <a class="btn bloom" href="#/nova" data-new>${icon('plus')}<span>Novo</span></a>`}
           <details class="top-user">
-            <summary aria-label="Menu do perfil"><span class="tu-ic">${icon('users')}</span><span class="tu-nome">${esc(quem)}</span>${icon('chev', 'tu-seta')}<span class="avatar">${esc(initials(quem))}</span></summary>
+            <summary aria-label="Menu do perfil"><span class="tu-ic">${icon('users')}</span><span class="tu-nome">${esc(quem)}</span>${icon('chev', 'tu-seta')}<span class="avatar">${foto ? `<img src="${esc(foto)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}${esc(initials(quem))}</span></summary>
             <div class="tu-menu" role="menu">
               <div class="tu-head"><b>${esc(quem)}</b><span>${esc(papel)}</span></div>
               ${isPatient || isStaff || isAdm ? '' : `<a href="#/config?aba=perfil" role="menuitem">${icon('users')}Meu perfil</a>`}

@@ -5,16 +5,13 @@ import * as ai from './ai.js';
 import { saveKey } from './ai-connect.js';
 import { logoMenu, simboloColorido } from './marca.js';
 
-const logoTile = (b) => (b && b.logo
-  ? `<span class="mark has-logo"><img src="${esc(b.logo)}" alt=""></span>`
-  : `<span class="mark potira">${simboloColorido()}</span>`);
 
 // brand: marca do profissional (logo, nome, frase); sem marca, aparece a Potira
 const hero = (b, paciente = false) => {
   const own = Boolean(b && (b.logo || b.org_name));
   if (paciente) return `
   <div class="auth-hero">
-    <a class="brand" href="#/paciente">${own ? `${logoTile(b)}<b>${esc(b.org_name || '')}</b>` : `<span class="auth-logo">${logoMenu()}</span>`}</a>
+    <a class="brand" href="#/paciente"><span class="auth-logo">${logoMenu()}</span></a>
     <div>
       <h1>Portal do paciente</h1>
       <p style="margin-top:14px">Seus relatórios, suas próximas sessões e seus recibos, em um só lugar.</p>
@@ -27,7 +24,7 @@ const hero = (b, paciente = false) => {
   </div>`;
   return `
   <div class="auth-hero">
-    <a class="brand" href="#/">${own ? `${logoTile(b)}<b>${esc(b.org_name || '')}</b>` : `<span class="auth-logo">${logoMenu()}</span>`}</a>
+    <a class="brand" href="#/"><span class="auth-logo">${logoMenu()}</span></a>
     <div>
       <h1>${own ? esc(b.tagline || 'Acesse sua área.') : 'Menos tempo escrevendo, mais tempo com o paciente.'}</h1>
       ${own ? '' : '<p style="margin-top:14px">Registre a sessão, revise o esboço e entregue o relatório. Você decide o que o paciente vê.</p>'}
@@ -40,7 +37,7 @@ const hero = (b, paciente = false) => {
   </div>`;
 };
 // no celular o painel lateral some; a marca aparece no topo do cartão
-const mobileBrand = (b) => `<div class="auth-mobile-brand">${logoTile(b)}<b>${esc((b && b.org_name) || 'Potira')}</b></div>`;
+const mobileBrand = () => `<div class="auth-mobile-brand"><span class="mark potira">${simboloColorido()}</span><b>Potira</b></div>`;
 
 export function renderSetup() {
   $('#app').innerHTML = `
