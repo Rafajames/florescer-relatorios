@@ -8,6 +8,7 @@ Plataforma web de registro clínico, agenda e cobrança para profissionais de sa
 2. `docs/PENDENCIAS.md` — o que falta fazer, o que precisa de revisão e o que está aguardando decisão do James.
 3. `docs/ATUALIZACOES.md` — o que já foi feito.
 4. `docs/CLINICA.md` — desenho da conta de clínica (não implementado; uma pergunta em espera).
+5. `docs/ESPECIFICACAO-EVOLUCAO-POTIRA.md` — plano técnico para autônomos e clínicas, cadastro completo, emissão fiscal e redesign integral (proposta, ainda não implementada).
 
 ## Como entregar
 
