@@ -157,3 +157,9 @@ Avisos do Supabase que continuam abertos. **Tratar antes de abrir a plataforma p
 - Documento: [ESPECIFICACAO-EVOLUCAO-POTIRA.md](ESPECIFICACAO-EVOLUCAO-POTIRA.md).
 - **Ainda não implementado:** redesign, novos campos/relacionamentos, conta de clínica e módulo fiscal. Esta atualização foi documental.
 - Antes da implementação: aprovar protótipos; decidir o destino dos registros quando profissional sair da clínica; decidir titularidade fiscal, emissor/provedor, municípios e custos.
+
+
+## 9. Identidade visual e redesign
+
+- **Ativos vetoriais adicionados:** `assets/brand/` contém nove SVGs oficiais do Potira. Ainda falta o Claude integrá-los à interface e implementar o redesign visual.
+- **Roteiro de implementação:** seguir `docs/CLAUDE-IMPLEMENTAR-REDESIGN-POTIRA.md`. A tarefa é visual; não inclui cadastro completo, conta de clínica nem NFS-e.
