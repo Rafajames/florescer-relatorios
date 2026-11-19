@@ -6,6 +6,11 @@ Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do
 
 ## 19/11/2026 — Nova apresentação (página inicial pública)
 
+### Documentação atualizada
+- README refeito: logo, o que a Potira faz por área do menu, visual, tecnologia (IAs Gemini, Groq, Anthropic e OpenAI), estrutura de pastas, como instalar e como contribuir.
+- DIRETRIZES: novas regras de interface (ordem do menu, títulos iguais ao menu, nada repetido, marca Potira na moldura e do profissional nos documentos, Início só com dados reais) e regras da marca/estilos.
+- PENDENCIAS §9 reescrita com a situação do redesign; CLAUDE.md com o mapa do código atualizado.
+
 ### Profissão no feminino/masculino e logo do celular corrigida
 - No menu do perfil aparece a profissão, não a área: Terapeuta ocupacional, Psicóloga/Psicólogo, Fonoaudióloga/Fonoaudiólogo, Médica/Médico, Enfermeira/Enfermeiro, Fisioterapeuta, Nutricionista, Assistente social. Em "Outra", usa a categoria escrita no perfil.
 - Feminino ou masculino: escolha nova em Configurações → Perfil ("Como você é apresentado(a)"), guardada em `credentials.tratamento` (sem mudança de banco). Sem escolha, o sistema usa o primeiro nome (termina em "a" → feminino).

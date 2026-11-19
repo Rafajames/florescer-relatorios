@@ -93,6 +93,11 @@ Regras que valem para qualquer mudança, feita por pessoa ou por IA. O objetivo 
 - **O nome Potira** (tupi, "flor") e a história do nome aparecem na apresentação (seção "Por que Potira?") e em Sobre. Manter os dois textos coerentes.
 - **A tela principal de quem não está logado é a apresentação** (`js/views-landing.js`), com Entrar e Portal do paciente no topo. Não voltar a abrir direto no login. Os links com a marca do profissional (`#/c/nome`, `#/paciente/nome`) continuam indo direto para a entrada.
 
+- **Menu lateral** nesta ordem: Início, Pacientes, Agenda, Atendimentos, Documentos, Financeiro, Relatórios, Configurações e, no fim, Ajuda e Suporte. Item ativo em rosa (cor de destaque da marca). O menu pode ser recolhido (só ícones); a escolha fica no navegador. **O título de cada página é igual ao nome no menu.**
+- **Nada repetido sem necessidade:** Meu perfil, Sobre a Potira e Sair ficam só no menu do perfil (nome no canto superior direito, com a profissão no feminino/masculino e a foto do Google quando houver). Não repetir esses itens em "Mais", no menu lateral ou em cabeçalhos de página. Antes de pôr um botão, ver se o mesmo destino já está visível na tela.
+- **Marca Potira na moldura, marca do profissional nos documentos.** Menu, topo e telas de entrada mostram sempre a Potira (logo e símbolo sem quadrado de fundo). A logo e o nome do consultório saem só nos documentos (PDF/Word); as cores do profissional continuam mudando o menu. Nunca acrescentar o subtítulo "Gestão em Saúde".
+- **Início só com dados reais** (indicadores, evolução financeira, atividades, compromissos). Nada de número ou gráfico inventado; sem dados, mostrar zero ou um convite para começar.
+
 ## 7. Regras técnicas
 
 - Rodar `python3 tools/stamp.py` **antes de cada commit** e incluir o `index.html`. Sem isso o navegador mostra a versão antiga.
@@ -100,5 +105,6 @@ Regras que valem para qualquer mudança, feita por pessoa ou por IA. O objetivo 
 - Função `SECURITY DEFINER` nova: definir `search_path` e revogar de `public`/`anon` o que não for público.
 - Rotas ficam em `js/main.js`. Cada tela é um arquivo `js/views-*.js`. Acesso ao banco só por `js/api.js`.
 - Bibliotecas externas só por CDN e carregadas sob demanda (como mammoth, pdf.js e JSZip na importação de modelos).
-- **Estilos ficam em arquivos por assunto**, carregados nesta ordem em `index.html`: `css/tokens.css` (todos os valores de cor, tipografia, espaço e os temas claro/escuro/automático; nada de cor solta nas telas), `css/app.css` (componentes e telas ainda não migrados), `css/marca.css` (logos), `css/shell.css` (menu, topo, barra do celular) e `css/inicio.css`. Tela nova ou revisada ganha o próprio arquivo (ou seção) em vez de remendos no fim do `app.css`; ao migrar uma tela, apague as regras antigas dela. O `stamp.py` carimba todos os CSS.
+- **Estilos ficam em arquivos por assunto**, carregados nesta ordem em `index.html`: `css/tokens.css` (todos os valores de cor, tipografia, espaço e os temas claro/escuro/automático; nada de cor solta nas telas), `css/app.css` (componentes e telas ainda não migrados), `css/marca.css` (logos), `css/shell.css` (menu, topo, perfil, rodapé, barra do celular), `css/inicio.css` (Início) e `css/landing.css` (apresentação). Tela nova ou revisada ganha o próprio arquivo (ou seção) em vez de remendos no fim do `app.css`; ao migrar uma tela, apague as regras antigas dela. O `stamp.py` carimba todos os CSS.
+- **Marca:** os SVGs de `assets/brand/` são gerados por `tools/desenhar-marca.py` e copiados para o JS por `tools/gerar-marca.py` (rodar os dois ao mexer na marca). Desenho colocado na página com ids únicos por cópia (`unico` em `js/marca.js`), senão as cores somem quando há uma cópia escondida.
 - Commits em português, dizendo o que mudou para o usuário.

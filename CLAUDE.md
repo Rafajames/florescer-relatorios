@@ -23,13 +23,13 @@ Plataforma web de registro clínico, agenda e cobrança para profissionais de sa
 ## Mapa do código
 
 - `js/main.js` rotas · `js/ui.js` moldura, janelas (`openModal`, `confirmBox`), avisos · `js/api.js` todo acesso ao banco
-- `js/views-home.js` Início, Pacientes e ficha do paciente · `js/views-session.js` nova sessão · `js/views-report.js` editor do relatório
+- `js/views-home.js` Início, Pacientes e ficha do paciente · `js/home-fin.js` dados e gráficos do Início · `js/views-session.js` nova sessão · `js/views-report.js` editor do relatório
 - `js/views-administrativo.js` agenda, frequência, declarações, convênios · `js/views-financeiro.js` cobranças, valores, despesas, documentos, dados de pagamento
 - `js/cobranca.js` PIX, WhatsApp, textos e regras de cobrança · `js/cobrar.js` janelas de cobrar, registrar pagamento e agendar cobrança
 - `js/pasta.js` pasta dos documentos no computador do profissional
 - `js/views-clinico.js` metas e escalas · `js/tour.js` tour de primeiro acesso · `js/views-landing.js` apresentação (tela principal de quem não está logado; `apresentacao.html` só redireciona)
 - `js/export.js` PDF e Word de todos os documentos · `js/import-template.js` leitura de Word/PDF/foto para virar modelo
-- `js/views-public.js` páginas públicas por link e página pública do profissional · `js/views-portal.js` portal do paciente · `js/brand.js` e `js/theme.js` marca e tema · `css/` estilos: `tokens.css`, `app.css`, `marca.css`, `shell.css`, `inicio.css`, `landing.css` (ver DIRETRIZES §7) · `js/marca.js` + `js/marca-svg.js` (gerado por `tools/gerar-marca.py`) marca Potira
+- `js/views-public.js` páginas públicas por link e página pública do profissional · `js/views-portal.js` portal do paciente · `js/brand.js` e `js/theme.js` marca e tema · `css/` estilos: `tokens.css`, `app.css`, `marca.css`, `shell.css`, `inicio.css`, `landing.css` (ver DIRETRIZES §7) · `js/marca.js` + `js/marca-svg.js` (gerado por `tools/gerar-marca.py`; SVGs desenhados por `tools/desenhar-marca.py`) marca Potira
 
 ## Não fazer
 
@@ -37,9 +37,9 @@ Plataforma web de registro clínico, agenda e cobrança para profissionais de sa
 - Não implementar uso offline, instalar como aplicativo, clínicas, cobrança enviada sozinha nem correções de segurança do Supabase sem o James pedir (ver pendências).
 - Não guardar arquivos de comprovante: só as informações do pagamento.
 - Não recriar o cadastro de secretária(o), a aba Equipe nem a opção "Sou paciente" em Criar conta: o paciente entra pelo Portal do paciente (`#/paciente`); equipe só na futura conta de clínica.
-- Não trocar "sessão" por "atendimento", não voltar o menu para branco, não recriar a cobrança em Word.
+- Não trocar "sessão" por "atendimento" nos textos (a única exceção é o item de menu "Atendimentos", pedido pelo James), não voltar o menu para branco, não recriar a cobrança em Word.
 
 ## Identidade visual Potira
 
-- SVGs oficiais: `assets/brand/` (logo claro/escuro/negativo, símbolo e ícones).
+- SVGs oficiais: `assets/brand/` (logo empilhada, horizontal e do menu, símbolos e ícones), redesenhados a partir da imagem do James. Logo do profissional só nos documentos.
 - Para executar o redesign visual aprovado, seguir `docs/CLAUDE-IMPLEMENTAR-REDESIGN-POTIRA.md` integralmente.

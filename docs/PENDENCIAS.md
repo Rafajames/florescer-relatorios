@@ -161,11 +161,12 @@ Avisos do Supabase que continuam abertos. **Tratar antes de abrir a plataforma p
 
 ## 9. Identidade visual e redesign
 
-- **Entrar com Google (pedido em 19/11/2026):** o perfil já mostra a foto do Google, mas o login com Google não existe. Falta: criar cliente OAuth no Google Cloud, ativar o provedor Google no Supabase (projeto dadkcfhwtmuizcjywcpw) com o endereço de retorno do site, e pôr o botão na tela de entrada. Depende do James criar o cliente no Google Cloud.
-
-- **Entrega 1 de 3 feita em 18/11/2026**, refeita pela imagem de referência (menu novo, Início com indicadores e evolução financeira). Aguardando avaliação do James; Notas Fiscais entra em Financeiro quando existir. Ver [ATUALIZACOES.md](ATUALIZACOES.md). Testada só com dados simulados; conferir no site real com uma conta.
-- **Entrega 2 feita em 19/11/2026** (abas em pílula, cartões com sombra, títulos na fonte da marca, tabela do Financeiro em tablet). Aguardando avaliação do James.
-- **Próximos (sugeridos e aprovados em 19/11):** sino de avisos no topo, Início mais curto no celular, mensagens para conta nova.
-- **Entrega 3 (pendente):** apresentação, entrada/criar conta/recuperar, Portal do paciente, páginas públicas por link; revisão final de temas, 390 px, foco e contraste.
-- **Limites conhecidos:** o ícone da aba do navegador segue o tema do sistema, não o botão de tema da Potira; ícone de tela inicial do iPhone exige PNG (não feito: os SVGs não são rasterizados e "instalar como aplicativo" está adiado). A pasta `local/` (protótipo antigo) ficou fora do redesign, por decisão do James.
+Situação em 19/11/2026 (tudo testado só no ambiente simulado; conferir no site real com uma conta):
+- **Feito:** marca Potira refeita em vetor a partir da imagem do James; menu novo (ordem, item ativo rosa, recolher); perfil no canto superior direito com profissão no feminino/masculino e foto do Google; rodapé com versão e Online; Início pela imagem de referência; apresentação nova (visual da prévia aprovada); telas internas (entrega 2) com abas em pílula e cartões com sombra; logo sem quadrado em todo o sistema; itens repetidos removidos; títulos iguais aos do menu.
+- **Aguardando avaliação do James:** entrega 2 e os ajustes de 19/11.
+- **Próximos aprovados:** sino de avisos no topo (usar as Novidades que já existem), Início mais curto no celular, mensagens para conta nova (cartões sem dados com convite para começar).
+- **Entrega 3 (restante):** visual da entrada/criar conta/recuperar senha (no escuro o botão Entrar tem pouco contraste), Portal do paciente e páginas por link; revisão final de foco, contraste e 390 px.
+- **Entrar com Google:** o perfil já mostra a foto do Google, mas o login com Google não existe. Falta o James criar um cliente OAuth no Google Cloud; depois ativar o provedor Google no Supabase (projeto dadkcfhwtmuizcjywcpw) com o endereço de retorno do site e pôr o botão na entrada.
+- **Documentos:** ainda mostram a área ("Terapia Ocupacional") e não a profissão; trocar se o James quiser.
+- **Limites conhecidos:** o ícone da aba do navegador segue o tema do sistema, não o botão de tema da Potira; ícone de tela inicial do iPhone exige PNG (não feito; "instalar como aplicativo" está adiado). A logo foi vetorizada de uma imagem de baixa resolução: se aparecerem os arquivos originais, substituem os de `assets/brand/`.
 - Roteiro: `docs/CLAUDE-IMPLEMENTAR-REDESIGN-POTIRA.md`.
