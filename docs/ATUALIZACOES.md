@@ -4,6 +4,13 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 19/11/2026 — Nova apresentação (página inicial pública)
+
+- Recriada no visual da prévia `preview/potira-apresentacao.html` aprovada pelo James: topo claro com logo, destaque com prévia do novo Início (dados fictícios, gráfico que se desenha, agenda com destaque animado), benefícios, "A plataforma" com espaço de trabalho, quatro passos, bloco de confiança (IA opcional, LGPD), público, "Por que Potira?", dúvidas, chamada final, contato e botão flutuante de Contato.
+- Mudanças em relação à prévia: logo e símbolo oficiais no lugar do ✿, ícones do sistema no lugar dos caracteres, botões ligados a Entrar, Criar conta e Portal do paciente, textos com o que a Potira faz de fato, perguntas frequentes mantidas, contato real (GitHub; WhatsApp e e-mail quando o administrador preencher), tema escuro e movimento reduzido.
+- Estilos em `css/landing.css` (novo); as regras antigas da apresentação saíram de `app.css`.
+- Testado no ambiente simulado (390 e 1366 px; claro, escuro e automático; botão Entrar), sem erros nem rolagem lateral.
+
 ## 18/11/2026 — Redesign, entrega 1 de 3: marca, moldura e Início
 
 ### Início e moldura mais próximos da imagem de referência
