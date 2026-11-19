@@ -1,3 +1,4 @@
+import { simboloColorido } from './marca.js';
 // Primeiro acesso do profissional: perfil e marca, IA (opcional) e pronto.
 import * as api from './api.js';
 import * as ai from './ai.js';
@@ -20,7 +21,7 @@ export function renderOnboarding(done) {
   const draw = () => {
     $('#app').innerHTML = `
     <div class="onb">
-      <header class="onb-head"><span class="brand"><span class="mark">${icon('flower')}</span><b>Bem-vindo à Potira</b></span>
+      <header class="onb-head"><span class="brand"><span class="mark potira">${simboloColorido()}</span><b>Bem-vindo à Potira</b></span>
         <ol class="onb-steps">${steps.map((t, i) => `<li class="${i + 1 === step ? 'on' : i + 1 < step ? 'done' : ''}"><span>${i + 1 < step ? icon('check') : i + 1}</span>${t}</li>`).join('')}</ol></header>
       <main class="onb-card" id="onb-body"></main>
     </div>`;

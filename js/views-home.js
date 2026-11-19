@@ -159,8 +159,6 @@ export async function renderDashboard() {
         <div class="lg"><span class="k"><span class="dot c-ok"></span>Realizadas</span><b>${doneAps}</b></div>
         <div class="lg"><span class="k"><span class="dot c-pet3"></span>A fazer</span><b>${leftAps}</b></div>
         <div class="lg"><span class="k"><span class="dot c-blo"></span>Faltas</span><b>${missAps}</b></div>
-        <a class="lg" href="#/pacientes"><span class="k">Pacientes</span><b>${patients.length}</b></a>
-        <a class="lg" href="#/relatorios?status=rascunho"><span class="k">Rascunhos para revisar</span><b>${drafts.length}</b></a>
       </div>
       <div class="quick">
         ${patients.length ? `<select id="who" aria-label="Paciente"><option value="">Quem você vai atender agora?</option>
@@ -218,14 +216,6 @@ export async function renderDashboard() {
       <div class="midnum">${monthR.length}<small>${monthR.length === 1 ? 'relatório' : 'relatórios'}</small></div>
       <div class="legend-row dash-gap"><span class="lg"><span class="k"><span class="dot c-pet"></span>Liberados</span><b>${mRel}</b></span><span class="lg"><span class="k"><span class="dot c-light"></span>Revisados</span><b>${mRev}</b></span><span class="lg"><span class="k"><span class="dot c-blo"></span>Rascunhos</span><b>${mDraft}</b></span></div>
       <div class="segbar thick">${monthR.length ? `<i class="c-pet" style="width:${pct(mRel, monthR.length)}%">${pct(mRel, monthR.length) >= 12 ? pct(mRel, monthR.length) + '%' : ''}</i><i class="c-light" style="width:${pct(mRev, monthR.length)}%"></i><i class="c-blo" style="width:${pct(mDraft, monthR.length)}%"></i>` : ''}</div>
-    </section>
-
-    <section class="dcard a-sete" aria-label="Últimos 7 dias">
-      <h3>Últimos 7 dias</h3>
-      <div class="lbl">Registros feitos</div>
-      <div class="midnum">${total7}<small>${total7 === 1 ? 'registro' : 'registros'}</small></div>
-      ${prev7 ? `<div class="trend dash-gap-s ${diff < 0 ? 'down' : ''}">${diff >= 0 ? '↗' : '↘'} ${Math.abs(diff)}% vs. semana anterior</div>` : '<div class="muted small dash-gap-s">registros por dia</div>'}
-      <div class="wk">${week.map((d, i) => `<div class="${iso(d) === today ? 'today' : ''}"><div class="bar"><i style="height:${(counts[i] / maxC) * 100}%"></i></div><b>${counts[i]}</b><span>${d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')} ${d.getDate()}</span></div>`).join('')}</div>
     </section>
 
     ${doneN < todo.length ? `<aside class="dcard a-todo" aria-label="Deixe o sistema pronto">

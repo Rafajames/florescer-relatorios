@@ -1,3 +1,4 @@
+import { simboloColorido } from './marca.js';
 // Páginas públicas por link (sem login): anamnese para o paciente responder e
 // relatório revisado para ler e baixar. Só aparece a tela do link, nada do painel.
 import * as api from './api.js';
@@ -23,7 +24,7 @@ const erro = (msg) => card('Link indisponível', `<p>${esc(msg)}</p>`);
 
 export async function renderPublicLink(token) {
   const app = $('#app');
-  app.innerHTML = `<div class="pub"><header class="pub-h">${icon('flower')}<b>Potira</b></header><main class="pub-main" id="pub-main"><p class="muted">Carregando…</p></main></div>`;
+  app.innerHTML = `<div class="pub"><header class="pub-h"><span class="pub-sim">${simboloColorido()}</span><b>Potira</b></header><main class="pub-main" id="pub-main"><p class="muted">Carregando…</p></main></div>`;
   const main = $('#pub-main');
   try {
     const info = await api.getPublicLink(token);
@@ -71,7 +72,7 @@ function marca(info) {
   const b = info.branding || {}, h = $('.pub-h');
   const nome = b.org_name || info.professional_name;
   if (!h || !nome) return;
-  h.innerHTML = `${b.logo ? `<img src="${esc(b.logo)}" alt="" style="height:28px;max-width:120px;object-fit:contain">` : icon('flower')}<b>${esc(nome)}</b>`;
+  h.innerHTML = `${b.logo ? `<img src="${esc(b.logo)}" alt="" style="height:28px;max-width:120px;object-fit:contain">` : `<span class="pub-sim">${simboloColorido()}</span>`}<b>${esc(nome)}</b>`;
   if (/^#[0-9a-f]{6}$/i.test(b.color || '')) h.style.color = b.color;
 }
 

@@ -175,8 +175,8 @@
   .dcard{padding:22px}
   .dcard>h3,.dcard .h{padding-right:90px}
   .dcard .ill{top:12px;right:14px;transform:none}
-  .dash{grid-template-areas:"fin fin" "quick quick" "ativ prox" "hoje hoje" "att att" "rel sete" "todo todo"}
-  .a-fin{grid-area:fin}.a-hoje{grid-area:hoje}.a-quick{grid-area:quick}.a-prox{grid-area:prox}.a-att{grid-area:att}.a-ativ{grid-area:ativ}.a-rel{grid-area:rel}.a-sete{grid-area:sete}.a-todo{grid-area:todo}
+  .dash{grid-template-areas:"fin fin" "quick quick" "ativ prox" "hoje hoje" "att att" "rel todo"}
+  .a-fin{grid-area:fin}.a-hoje{grid-area:hoje}.a-quick{grid-area:quick}.a-prox{grid-area:prox}.a-att{grid-area:att}.a-ativ{grid-area:ativ}.a-rel{grid-area:rel}.a-todo{grid-area:todo}
   .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-4);margin-bottom:var(--s-4)}
   .qa{grid-template-columns:repeat(4,minmax(0,1fr))}
   .bignum{font-size:46px}
@@ -187,7 +187,7 @@
   .wk .bar{height:150px}
 }
 @media (min-width:1181px){
-  .dash{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) 400px;grid-template-areas:"fin fin quick" "ativ ativ prox" "hoje hoje att" "rel sete todo"}
+  .dash{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) 400px;grid-template-areas:"fin fin quick" "ativ ativ prox" "hoje hoje att" "rel rel todo"}
   .kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
   .quick-card .qa{grid-template-columns:repeat(2,minmax(0,1fr))}
 }

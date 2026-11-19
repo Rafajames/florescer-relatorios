@@ -6,6 +6,13 @@ Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do
 
 ## 19/11/2026 — Nova apresentação (página inicial pública)
 
+### Logo sem selo e menos repetição
+- Logo e símbolo sem o quadrado de fundo em todo o sistema (topo da apresentação no tema escuro, topo do celular, entrada, Portal do paciente, primeiro acesso e páginas por link). A entrada ganhou a logo nova no lugar da flor antiga.
+- Sem informações repetidas: Configurações, Sobre e Sair ficam só no menu do perfil (canto superior direito: Meu perfil, Sobre a Potira, Sair). Saíram de "Mais", do rodapé do menu lateral e do cabeçalho de Configurações (que também tinha Ajuda). Barra do celular da secretária(o) troca Sair por Ajuda; a do administrador fica com Início e Segurança.
+- Títulos das páginas iguais aos nomes do menu: Agenda, Atendimentos, Documentos, Relatórios, Ajuda e Suporte (também no título da aba e no tour).
+- Início: tirados "Pacientes" e "Rascunhos para revisar" de Sessões de hoje (já estão nos indicadores) e o cartão "Últimos 7 dias" (o minigráfico de sessões mostra o mesmo). Atendimentos sem o botão "Nova sessão" (o "Novo" do topo faz o mesmo).
+- Testado no ambiente simulado (claro/escuro, 390/768/1280/1440). Barra da secretária(o) não testada (o ambiente simulado não monta esse perfil).
+
 - Recriada no visual da prévia `preview/potira-apresentacao.html` aprovada pelo James: topo claro com logo, destaque com prévia do novo Início (dados fictícios, gráfico que se desenha, agenda com destaque animado), benefícios, "A plataforma" com espaço de trabalho, quatro passos, bloco de confiança (IA opcional, LGPD), público, "Por que Potira?", dúvidas, chamada final, contato e botão flutuante de Contato.
 - Mudanças em relação à prévia: logo e símbolo oficiais no lugar do ✿, ícones do sistema no lugar dos caracteres, botões ligados a Entrar, Criar conta e Portal do paciente, textos com o que a Potira faz de fato, perguntas frequentes mantidas, contato real (GitHub; WhatsApp e e-mail quando o administrador preencher), tema escuro e movimento reduzido.
 - Estilos em `css/landing.css` (novo); as regras antigas da apresentação saíram de `app.css`.

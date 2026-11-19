@@ -54,7 +54,7 @@ def horizontal(fundo, sim, cor_nome):
     r = f'<rect width="{W:.0f}" height="{H}" rx="18" fill="{fundo}"/>' if fundo else ''
     return svg(f'0 0 {W:.0f} {H}', f'{W:.0f}', H, r + g, 'Potira')
 escreve('potira-logo-horizontal-claro.svg', horizontal(None, simbolo('hc'), '#074459'))
-escreve('potira-logo-horizontal-escuro.svg', horizontal(PETROLEO_ESC, simbolo('he'), '#FFFFFF'))
+escreve('potira-logo-horizontal-escuro.svg', horizontal(None, simbolo('he'), '#FFFFFF'))  # sem fundo: fica sobre o tema escuro
 
 # --- símbolo isolado
 SVB = '536 52 464 288'

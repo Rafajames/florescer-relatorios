@@ -162,8 +162,8 @@ export const NAV_MORE = NAV.filter(([k]) => !['painel', 'pacientes', 'administra
 
 // versão carimbada por tools/stamp.py (?v= no endereço deste arquivo)
 const VERSAO = new URL(import.meta.url).searchParams.get('v') || 'teste';
-const TAB_STAFF = [['administrativo', '#/administrativo', 'clipboard', 'Agenda'], ['financeiro', '#/financeiro', 'wallet', 'Financeiro'], ['sair', '#', 'logout', 'Sair']];
-const TAB_ADMIN = [['admin', '#/admin', 'home', 'Início'], ['config', '#/config?aba=seguranca', 'shield', 'Segurança'], ['sair', '#', 'logout', 'Sair']];
+const TAB_STAFF = [['administrativo', '#/administrativo', 'calendar', 'Agenda'], ['financeiro', '#/financeiro', 'wallet', 'Financeiro'], ['ajuda', '#/ajuda', 'help', 'Ajuda']];
+const TAB_ADMIN = [['admin', '#/admin', 'home', 'Início'], ['config', '#/config?aba=seguranca', 'shield', 'Segurança']];
 
 export function shell(active) {
   const p = state.profile;
@@ -189,7 +189,6 @@ export function shell(active) {
         </nav>
         ${nav.some(([k]) => k === 'ajuda') ? `<a class="rail-help ${active === 'ajuda' ? 'on' : ''}" href="#/ajuda" ${active === 'ajuda' ? 'aria-current="page"' : ''}>${icon('help')}Ajuda e Suporte</a>` : ''}
         <div class="theme-row"><span>${icon('sun')}Tema</span><span class="theme-tog" role="group" aria-label="Tema"><button type="button" data-theme-set="light" title="Claro" aria-label="Tema claro">${icon('sun')}</button><button type="button" data-theme-set="dark" title="Escuro" aria-label="Tema escuro">${icon('moon')}</button></span></div>
-        <a class="rail-credit" href="#/sobre">${icon('info')}Sobre a Potira</a>
       </aside>
       <div class="stage">
         <div class="topbar ${isHome ? 'top-home' : ''}">
@@ -204,7 +203,7 @@ export function shell(active) {
             <summary aria-label="Menu do perfil"><span class="tu-ic">${icon('users')}</span><span class="tu-nome">${esc(quem)}</span>${icon('chev', 'tu-seta')}<span class="avatar">${esc(initials(quem))}</span></summary>
             <div class="tu-menu" role="menu">
               <div class="tu-head"><b>${esc(quem)}</b><span>${esc(papel)}</span></div>
-              ${isPatient ? '' : `<a href="${isStaff ? '#/administrativo' : '#/config'}" role="menuitem">${icon('sliders')}${isStaff ? 'Agenda' : 'Configurações'}</a>`}
+              ${isPatient || isStaff || isAdm ? '' : `<a href="#/config?aba=perfil" role="menuitem">${icon('users')}Meu perfil</a>`}
               <a href="#/sobre" role="menuitem">${icon('info')}Sobre a Potira</a>
               <button type="button" id="logout" role="menuitem">${icon('logout')}Sair</button>
             </div>
@@ -218,7 +217,7 @@ export function shell(active) {
           <span class="af-dir"><span>Versão ${esc(VERSAO)}</span><span class="af-on ${navigator.onLine ? '' : 'off'}" id="af-on">${navigator.onLine ? 'Online' : 'Sem internet'}</span></span>
         </footer>
       </div>
-      ${isPatient ? '' : `<nav class="tabbar" aria-label="Atalhos" ${isAdm ? 'style="grid-template-columns:repeat(3,1fr)"' : ''}>
+      ${isPatient ? '' : `<nav class="tabbar" aria-label="Atalhos" ${isAdm ? `style="grid-template-columns:repeat(${isStaff ? 3 : 2},1fr)"` : ''}>
         ${(isStaff ? TAB_STAFF : isAdm ? TAB_ADMIN : TAB).map(([k, h, ic, l, cta]) => `<a href="${h}" ${cta ? 'data-new' : ''} ${k === 'sair' ? 'data-logout' : ''} class="${k === active || (k === 'mais' && NAV_MORE.some(([m]) => m === active)) ? 'on' : ''} ${cta ? 'cta' : ''}">${cta ? `<span class="circle">${icon(ic)}</span>` : icon(ic)}${l}</a>`).join('')}
       </nav>`}
     </div>`;

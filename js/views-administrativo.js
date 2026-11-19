@@ -28,7 +28,7 @@ export async function renderAdministrativo(params) {
   const staff = state.profile?.role === 'secretary';
   if (staff) ABAS = ABAS.filter(([k]) => !['convenios', 'pesquisa'].includes(k));
   const aba = ABAS.some(([k]) => k === params.get('aba')) ? params.get('aba') : 'agenda';
-  main.innerHTML = pageHeader('Administrativo', staff ? `Agenda e documentos administrativos de ${esc(state.profile.full_name)}.` : 'Agenda, folha de frequência, declarações e convênios. Separados dos registros clínicos.',
+  main.innerHTML = pageHeader('Agenda', staff ? `Agenda e documentos administrativos de ${esc(state.profile.full_name)}.` : 'Agenda, folha de frequência, declarações e convênios. Separados dos registros clínicos.',
     (staff ? `<button class="btn quiet" id="staff-pac">${icon('users')}Cadastrar paciente</button>` : '') + (aba === 'agenda' ? `<button class="btn bloom" id="new-ap">${icon('plus')}Nova sessão</button>` : '')) + `
     <div class="tabs" role="tablist">
       ${ABAS.map(([k, l]) => `<a class="tab ${aba === k ? 'on' : ''}" href="#/administrativo${k === 'agenda' ? '' : '?aba=' + k}" role="tab" style="text-decoration:none">${l}</a>`).join('')}
@@ -706,7 +706,5 @@ async function declaracoes(patients) {
    ===================================================================== */
 export function renderMore() {
   const main = shell('mais');
-  main.innerHTML = pageHeader('Mais') + `<nav class="table" aria-label="Mais opções">${NAV_MORE.map(([, h, ic, l]) => `<a class="tr more-item" href="${h}">${icon(ic)}<span class="grow t">${esc(l)}</span>${icon('right')}</a>`).join('')}
-    <a class="tr more-item" href="#/sobre">${icon('info')}<span class="grow t">Sobre a Potira</span>${icon('right')}</a>
-    <a class="tr more-item" href="#" data-logout>${icon('logout')}<span class="grow t">Sair</span></a></nav>`;
+  main.innerHTML = pageHeader('Mais') + `<nav class="table" aria-label="Mais opções">${NAV_MORE.map(([, h, ic, l]) => `<a class="tr more-item" href="${h}">${icon(ic)}<span class="grow t">${esc(l)}</span>${icon('right')}</a>`).join('')}</nav>`;
 }

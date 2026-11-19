@@ -20,10 +20,12 @@
 @media (prefers-color-scheme:dark){:root[data-rail-light]:not([data-theme]) .logo-menu .lm-cla{display:none}:root[data-rail-light]:not([data-theme]) .logo-menu .lm-esc{display:block}}
 /* logo em página: sem fundo no claro; no escuro leva o fundo oficial como selo */
 .logo-page{display:block;width:var(--logo-w,168px);max-width:100%;line-height:0}
-:root[data-theme=dark] .logo-page{border-radius:14px;overflow:hidden}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .logo-page{border-radius:14px;overflow:hidden}}
 
 /* símbolo pequeno em quadrado branco */
-.mark.potira{background:#fff;box-shadow:0 0 0 1px var(--line)}
+.mark.potira{background:transparent;box-shadow:none}
 .mark.potira .potira-svg{width:100%;height:auto}
 .simbolo-mono{display:inline-flex;width:1.2em;color:currentColor}
+
+/* logo sobre o painel petróleo da entrada e símbolo nas páginas públicas: sem selo */
+.auth-logo{display:block;width:150px;line-height:0}
+.pub-sim{display:inline-block;width:30px;line-height:0;vertical-align:middle}

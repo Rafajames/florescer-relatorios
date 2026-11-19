@@ -91,7 +91,7 @@ export async function renderHelp() {
   const main = shell('ajuda');
   const H = resolvedHelp();
   const extra = Array.isArray(settings.help_extra) ? settings.help_extra.filter((x) => x && x.t && x.text) : [];
-  main.innerHTML = pageHeader('Ajuda', 'Onde fazer cada coisa, passo a passo.', `<button class="btn quiet" id="ver-tour">${icon('right')}Ver o tour</button>`) + `
+  main.innerHTML = pageHeader('Ajuda e Suporte', 'Onde fazer cada coisa, passo a passo.', `<button class="btn quiet" id="ver-tour">${icon('right')}Ver o tour</button>`) + `
     <section class="panel"><h2>Primeiros passos</h2>
       <ol class="help-steps">${H.FIRST.map(([t, d, h]) => `<li><a href="${h}"><b>${esc(t)}</b></a><span class="muted">${esc(d)}</span></li>`).join('')}</ol></section>
     <label class="field">Procurar na ajuda<input id="hq" type="search" placeholder="Ex.: liberar, logo, microfone, tabela"></label>

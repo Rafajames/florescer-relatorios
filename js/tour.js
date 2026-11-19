@@ -5,7 +5,7 @@ import { openModal, esc } from './ui.js';
 const KEY = 'potira.tour.v1';
 const PASSOS = [
   ['Comece pelos pacientes', 'Cadastre o paciente e registre o consentimento. Sem o consentimento, a gravação da sessão fica bloqueada.', '#/pacientes', 'Abrir Pacientes'],
-  ['Monte a agenda', 'Em Administrativo, agende as sessões (dá para repetir toda semana), envie os lembretes de amanhã e veja quem confirmou.', '#/administrativo', 'Abrir a agenda'],
+  ['Monte a agenda', 'Em Agenda, agende as sessões (dá para repetir toda semana), envie os lembretes de amanhã e veja quem confirmou.', '#/administrativo', 'Abrir a agenda'],
   ['Registre a sessão', 'Em Novo, grave ou digite a sessão e escreva a evolução. A IA é opcional: se estiver conectada, ela só faz o rascunho. Ao registrar, a sessão do dia fica como realizada.', '#/nova', 'Nova sessão'],
   ['Revise e entregue', 'Todo documento nasce como rascunho. Depois de revisar, você exporta em PDF, libera no portal ou envia por link com validade.', '#/relatorios', 'Ver relatórios'],
   ['Cobre e acompanhe', 'Em Financeiro, a sessão realizada vira cobrança: envie com o PIX pronto, registre o pagamento pelo comprovante e controle os gastos.', '#/financeiro', 'Abrir Financeiro'],

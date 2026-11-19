@@ -55,7 +55,7 @@ export async function renderSettings(params) {
       consentimento: p0.consent_text && p0.consent_text !== DEFAULT_CONSENT ? ['Texto seu', 'ok'] : ['Texto padrão', ''],
       seguranca: ['…', ''], dados: ['…', ''],
     };
-    main.innerHTML = pageHeader('Configurações', '', `<a class="btn quiet" href="#/ajuda">${icon('info')}Ajuda</a><button class="btn quiet" data-logout>${icon('logout')}Sair da conta</button>`) + `
+    main.innerHTML = pageHeader('Configurações', '', '') + `
       <div class="cfg-grade">${TABS.map(([k, l]) => { const [ic, d] = CARD[k]; const e = estado[k];
         return `<a class="cfg-card" data-k="${k}" href="#/config?aba=${k}"><span class="cfg-ic">${icon(ic)}</span><span class="grow"><b>${l}</b><small>${d}</small>${e ? chip(e[0], e[1]) : ''}</span>${icon('right')}</a>`; }).join('')}</div>`;
     // estados que dependem de consulta: autenticador e pasta no computador
@@ -64,7 +64,7 @@ export async function renderSettings(params) {
     import('./pasta.js').then((m) => m.estado()).then((st) => poe('dados', st === 'sem' ? 'Sem pasta' : 'Pasta escolhida', st === 'sem' ? '' : 'ok')).catch(() => poe('dados', 'Sem pasta', ''));
     return;
   }
-  main.innerHTML = (adm ? '' : backLink('#/config', 'Configurações')) + pageHeader(TABS.find(([k]) => k === tab)[1], '', `<a class="btn quiet" href="#/ajuda">${icon('info')}Ajuda</a><button class="btn quiet" data-logout>${icon('logout')}Sair da conta</button>`) + `
+  main.innerHTML = (adm ? '' : backLink('#/config', 'Configurações')) + pageHeader(TABS.find(([k]) => k === tab)[1], '', '') + `
     <div class="settings so">
       <div id="pane"></div>
     </div>`;
@@ -515,7 +515,7 @@ export async function renderTemplates() {
       ${ts.length ? `<div class="tpl-grid">${ts.map(card).join('')}</div>` : '<p class="muted small">Nenhum modelo deste tipo ainda.</p>'}</section>`;
   };
 
-  main.innerHTML = pageHeader('Modelos de documento', 'Abra um modelo para ver os campos e editar.',
+  main.innerHTML = pageHeader('Documentos', 'Abra um modelo para ver os campos e editar.',
     `<label class="btn quiet" style="cursor:pointer">${icon('download')}Enviar documento meu<input type="file" id="imp" accept=".docx,.pdf,image/*" hidden></label>
      <button class="btn" id="new">${icon('plus')}Novo modelo</button>`) + `
     <div id="imp-msg"></div>

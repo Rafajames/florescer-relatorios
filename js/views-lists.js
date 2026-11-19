@@ -16,7 +16,7 @@ export async function renderReports(params) {
   const patients = await api.listPatients(true);
   const f0 = { status: params.get('status') || '', paciente: params.get('paciente') || '' };
 
-  main.innerHTML = pageHeader('Relatórios', 'Todos os registros. Selecione vários para agir de uma vez.', `<a class="btn bloom" href="#/nova">${icon('plus')}Nova sessão</a>`) + `
+  main.innerHTML = pageHeader('Atendimentos', 'Todos os registros. Selecione vários para agir de uma vez.') + `
     <div class="row lista-busca">
       <input id="q" type="search" placeholder="Buscar por título ou paciente" style="max-width:290px;margin:0" aria-label="Buscar">
       <input type="hidden" id="fs" value="${esc(f0.status)}">
@@ -123,7 +123,7 @@ export async function renderPeriod(params) {
   const pre = params.get('paciente');
   let found = [];
 
-  main.innerHTML = pageHeader('Relatório por período', 'Reúna as sessões de um paciente e gere um relatório de acompanhamento.') + `
+  main.innerHTML = pageHeader('Relatórios', 'Reúna as sessões de um paciente e gere um relatório de acompanhamento.') + `
     <div class="panel">
       <div class="grid2">
         <label class="field">Paciente<select id="patient"><option value="">Selecione…</option>
