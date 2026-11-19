@@ -29,7 +29,7 @@ Plataforma web de registro clínico, agenda e cobrança para profissionais de sa
 - `js/pasta.js` pasta dos documentos no computador do profissional
 - `js/views-clinico.js` metas e escalas · `js/tour.js` tour de primeiro acesso · `js/views-landing.js` apresentação (tela principal de quem não está logado; `apresentacao.html` só redireciona)
 - `js/export.js` PDF e Word de todos os documentos · `js/import-template.js` leitura de Word/PDF/foto para virar modelo
-- `js/views-public.js` páginas públicas por link e página pública do profissional · `js/views-portal.js` portal do paciente · `js/brand.js` e `js/theme.js` marca e tema · `css/app.css` estilos
+- `js/views-public.js` páginas públicas por link e página pública do profissional · `js/views-portal.js` portal do paciente · `js/brand.js` e `js/theme.js` marca e tema · `css/` estilos: `tokens.css`, `app.css`, `marca.css`, `shell.css`, `inicio.css` (ver DIRETRIZES §7) · `js/marca.js` + `js/marca-svg.js` (gerado por `tools/gerar-marca.py`) marca Potira
 
 ## Não fazer
 

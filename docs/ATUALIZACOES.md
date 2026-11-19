@@ -4,6 +4,15 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 18/11/2026 — Redesign, entrega 1 de 3: marca, moldura e Início
+
+- **Marca Potira oficial** (SVGs de `assets/brand/`) no menu lateral, na barra do topo do celular e nos favicons (claro e escuro). A logo troca sozinha com o tema (claro, escuro e automático, inclusive ao recarregar) e leva o próprio fundo oficial, então fica legível em qualquer cor de menu escolhida. A marca própria do profissional continua no menu e no topo do celular.
+- **Moldura redesenhada, celular primeiro:** topo com a marca e a busca, barra de baixo flutuante com alvos de toque maiores, link "Pular para o conteúdo" para teclado, foco visível no menu, tablet com menu mais estreito.
+- **Início:** "O que precisa da sua atenção" virou cartão próprio (sobe para o topo no celular); estilos soltos trocados por classes; contraste do texto secundário melhorado. Nenhuma métrica nova.
+- **CSS reorganizado:** `css/tokens.css` (cores, tipografia, espaços, temas escuro/automático), `css/marca.css`, `css/shell.css` (moldura) e `css/inicio.css`. Cerca de 230 linhas de regras repetidas saíram do `app.css`. `tools/stamp.py` agora carimba todos os CSS.
+- `tools/gerar-marca.py` gera `js/marca-svg.js` a partir dos SVGs (inline, para o nome usar a fonte Bricolage). Rode de novo se um SVG da marca mudar.
+- Sem mudança de banco, rotas, regras de negócio ou permissões.
+
 ## 18/11/2026 — Identidade vetorial e roteiro de redesign
 
 - Adicionados nove arquivos SVG em `assets/brand/`: logotipos claro, escuro e negativo; símbolos colorido, negativo e monocromático; ícones claro, escuro e negativo.

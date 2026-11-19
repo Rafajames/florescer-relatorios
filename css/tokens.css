@@ -1,0 +1,71 @@
+/* Potira — tokens de design (cores, tipografia, raios, espaços, sombras).
+   Única fonte dos valores. Os temas escuro e automático ficam aqui e só aqui:
+   - tema escuro escolhido:   :root[data-theme=dark]
+   - automático (sistema):    @media (prefers-color-scheme:dark) { :root:not([data-theme=light]) }
+   As duas cópias do bloco escuro precisam ser iguais.
+   A marca do profissional (js/brand.js) troca --petrol, --bloom, --rail-bg e --rail-ink direto no <html>. */
+
+:root{
+  color-scheme:light;
+  /* identidade Potira: petróleo #134B5F, amora #B83D6F, turquesa #087D91 */
+  --petrol:#134B5F; --petrol-2:#0F3B4A; --petrol-3:#087D91; --petrol-tint:#E3F0F4;
+  --bloom:#B83D6F; --bloom-2:#9C315B; --bloom-tint:#FBE6EF;
+  /* neutros */
+  --mist:#EDF1F3; --paper:#FFFFFF; --field:#FFFFFF; --soft:#F4F7F8; --hover:#F6F9FA; --track:#D5E0E4;
+  --ink:#14232A; --ink-2:#556870; --ink-3:#66777E;
+  --line:#E3E9EC; --line-2:#EEF2F4; --edge:#C5D1D6; --edge-2:#B9C7CD; --skel:#E3EAED; --skel-2:#F1F5F6;
+  --topbar:var(--paper); --link:var(--petrol);
+  /* estados (texto --on-* sobre fundo --*-tint) */
+  --ok:#1F9D5C; --ok-tint:#DDF0E7; --on-ok:#1F5E43;
+  --warn:#8A5C0E; --warn-tint:#F8EDD2; --on-warn:#5E3F08;
+  --danger:#B3382C; --danger-tint:#FBE9E6; --on-err:#7A241B;
+  --on-callout:#0E3946;
+  /* tipografia */
+  --sans:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --display:'Bricolage Grotesque','Instrument Sans',system-ui,sans-serif;
+  --serif:'Newsreader',Georgia,'Times New Roman',serif;
+  /* forma e espaço */
+  --r:10px; --r-sm:8px; --r-md:12px; --r-card:18px;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:24px; --s-6:32px;
+  --tap:44px; --rail:236px;
+  --shadow-1:0 1px 2px rgba(10,40,50,.06);
+  --shadow-2:0 10px 30px -12px rgba(10,40,50,.28);
+  --shadow-3:0 18px 44px -16px rgba(10,40,50,.4);
+}
+
+:root[data-theme=dark]{
+  color-scheme:dark;
+  --petrol:#3E9DBE; --petrol-2:#2F86A5; --petrol-3:#67B9D6; --petrol-tint:#16323D;
+  --bloom:#E2639A; --bloom-2:#C94E83; --bloom-tint:#3A1D2A;
+  --mist:#0C1418; --paper:#152127; --field:#101A1F; --soft:#1A2830; --hover:#1D2B33; --track:#2A3C46;
+  --ink:#E7EFF2; --ink-2:#9FB3BC; --ink-3:#7F96A1;
+  --line:#243540; --line-2:#1D2C35; --edge:#3A4D57; --edge-2:#4B606B; --skel:#22323A; --skel-2:#2B3E48;
+  --link:#8CC9DA;
+  --ok:#3DB878; --ok-tint:#173528; --on-ok:#A9E2C7;
+  --warn:#E8B75C; --warn-tint:#3A2C10; --on-warn:#F2D9A2;
+  --danger:#F08376; --danger-tint:#3B1B18; --on-err:#FFC9C2;
+  --on-callout:#CFE7EE;
+  --shadow-1:0 1px 2px rgba(0,0,0,.4);
+  --shadow-2:0 10px 30px -12px rgba(0,0,0,.6);
+  --shadow-3:0 18px 44px -16px rgba(0,0,0,.7);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme=light]){
+    color-scheme:dark;
+    --petrol:#3E9DBE; --petrol-2:#2F86A5; --petrol-3:#67B9D6; --petrol-tint:#16323D;
+    --bloom:#E2639A; --bloom-2:#C94E83; --bloom-tint:#3A1D2A;
+    --mist:#0C1418; --paper:#152127; --field:#101A1F; --soft:#1A2830; --hover:#1D2B33; --track:#2A3C46;
+    --ink:#E7EFF2; --ink-2:#9FB3BC; --ink-3:#7F96A1;
+    --line:#243540; --line-2:#1D2C35; --edge:#3A4D57; --edge-2:#4B606B; --skel:#22323A; --skel-2:#2B3E48;
+    --link:#8CC9DA;
+    --ok:#3DB878; --ok-tint:#173528; --on-ok:#A9E2C7;
+    --warn:#E8B75C; --warn-tint:#3A2C10; --on-warn:#F2D9A2;
+    --danger:#F08376; --danger-tint:#3B1B18; --on-err:#FFC9C2;
+    --on-callout:#CFE7EE;
+    --shadow-1:0 1px 2px rgba(0,0,0,.4);
+    --shadow-2:0 10px 30px -12px rgba(0,0,0,.6);
+    --shadow-3:0 18px 44px -16px rgba(0,0,0,.7);
+  }
+}
+
+@media (max-width:1024px){:root{--rail:208px}}

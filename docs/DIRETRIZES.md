@@ -100,5 +100,5 @@ Regras que valem para qualquer mudança, feita por pessoa ou por IA. O objetivo 
 - Função `SECURITY DEFINER` nova: definir `search_path` e revogar de `public`/`anon` o que não for público.
 - Rotas ficam em `js/main.js`. Cada tela é um arquivo `js/views-*.js`. Acesso ao banco só por `js/api.js`.
 - Bibliotecas externas só por CDN e carregadas sob demanda (como mammoth, pdf.js e JSZip na importação de modelos).
-- Estilos novos vão para o fim de `css/app.css`, usando as variáveis existentes (`--petrol`, `--bloom`, `--paper`, `--ink`, `--line`).
+- **Estilos ficam em arquivos por assunto**, carregados nesta ordem em `index.html`: `css/tokens.css` (todos os valores de cor, tipografia, espaço e os temas claro/escuro/automático; nada de cor solta nas telas), `css/app.css` (componentes e telas ainda não migrados), `css/marca.css` (logos), `css/shell.css` (menu, topo, barra do celular) e `css/inicio.css`. Tela nova ou revisada ganha o próprio arquivo (ou seção) em vez de remendos no fim do `app.css`; ao migrar uma tela, apague as regras antigas dela. O `stamp.py` carimba todos os CSS.
 - Commits em português, dizendo o que mudou para o usuário.

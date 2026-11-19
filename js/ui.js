@@ -2,6 +2,7 @@ import { state, settings } from './state.js';
 import { icon } from './icons.js';
 import { brandOf } from './brand.js';
 import { setLook } from './theme.js';
+import { logoMenu, simboloColorido } from './marca.js';
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -172,10 +173,14 @@ export function shell(active) {
   const nav = isPatient ? NAV_PATIENT : isStaff ? NAV_STAFF : (p && p.is_admin ? [['admin', '#/admin', 'home', 'Início'], ['config', '#/config?aba=seguranca', 'shield', 'Minha segurança']] : NAV);
   const nt = settings.notice && settings.notice.on && settings.notice.text ? settings.notice : null;
   const br = isPatient ? { logo: '', org_name: '' } : brandOf(p);
+  const own = Boolean(br.logo || br.org_name); // marca própria do profissional; sem ela, aparece a logo Potira
+  const home = isPatient ? '#/portal' : isStaff ? '#/administrativo' : isAdm ? '#/admin' : '#/painel';
+  const isHome = ['painel', 'admin', 'portal'].includes(active) || (isStaff && active === 'administrativo');
   $('#app').innerHTML = `
     <div class="app">
+      <button type="button" class="skip" id="skip">Pular para o conteúdo</button>
       <aside class="rail">
-        <a class="brand" href="${isPatient ? '#/portal' : isStaff ? '#/administrativo' : isAdm ? '#/admin' : '#/painel'}"><span class="mark ${br.logo ? 'has-logo' : ''}">${br.logo ? `<img src="${esc(br.logo)}" alt="">` : icon('flower')}</span><b>${esc(br.org_name || 'Potira')}</b></a>
+        <a class="brand" href="${home}" ${own ? '' : 'aria-label="Potira, início"'}>${own ? `<span class="mark ${br.logo ? 'has-logo' : 'potira'}">${br.logo ? `<img src="${esc(br.logo)}" alt="">` : simboloColorido()}</span><b>${esc(br.org_name || 'Potira')}</b>` : logoMenu()}</a>
         <nav class="nav" aria-label="Principal">
           ${nav.map(([k, h, ic, l]) => `${NAV_SEC[k] && nav === NAV ? `<span class="nav-sec">${NAV_SEC[k]}</span>` : ''}<a href="${h}" class="${k === active ? 'on' : ''}" ${k === active ? 'aria-current="page"' : ''}>${icon(ic)}${l}</a>`).join('')}
         </nav>
@@ -188,7 +193,8 @@ export function shell(active) {
         </div>
       </aside>
       <div class="stage">
-        <div class="topbar">
+        <div class="topbar ${isHome ? 'top-home' : ''}">
+          <a class="top-brand" href="${home}" aria-label="${own ? esc(br.org_name || 'Início') : 'Potira, início'}"><span class="mark ${br.logo ? 'has-logo' : 'potira'}">${br.logo ? `<img src="${esc(br.logo)}" alt="">` : simboloColorido()}</span></a>
           <button class="icon-btn back-btn" id="go-back" title="Voltar" aria-label="Voltar">${icon('left')}</button>
           <button class="icon-btn theme-btn" data-theme-flip title="Alternar tema claro/escuro" aria-label="Alternar tema">${icon('moon')}</button>
           ${isPatient || isAdm ? '<span class="grow"></span>' : `
@@ -211,6 +217,8 @@ export function shell(active) {
   markTheme();
   const s = $('#open-search');
   if (s) s.onclick = () => import('./search.js').then((m) => m.openSearch());
+  const skip = $('#skip');
+  if (skip) skip.onclick = () => { const m = $('#main'); m.setAttribute('tabindex', '-1'); m.focus(); };
   // Voltar: usa o histórico do navegador; sem histórico, vai para o início do perfil.
   const back = $('#go-back');
   if (back) back.onclick = () => {

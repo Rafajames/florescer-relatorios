@@ -1,0 +1,108 @@
+/* Potira — Início do profissional (renderDashboard em js/views-home.js).
+   Cartões de leitura rápida com dados que já existem; nenhuma métrica nova.
+   Celular primeiro: uma coluna, com "Sessões de hoje", "Agenda" e "O que precisa da sua atenção" no topo. */
+
+/* ---------- grade ---------- */
+.dash{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s-3);align-items:start}
+.dcard{position:relative;min-width:0;overflow:hidden;padding:18px;border-radius:var(--r-card);background:var(--paper)}
+.dcard>h3,.dcard .h{display:flex;gap:6px;align-items:baseline;margin:0;padding-right:64px;font:600 14.5px var(--sans)}
+.dcard>h3 small{font-weight:500;font-size:12px;color:var(--ink-3)}
+.dcard .ill{position:absolute;top:10px;right:12px;pointer-events:none;transform:scale(.72);transform-origin:top right}
+.dcard.atencao>h3{padding-right:0}
+.dcard .lbl{margin-top:var(--s-5);font-size:12.5px;color:var(--ink-2)}
+.dcard .list{border:0}
+.dcard .li{padding:12px 2px}
+.empty-mini{padding:14px 0;font-size:13.5px;color:var(--ink-2)}
+.dash-sec{margin-top:var(--s-5)}
+.dash-above{margin-bottom:var(--s-4)}
+.dash-gap{margin-top:var(--s-4)}
+.dash-gap-s{margin-top:6px}
+
+/* ---------- números ---------- */
+.bignum{display:flex;align-items:baseline;gap:8px;margin-top:var(--s-5);font:700 40px/1 var(--display);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.bignum small{font-size:18px;font-weight:500;letter-spacing:0;color:var(--ink-3)}
+.midnum{display:flex;align-items:baseline;gap:6px;margin-top:4px;font:700 32px/1 var(--display);letter-spacing:-.025em;font-variant-numeric:tabular-nums}
+.midnum small{font-size:14px;font-weight:500;letter-spacing:0;color:var(--ink-3)}
+.hero-row{display:flex;flex-wrap:wrap;gap:var(--s-3) 22px;align-items:flex-end}
+.hero-row .side{padding-bottom:4px;font-size:13px;color:var(--ink-2)}
+.trend{font-size:13px;font-weight:600;color:var(--ok)}
+.trend.down{color:var(--ink-2)}
+
+/* ---------- barras e legendas ---------- */
+.segbar{display:flex;gap:3px;height:9px;margin-top:26px;border-radius:99px;overflow:hidden;background:var(--track)}
+.segbar i{display:block;height:100%;min-width:0}
+.segbar.thick{height:26px;gap:0;margin-top:8px;border-radius:9px}
+.segbar.thick i:first-child{padding-left:10px;overflow:hidden;font:700 11px/26px var(--sans);font-style:normal;white-space:nowrap;color:#fff}
+.legend-row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:var(--s-3) 18px;margin-top:14px}
+.lg{display:grid;gap:3px;color:inherit;text-decoration:none}
+.lg .k{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2)}
+.lg b{font-size:15.5px;font-variant-numeric:tabular-nums}
+.dot{display:inline-block;flex:0 0 auto;width:7px;height:7px;border-radius:50%}
+.c-ok{background:var(--ok)}.c-pet{background:var(--petrol)}.c-pet3{background:var(--petrol-3)}.c-trk{background:var(--track)}.c-blo{background:var(--bloom)}.c-warn{background:var(--warn)}
+.c-light{background:color-mix(in srgb,var(--petrol) 40%,var(--paper))}
+
+/* ---------- iniciar sessão ---------- */
+.quick{display:flex;flex-direction:column;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+.quick select{width:100%;min-width:0;margin:0}
+.quick .btn{display:inline-flex;flex-direction:row;justify-content:center}
+.quick .btn.bloom{background:var(--bloom);border-color:var(--bloom)}.quick .btn.bloom:hover{background:var(--bloom-2)}
+.quick .quick-vazio{align-self:center}
+
+/* ---------- agenda do dia ---------- */
+.daypills{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:16px 0 4px}
+.dp{padding:7px 0 6px;border:1px solid var(--line);border-radius:var(--r-md);text-align:center;font:700 15px var(--sans);color:var(--ink);text-decoration:none}
+.dp small{display:block;font-size:10.5px;font-weight:600;text-transform:uppercase;color:var(--ink-3)}
+.dp i{display:block;min-height:9px;margin-top:3px;font-style:normal;font-size:10px;line-height:9px;letter-spacing:1px;color:var(--ink-3)}
+.dp.on{background:var(--petrol);border-color:var(--petrol);color:#fff}.dp.on small,.dp.on i{color:rgba(255,255,255,.8)}
+.agl{display:grid}
+.agi{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 0;border-bottom:1px solid var(--line);color:inherit;text-decoration:none}
+.agi:last-child{border-bottom:0}
+.agi .tm{flex:0 0 auto;width:46px;font-weight:600;font-variant-numeric:tabular-nums}
+.agi .nm{flex:1;min-width:0;color:inherit;text-decoration:none}
+.agi .nm b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.agi .nm span{font-size:12px;color:var(--ink-2)}
+.ck{position:relative;flex:0 0 auto;width:20px;height:20px;border-radius:50%;border:1.6px solid var(--edge)}
+.ck.ok{background:var(--ok);border-color:var(--ok)}
+.ck.ok::after{content:"";position:absolute;left:6px;top:3px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.ck.no{border-color:var(--danger);background:var(--danger-tint)}
+.dcard .foot{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.dcard .foot .btn{flex:1 1 140px;justify-content:center}
+
+/* ---------- o que precisa de atenção ---------- */
+.att{display:grid;margin-top:var(--s-2)}
+.att a{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 0;border-bottom:1px solid var(--line);color:inherit;text-decoration:none}
+.att a:last-child{border-bottom:0}
+.att a .t{flex:1;min-width:0}
+.att a .t b{display:block;font-size:14px;font-weight:600}
+.att a .t span{font-size:12px;color:var(--ink-2)}
+.att a .go2{padding:6px 12px;border:1px solid var(--line);border-radius:9px;white-space:nowrap;font-size:12px;font-weight:600;color:var(--ink)}
+.att a:hover .go2{border-color:var(--petrol);color:var(--link)}
+
+/* ---------- últimos 7 dias ---------- */
+.wk{display:flex;gap:6px;align-items:stretch;margin-top:20px}
+.wk>div{flex:1;display:grid;gap:5px;justify-items:center;min-width:0}
+.wk .bar{display:flex;align-items:flex-end;justify-content:center;width:100%;height:110px;padding:7px;border-radius:var(--r-md);background:var(--soft)}
+.wk .bar i{display:block;width:62%;min-height:4px;border-radius:8px;background:var(--track)}
+.wk .today .bar{background:var(--petrol-tint);box-shadow:inset 0 0 0 1.6px var(--petrol)}
+.wk .today .bar i{background:linear-gradient(var(--petrol-3),var(--petrol))}
+.wk b{font-size:13px}
+.wk span{font-size:11.5px;color:var(--ink-2);white-space:nowrap}
+
+/* ---------- computador e tablet ---------- */
+@media (min-width:761px){
+  .dash{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-4)}
+  .dcard{padding:22px}
+  .dcard>h3,.dcard .h{padding-right:90px}
+  .dcard .ill{top:12px;right:14px;transform:none}
+  .dcard.wide,.dcard.tall{grid-column:span 2}
+  .bignum{font-size:46px}
+  .hero-row .side{padding-left:18px;border-left:1px solid var(--line)}
+  .quick{flex-direction:row;flex-wrap:wrap}
+  .quick select{flex:1;min-width:200px;width:auto}
+  .wk{gap:8px}
+  .wk .bar{height:150px}
+}
+@media (min-width:1181px){
+  .dash{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 380px}
+  .dcard.tall{grid-column:auto;grid-row:span 2}
+}

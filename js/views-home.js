@@ -94,7 +94,7 @@ export async function renderDashboard() {
   const niver = patients.filter((x) => !x.archived && x.birth_date && x.birth_date.slice(5, 7) === mesHoje)
     .map((x) => ({ ...x, dia: Number(x.birth_date.slice(8, 10)), idade: Number(today.slice(0, 4)) - Number(x.birth_date.slice(0, 4)) }))
     .sort((a, b) => a.dia - b.dia);
-  const niverHtml = niver.length ? `<section class="panel" style="margin-bottom:16px"><div class="panel-head"><h3>Aniversariantes de ${esc(new Date().toLocaleDateString('pt-BR', { month: 'long' }))}</h3></div>
+  const niverHtml = niver.length ? `<section class="panel dash-above"><div class="panel-head"><h3>Aniversariantes de ${esc(new Date().toLocaleDateString('pt-BR', { month: 'long' }))}</h3></div>
     ${niver.map((x) => { const wa = waLink(x.phone, `Olá! Hoje é um dia especial: parabéns, ${x.name.split(' ')[0]}! Muita saúde e alegria. Um abraço de ${p.full_name}.`);
       return `<div class="niver"><span class="grow"><a href="#/pacientes/${x.id}" style="color:inherit"><b>${esc(x.name)}</b></a><small class="muted"> · dia ${x.dia} · faz ${x.idade} ano${x.idade === 1 ? '' : 's'}</small></span>
         ${x.dia === diaHoje ? chip('É hoje', 'bloom') : x.dia < diaHoje ? chip('Já passou') : ''}${wa ? `<a class="btn quiet sm" target="_blank" rel="noopener" href="${esc(wa)}">Dar parabéns</a>` : ''}</div>`; }).join('')}</section>` : '';
@@ -113,7 +113,7 @@ export async function renderDashboard() {
   const novas = nov.filter((n) => n.quando > visto);
   // No Início aparece só a mais recente; "Novidades" abre a lista toda. Cada uma leva direto ao que avisa.
   const novItem = (n, i) => `<a class="nov${n.alerta ? ' alerta' : ''}" href="${n.h}" data-nov="${i}"><span class="grow"><b>${esc(n.nome)}</b> ${esc(n.txt)}<br><small class="muted">${fmtDateTime(n.quando)}</small></span>${icon('right')}</a>`;
-  const novHtml = novas.length ? `<section class="panel novidades" style="margin-bottom:16px"><div class="panel-head"><button type="button" class="nov-tit" id="nov-all" title="Ver todas as novidades"><h3>${icon('sparkle')}Novidades <span class="nov-n">${novas.length}</span></h3></button><button class="btn quiet sm" id="nov-ok">Marcar como visto</button></div>
+  const novHtml = novas.length ? `<section class="panel novidades dash-above"><div class="panel-head"><button type="button" class="nov-tit" id="nov-all" title="Ver todas as novidades"><h3>${icon('sparkle')}Novidades <span class="nov-n">${novas.length}</span></h3></button><button class="btn quiet sm" id="nov-ok">Marcar como visto</button></div>
     ${novItem(novas[0], 0)}
     ${novas.length > 1 ? `<button type="button" class="link small" id="nov-mais">Ver as outras ${novas.length - 1}</button>` : ''}</section>` : '';
   main.innerHTML = pageHeader(`${greeting()}, ${esc(first)}`, esc(longDate())) + (cobHoje ? callout(`<p><b>${cobHoje} cobrança${cobHoje === 1 ? '' : 's'} agendada${cobHoje === 1 ? '' : 's'} para hoje.</b> A mensagem e o PIX já estão prontos; é só conferir e enviar.</p>`, '', '<a class="btn sm" href="#/financeiro?aba=cobrancas">Ver cobranças</a>') : '') + novHtml + niverHtml + `<div id="inbox"></div>
@@ -132,58 +132,61 @@ export async function renderDashboard() {
         <div class="lg"><span class="k"><span class="dot c-ok"></span>Realizadas</span><b>${doneAps}</b></div>
         <div class="lg"><span class="k"><span class="dot c-pet3"></span>A fazer</span><b>${leftAps}</b></div>
         <div class="lg"><span class="k"><span class="dot c-blo"></span>Faltas</span><b>${missAps}</b></div>
-        <a class="lg" href="#/pacientes" style="color:inherit;text-decoration:none"><span class="k">Pacientes</span><b>${patients.length}</b></a>
-        <a class="lg" href="#/relatorios?status=rascunho" style="color:inherit;text-decoration:none"><span class="k">Rascunhos para revisar</span><b>${drafts.length}</b></a>
+        <a class="lg" href="#/pacientes"><span class="k">Pacientes</span><b>${patients.length}</b></a>
+        <a class="lg" href="#/relatorios?status=rascunho"><span class="k">Rascunhos para revisar</span><b>${drafts.length}</b></a>
       </div>
       <div class="quick">
         ${patients.length ? `<select id="who" aria-label="Paciente"><option value="">Quem você vai atender agora?</option>
           ${patients.map((x) => `<option value="${x.id}" ${nextAp && nextAp.patient_id === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
           <button class="btn bloom lg" id="go-now">${icon('mic')}Iniciar sessão</button>`
-        : `<span class="muted grow" style="align-self:center">Comece cadastrando um paciente. Depois registre o consentimento e inicie a primeira sessão.</span><a class="btn bloom lg" href="#/pacientes">${icon('plus')}Cadastrar paciente</a>`}
+        : `<span class="muted grow quick-vazio">Comece cadastrando um paciente. Depois registre o consentimento e inicie a primeira sessão.</span><a class="btn bloom lg" href="#/pacientes">${icon('plus')}Cadastrar paciente</a>`}
       </div>
     </section>
 
     <section class="dcard tall" aria-label="Agenda">
       <h3>Agenda <small>• ${esc(new Date().toLocaleDateString('pt-BR', { month: 'long' }))}</small></h3><span class="ill">${ART.cal}</span>
-      <div class="midnum" style="margin-top:16px">${todayAps.length}<small>hoje</small></div>
-      <div class="muted small" style="margin-top:4px">${doneAps} de ${todayAps.length} ${todayAps.length === 1 ? 'feita' : 'feitas'}</div>
+      <div class="midnum dash-gap">${todayAps.length}<small>hoje</small></div>
+      <div class="muted small dash-gap-s">${doneAps} de ${todayAps.length} ${todayAps.length === 1 ? 'feita' : 'feitas'}</div>
       <div class="daypills">${dayPill(today, true)}${days.map((d) => dayPill(d, false)).join('')}</div>
       <div class="agl">${todayAps.length ? todayAps.map((a) => `<div class="agi hoje-it">
           <span class="ck ${a.status === 'realizado' ? 'ok' : a.status.startsWith('falta') ? 'no' : ''}"></span><span class="tm">${hh(a.time) || '—'}</span>
-          <a class="nm" href="#/pacientes/${a.patient_id}" style="color:inherit;text-decoration:none"><b>${esc(a.patients?.name || 'Paciente')}</b><span>${esc(ATT_STATUS[a.status] || '')}${a.duration_min ? ` · ${a.duration_min} min` : ''}${a.confirm_status === 'confirmado' ? ' · confirmou' : a.confirm_status === 'remarcar' ? ' · pediu para remarcar' : ''}</span></a>
+          <a class="nm" href="#/pacientes/${a.patient_id}"><b>${esc(a.patients?.name || 'Paciente')}</b><span>${esc(ATT_STATUS[a.status] || '')}${a.duration_min ? ` · ${a.duration_min} min` : ''}${a.confirm_status === 'confirmado' ? ' · confirmou' : a.confirm_status === 'remarcar' ? ' · pediu para remarcar' : ''}</span></a>
           <span class="hoje-act">${a.status === 'agendado' ? `<a class="btn sm" href="#/nova?paciente=${a.patient_id}&sessao=${a.id}">Iniciar</a><button class="btn quiet sm" data-hfalta="${a.id}">Falta</button>`
             : a.status === 'realizado' ? `<a class="btn quiet sm" href="#/nova?paciente=${a.patient_id}&sessao=${a.id}">Evolução</a>` : ''}</span></div>`).join('')
         : '<p class="empty-mini">Nenhuma sessão agendada para hoje.</p>'}</div>
       <div class="foot">${amanhaAps.length ? `<button class="btn quiet" id="h-lembretes">Lembretes de amanhã (${amanhaAps.length})</button>` : ''}<a class="btn quiet" href="#/administrativo">Ver agenda</a><a class="btn" href="#/administrativo">${icon('plus')}Agendar</a></div>
     </section>
 
+    <section class="dcard atencao" aria-label="O que precisa da sua atenção">
+      <h3>O que precisa da sua atenção</h3>
+      <div class="att">${attention.length ? attention.map((x) => `<a href="${x.h}"><span class="dot ${x.c}"></span><span class="t"><b>${x.t}</b><span>${x.s}</span></span><span class="go2">${x.b}</span></a>`).join('')
+        : '<p class="empty-mini">Tudo em dia: nenhum rascunho e nenhum paciente sem consentimento.</p>'}</div>
+    </section>
+
     <section class="dcard" aria-label="Relatórios">
       <h3>Relatórios</h3><span class="ill">${ART.chart}</span>
       <div class="lbl">Neste mês</div>
       <div class="midnum">${monthR.length}<small>${monthR.length === 1 ? 'relatório' : 'relatórios'}</small></div>
-      <div class="legend-row" style="margin-top:16px"><span class="lg"><span class="k"><span class="dot c-pet"></span>Liberados</span><b>${mRel}</b></span><span class="lg"><span class="k"><span class="dot c-light"></span>Revisados</span><b>${mRev}</b></span><span class="lg"><span class="k"><span class="dot c-blo"></span>Rascunhos</span><b>${mDraft}</b></span></div>
+      <div class="legend-row dash-gap"><span class="lg"><span class="k"><span class="dot c-pet"></span>Liberados</span><b>${mRel}</b></span><span class="lg"><span class="k"><span class="dot c-light"></span>Revisados</span><b>${mRev}</b></span><span class="lg"><span class="k"><span class="dot c-blo"></span>Rascunhos</span><b>${mDraft}</b></span></div>
       <div class="segbar thick">${monthR.length ? `<i class="c-pet" style="width:${pct(mRel, monthR.length)}%">${pct(mRel, monthR.length) >= 12 ? pct(mRel, monthR.length) + '%' : ''}</i><i class="c-light" style="width:${pct(mRev, monthR.length)}%"></i><i class="c-blo" style="width:${pct(mDraft, monthR.length)}%"></i>` : ''}</div>
-      <h3 style="margin-top:24px">O que precisa da sua atenção</h3>
-      <div class="att">${attention.length ? attention.map((x) => `<a href="${x.h}"><span class="dot ${x.c}"></span><span class="t"><b>${x.t}</b><span>${x.s}</span></span><span class="go2">${x.b}</span></a>`).join('')
-        : '<p class="empty-mini">Tudo em dia: nenhum rascunho e nenhum paciente sem consentimento.</p>'}</div>
     </section>
 
     <section class="dcard" aria-label="Últimos 7 dias">
       <h3>Últimos 7 dias</h3>
       <div class="lbl">Registros feitos</div>
       <div class="midnum">${total7}<small>${total7 === 1 ? 'registro' : 'registros'}</small></div>
-      ${prev7 ? `<div class="trend ${diff < 0 ? 'down' : ''}" style="margin-top:6px">${diff >= 0 ? '↗' : '↘'} ${Math.abs(diff)}% vs. semana anterior</div>` : '<div class="muted small" style="margin-top:6px">registros por dia</div>'}
+      ${prev7 ? `<div class="trend dash-gap-s ${diff < 0 ? 'down' : ''}">${diff >= 0 ? '↗' : '↘'} ${Math.abs(diff)}% vs. semana anterior</div>` : '<div class="muted small dash-gap-s">registros por dia</div>'}
       <div class="wk">${week.map((d, i) => `<div class="${iso(d) === today ? 'today' : ''}"><div class="bar"><i style="height:${(counts[i] / maxC) * 100}%"></i></div><b>${counts[i]}</b><span>${d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')} ${d.getDate()}</span></div>`).join('')}</div>
     </section>
 
     <section class="dcard wide" aria-label="Últimos registros">
       <h3>Últimos registros</h3>
-      ${reports.length ? `<div class="list" style="margin-top:8px">${reports.slice(0, 6).map(reportLine).join('')}</div>` : '<p class="empty-mini">Ainda não há relatórios.</p>'}
+      ${reports.length ? `<div class="list dash-gap-s">${reports.slice(0, 6).map(reportLine).join('')}</div>` : '<p class="empty-mini">Ainda não há relatórios.</p>'}
     </section>
 
     ${doneN < todo.length ? `<aside class="dcard" aria-label="Deixe o sistema pronto">
       <h3>Deixe o sistema pronto</h3>
-      <div class="progress" role="progressbar" aria-valuenow="${doneN}" aria-valuemax="${todo.length}" style="margin-top:14px"><i style="width:${(doneN / todo.length) * 100}%"></i></div>
+      <div class="progress dash-gap" role="progressbar" aria-valuenow="${doneN}" aria-valuemax="${todo.length}"><i style="width:${(doneN / todo.length) * 100}%"></i></div>
       <p class="muted small">${doneN} de ${todo.length} passos</p>
       ${todo.map(([l, ok, href]) => `<div class="todo ${ok ? 'done' : ''}"><span class="box">${ok ? icon('check') : ''}</span>${ok ? `<span class="l">${esc(l)}</span>` : `<a href="${href}">${esc(l)}</a>`}</div>`).join('')}
     </aside>` : ''}

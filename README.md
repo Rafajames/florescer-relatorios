@@ -36,7 +36,7 @@ A plataforma está em **fase de testes** com profissionais convidados. Usa apena
 
 ```
 index.html            site (GitHub Pages)
-css/app.css           estilos (um arquivo só)
+css/                  estilos: tokens.css, app.css, marca.css, shell.css, inicio.css
 js/                   front-end em JavaScript puro, em módulos, sem build
 supabase/schema.sql   banco de dados e regras de segurança (PostgreSQL); pode ser rodado de novo sem risco
 tools/stamp.py        carimba a versão no index.html (rodar antes de cada commit)

@@ -1,0 +1,23 @@
+/* Potira — marca institucional (logos e símbolos de assets/brand/, inline via js/marca.js).
+   Troca claro/escuro: mesmos seletores de css/tokens.css. Nunca estica nem recorta os SVGs. */
+
+.potira-svg{display:block;width:100%;height:auto}
+.mq-d{display:none}
+:root[data-theme=dark] .mq-l{display:none}
+:root[data-theme=dark] .mq-d{display:block}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme=light]) .mq-l{display:none}
+  :root:not([data-theme=light]) .mq-d{display:block}
+}
+
+/* logo com fundo próprio (menu): vira um selo arredondado, legível em qualquer cor de menu */
+.logo-tile{display:block;width:100%;max-width:176px;border-radius:14px;overflow:hidden;line-height:0}
+/* logo em página: sem fundo no claro; no escuro leva o fundo oficial como selo */
+.logo-page{display:block;width:var(--logo-w,168px);max-width:100%;line-height:0}
+:root[data-theme=dark] .logo-page{border-radius:14px;overflow:hidden}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .logo-page{border-radius:14px;overflow:hidden}}
+
+/* símbolo pequeno em quadrado branco */
+.mark.potira{background:#fff;box-shadow:0 0 0 1px var(--line)}
+.mark.potira .potira-svg{width:100%;height:auto}
+.simbolo-mono{display:inline-flex;width:1.2em;color:currentColor}
