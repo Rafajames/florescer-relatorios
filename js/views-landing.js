@@ -3,7 +3,7 @@
 // A prévia do produto usa só dados fictícios.
 import { $, icon } from './ui.js';
 import { settings } from './state.js';
-import { logoPagina, simboloColorido } from './marca.js';
+import { logoPagina, simboloColorido, unico } from './marca.js';
 import { MARCA_SVG } from './marca-svg.js';
 
 const BENEFICIOS = [
@@ -60,7 +60,7 @@ export function renderLanding() {
         <div class="lp-mock" aria-hidden="true">
           <div class="lp-mock-top"><span><i></i><i></i><i></i></span><span>Prévia com dados fictícios</span></div>
           <div class="lp-mock-body">
-            <aside class="lp-side"><span class="lp-side-logo">${MARCA_SVG.logoMenu}</span>
+            <aside class="lp-side"><span class="lp-side-logo">${unico(MARCA_SVG.logoMenu)}</span>
               ${[['home', 'Início'], ['users', 'Pacientes'], ['calendar', 'Agenda'], ['clipboard', 'Atendimentos'], ['file', 'Documentos'], ['wallet', 'Financeiro'], ['chart', 'Relatórios']].map(([i, t], n) => `<span class="${n ? '' : 'on'}">${ic(i)}${t}</span>`).join('')}
             </aside>
             <div class="lp-dash">

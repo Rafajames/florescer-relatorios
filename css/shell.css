@@ -18,7 +18,7 @@
 .topbar .icon-btn{width:var(--tap);height:var(--tap);color:var(--ink-2)}
 .topbar .icon-btn:hover{color:var(--ink)}
 .top-brand{display:none;flex:none;text-decoration:none}
-.top-brand .mark{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;padding:6px;overflow:hidden}
+.top-brand .mark{width:48px;height:40px;border-radius:12px;display:grid;place-items:center;padding:2px;overflow:hidden}
 .top-brand .mark.has-logo{padding:3px;background:#fff;box-shadow:0 0 0 1px var(--line)}
 .top-brand .mark img{max-width:100%;max-height:100%;object-fit:contain}
 .top-home .top-brand{display:grid}

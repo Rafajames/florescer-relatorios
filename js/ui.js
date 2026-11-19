@@ -164,6 +164,22 @@ const VERSAO = new URL(import.meta.url).searchParams.get('v') || 'teste';
 const TAB_STAFF = [['administrativo', '#/administrativo', 'calendar', 'Agenda'], ['financeiro', '#/financeiro', 'wallet', 'Financeiro'], ['ajuda', '#/ajuda', 'help', 'Ajuda']];
 const TAB_ADMIN = [['admin', '#/admin', 'home', 'Início'], ['config', '#/config?aba=seguranca', 'shield', 'Segurança']];
 
+/* Profissão a partir da área de atuação, no feminino ou no masculino.
+   Usa a escolha do perfil (credentials.tratamento: 'f' ou 'm'); sem ela, tenta pelo primeiro nome (termina em "a" → feminino). */
+const PROFISSAO = {
+  'Psicologia': ['Psicóloga', 'Psicólogo'], 'Fonoaudiologia': ['Fonoaudióloga', 'Fonoaudiólogo'], 'Fisioterapia': ['Fisioterapeuta', 'Fisioterapeuta'],
+  'Nutrição': ['Nutricionista', 'Nutricionista'], 'Terapia Ocupacional': ['Terapeuta ocupacional', 'Terapeuta ocupacional'],
+  'Psiquiatria / Medicina': ['Médica', 'Médico'], 'Enfermagem': ['Enfermeira', 'Enfermeiro'], 'Serviço Social': ['Assistente social', 'Assistente social'],
+};
+export function profissao(p) {
+  if (!p || !p.specialty || p.specialty === 'Outra') return (p && p.credentials && p.credentials.category) || 'Profissional';
+  const par = PROFISSAO[p.specialty];
+  if (!par) return p.specialty;
+  const t = p.credentials && p.credentials.tratamento;
+  const fem = t ? t === 'f' : /a$/i.test(String(p.full_name || '').trim().split(/\s+/)[0] || '');
+  return par[fem ? 0 : 1];
+}
+
 export function shell(active) {
   const p = state.profile;
   const isPatient = p && p.role === 'patient';
@@ -179,7 +195,7 @@ export function shell(active) {
   const home = isPatient ? '#/portal' : isStaff ? '#/administrativo' : isAdm ? '#/admin' : '#/painel';
   let railMin = false; try { railMin = localStorage.getItem('potira.menu.recolhido') === '1'; } catch { /* sem armazenamento */ }
   const quem = (isStaff ? p.staff_name : p?.full_name) || state.user?.email || '';
-  const papel = isPatient ? 'Paciente' : isStaff ? `Secretária(o) de ${p.full_name}` : isAdm ? 'Administrador' : (p?.specialty || 'Profissional');
+  const papel = isPatient ? 'Paciente' : isStaff ? `Secretária(o) de ${p.full_name}` : isAdm ? 'Administrador' : profissao(p);
   const isHome = ['painel', 'admin', 'portal'].includes(active) || (isStaff && active === 'administrativo');
   $('#app').innerHTML = `
     <div class="app ${railMin ? 'rail-min' : ''}">

@@ -82,6 +82,7 @@ export async function renderSettings(params) {
           <div class="grid2">
             <label class="field">Nome completo<input name="full_name" required value="${esc(p.full_name)}"></label>
             <label class="field">Área de atuação<select name="specialty">${SPECIALTIES.map((s) => `<option ${s === p.specialty ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
+            <label class="field">Como você é apresentado(a)<select name="tratamento"><option value="">Pelo nome (automático)</option><option value="f" ${cr.tratamento === 'f' ? 'selected' : ''}>No feminino (ex.: psicóloga)</option><option value="m" ${cr.tratamento === 'm' ? 'selected' : ''}>No masculino (ex.: psicólogo)</option></select></label>
             <label class="field">Nome do consultório ou clínica<input name="clinic_name" value="${esc(p.clinic_name || '')}"></label>
             <label class="field">Categoria ou especialidade<input name="category" value="${esc(cr.category || '')}" placeholder="Ex.: Psicóloga clínica, Fisioterapeuta neurofuncional"></label>
           </div>
@@ -114,7 +115,7 @@ export async function renderSettings(params) {
         const g = (n) => (f.get(n) || '').trim();
         const bad = ['instagram', 'site', 'other'].filter((n) => g(n) && !cleanUrl(g(n)));
         if (bad.length) throw new Error('Confira o endereço digitado em Redes sociais e site. Use algo como instagram.com/seuperfil.');
-        const credentials = { council: g('council'), number: g('number'), uf: g('uf'), category: g('category'), instagram: cleanUrl(g('instagram')), site: cleanUrl(g('site')), other: cleanUrl(g('other')) };
+        const credentials = { council: g('council'), number: g('number'), uf: g('uf'), category: g('category'), tratamento: f.get('tratamento') || '', instagram: cleanUrl(g('instagram')), site: cleanUrl(g('site')), other: cleanUrl(g('other')) };
         await saveProfile({ full_name: g('full_name'), specialty: f.get('specialty'), council_registry: registryText(credentials) || null, credentials, clinic_name: g('clinic_name') || null });
         toast('Perfil salvo.');
       });

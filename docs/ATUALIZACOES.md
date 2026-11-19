@@ -6,6 +6,12 @@ Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do
 
 ## 19/11/2026 — Nova apresentação (página inicial pública)
 
+### Profissão no feminino/masculino e logo do celular corrigida
+- No menu do perfil aparece a profissão, não a área: Terapeuta ocupacional, Psicóloga/Psicólogo, Fonoaudióloga/Fonoaudiólogo, Médica/Médico, Enfermeira/Enfermeiro, Fisioterapeuta, Nutricionista, Assistente social. Em "Outra", usa a categoria escrita no perfil.
+- Feminino ou masculino: escolha nova em Configurações → Perfil ("Como você é apresentado(a)"), guardada em `credentials.tratamento` (sem mudança de banco). Sem escolha, o sistema usa o primeiro nome (termina em "a" → feminino).
+- Logo do topo no celular aparecia só com as pétalas de fora: o desenho estava duas vezes na página com os mesmos ids de cor, e a cópia escondida do menu lateral "levava" as cores. Agora cada cópia tem ids próprios (`unico` em `js/marca.js`). Símbolo do topo um pouco maior.
+- Testado no ambiente simulado (celular claro e escuro; perfil). Documentos (PDF/Word) continuam com a área de atuação como antes.
+
 ### Menu lateral: logo menor e botão para recolher
 - Logo do menu menor no computador.
 - Botão "Recolher menu" no rodapé do menu: recolhido, o menu fica estreito e mostra só os ícones (o nome aparece ao passar o mouse) e o símbolo da Potira no lugar da logo. A escolha fica guardada neste navegador. Não muda o celular.
