@@ -4,6 +4,11 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 18/11/2026 — Especificação de evolução do Potira
+
+- Criada [ESPECIFICACAO-EVOLUCAO-POTIRA.md](ESPECIFICACAO-EVOLUCAO-POTIRA.md), com o plano técnico para atender autônomos e clínicas, ampliar o cadastro de pacientes, planejar a emissão de NFS-e e reformular toda a interface.
+- Esta entrega é documentação: nenhum código, banco ou integração fiscal foi alterado. Permanecem pendentes as decisões fiscais e a questão de saída de profissional da clínica.
+
 ## 14/11/2026 — Anamnese recebida: a resposta primeiro
 
 - Em Anamneses recebidas cada item tem só **Ver resposta**. A janela mostra as respostas e, embaixo, as decisões: Criar paciente, Juntar a um paciente que já existe, Salvar para depois ou Descartar.
