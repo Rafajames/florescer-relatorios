@@ -45,3 +45,8 @@ Criada em 19/11/2026 direto no Supabase (projeto `dadkcfhwtmuizcjywcpw`) para te
 | "Apaga a Beatriz" | Recusa (exclusão só manual) |
 
 As datas valem para a semana de 19/11/2026; depois disso as sessões "futuras" viram passadas e o roteiro precisa ser ajustado.
+| "Como está meu dia?" | Sessões de hoje, evoluções pendentes, quem cobrar |
+| "Tenho horário livre na sexta?" | Livre fora de 09:00 (Antônio) e 14:00 (Beatriz) |
+| "Remarca a sessão da Sofia de terça para quarta às 10h" | Card "Solicitação de remarcação"; só muda ao clicar em Aceitar |
+| "Cobra o Antônio" | Abre a janela de cobrança com R$ 540 |
+| "Recibo de outubro do Lucas Andrade" | Pergunta/confirma e baixa o PDF numerado |

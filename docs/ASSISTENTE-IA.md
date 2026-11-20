@@ -1,6 +1,6 @@
 # Assistente de IA da Potira (planejado)
 
-Situação: **primeira versão implementada em 19/11/2026** (ajuda, consultas e ações; ver ATUALIZACOES). Visão do dia, recibo/cobrança pelo chat e escrita ainda não. Ao implementar, seguir [DIRETRIZES.md](DIRETRIZES.md) e o fluxo do James: estruturar → perguntar prioridade → programar → testar.
+Situação: **primeira versão implementada em 19/11/2026** (ajuda, consultas e ações; ver ATUALIZACOES). Em 20/11/2026: remarcar (como solicitação que o profissional aceita), horário livre, visão do dia, cobrar e recibo. Falta a parte de escrita (tipo 4). Ao implementar, seguir [DIRETRIZES.md](DIRETRIZES.md) e o fluxo do James: estruturar → perguntar prioridade → programar → testar.
 
 ## Objetivo
 

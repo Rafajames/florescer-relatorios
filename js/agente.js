@@ -7,7 +7,9 @@ import * as ai from './ai.js';
 import { state } from './state.js';
 import { esc, fmtDate, icon } from './ui.js';
 import { resolvedHelp } from './views-help.js';
-import { cpfValido } from './cobranca.js';
+import { cpfValido, cobravel, cobrancaVencida } from './cobranca.js';
+import { abrirCobranca } from './cobrar.js';
+import { exportReciboPdf } from './export.js';
 import { soDigitos } from './cadastro.js';
 
 const MAX_VOLTAS = 8;          // chamadas de ferramenta seguidas por pedido
@@ -23,6 +25,11 @@ const somaDias = (s, n) => { const d = new Date(s + 'T12:00:00'); d.setDate(d.ge
 const okData = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
 const hhmm = (t) => (t ? String(t).slice(0, 5) : '');
 const brl = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+const mesTxt = (m) => { const [y, mo] = String(m).split('-').map(Number); return `${MESES[mo - 1]} de ${y}`; };
+const minutos = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + (m || 0); };
+const deMin = (n) => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
+const okHora = (t) => /^\d{1,2}:\d{2}$/.test(String(t || ''));
 const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
 /* ---------- pacientes como código ---------- */
@@ -69,6 +76,18 @@ const TOOLS = [
   { name: 'atualizar_situacao_sessao', mutacao: true, desc: 'Muda a situação de uma sessão que apareceu em listar_sessoes (realizada, falta, falta justificada, cancelada ou agendada de novo). O profissional confirma antes.',
     schema: S({ sessao_id: str('id da sessão, de listar_sessoes'), situacao: str('agendado, realizado, falta, falta_justificada ou cancelado') }, ['sessao_id', 'situacao']),
     resumo: (a) => { const s = sessoesCache.get(a.sessao_id); return s ? `Marcar a sessão de ${s.patients?.name || 'paciente'} em ${fmtDate(s.date)} ${hhmm(s.time)} como ${SIT[a.situacao] || a.situacao}.` : `Mudar a sessão para ${SIT[a.situacao] || a.situacao}.`; }, run: atualizarSituacao },
+  { name: 'remarcar_sessao', mutacao: true, botoes: ['Recusar', 'Aceitar'], desc: 'Propõe remarcar uma sessão agendada (que apareceu em listar_sessoes) para outra data e horário. É só uma solicitação: nada muda até o profissional aceitar na tela.',
+    schema: S({ sessao_id: str('id da sessão, de listar_sessoes'), data: str('Nova data AAAA-MM-DD'), hora: str('Novo horário HH:MM') }, ['sessao_id', 'data', 'hora']),
+    resumo: (a) => { const s = sessoesCache.get(a.sessao_id); return `Solicitação de remarcação: ${s ? `${s.patients?.name || nomeId(s.patient_id)}, de ${fmtDate(s.date)} ${hhmm(s.time)}` : 'sessão'} para ${okData(a.data) ? fmtDate(a.data) + ' (' + diaSemana(a.data) + ')' : a.data} às ${a.hora}.`; }, run: remarcarSessao },
+  { name: 'horario_livre', desc: 'Mostra os horários livres de um dia, a partir das sessões já agendadas.',
+    schema: S({ data: str('AAAA-MM-DD'), inicio: str('Início do expediente HH:MM (padrão 08:00)'), fim: str('Fim do expediente HH:MM (padrão 18:00)'), duracao_min: num('Duração desejada em minutos (padrão 50)') }, ['data']), run: horarioLivre },
+  { name: 'visao_do_dia', desc: 'Resumo do dia: sessões de hoje, pedidos de remarcação dos pacientes, evoluções pendentes e cobranças a fazer. Use para "como está meu dia?".',
+    schema: S({}), run: visaoDoDia },
+  { name: 'cobrar_paciente', desc: 'Abre a janela de cobrança (PIX e WhatsApp) com tudo o que o paciente tem em aberto. Nada é enviado sozinho: o profissional revisa e envia pela janela.',
+    schema: S({ paciente: str('Código [Pn]') }, ['paciente']), run: cobrarPaciente },
+  { name: 'gerar_recibo', mutacao: true, desc: 'Emite o recibo (PDF numerado) das sessões pagas de um paciente num mês. O profissional confirma antes, porque usa o próximo número de recibo.',
+    schema: S({ paciente: str('Código [Pn]'), mes: str('Mês AAAA-MM') }, ['paciente', 'mes']),
+    resumo: (a) => `Emitir recibo das sessões pagas de ${nomeP(a.paciente)} em ${/^\d{4}-\d{2}$/.test(a.mes || '') ? mesTxt(a.mes) : a.mes} (usa o próximo número e baixa o PDF).`, run: gerarRecibo },
   { name: 'cadastrar_paciente', mutacao: true, desc: 'Cadastra um paciente novo com os dados básicos. O profissional confirma antes. O cadastro completo é feito depois na ficha.',
     schema: S({ nome: str('Nome completo'), telefone: str('Opcional'), email: str('Opcional'), nascimento: str('AAAA-MM-DD, opcional'), cpf: str('Opcional, só números') }, ['nome']),
     resumo: (a) => `Cadastrar paciente: ${a.nome}${a.telefone ? ', tel. ' + a.telefone : ''}${a.nascimento ? ', nascimento ' + fmtDate(a.nascimento) : ''}${a.cpf ? ', CPF informado' : ''}.`, run: cadastrarPaciente },
@@ -81,6 +100,7 @@ const TOOLS = [
     run: async () => ({ disponivel: false, mensagem: 'A emissão de nota fiscal ainda não existe na Potira. Ofereça o recibo (Financeiro → Recibo) ou abrir o Financeiro.' }) },
 ];
 const TOOL = Object.fromEntries(TOOLS.map((t) => [t.name, t]));
+const nomeId = (id) => [...porCodigo.values()].find((p) => p.id === id)?.name || 'paciente';
 const nomeP = (cod) => { try { return pacienteDe(cod).name; } catch { return 'paciente'; } };
 
 async function consultarAjuda({ pergunta }) {
@@ -178,6 +198,79 @@ async function atualizarSituacao({ sessao_id, situacao }) {
   return { ok: true, situacao };
 }
 
+async function sessoesDoDia(data) {
+  return (await api.listAppointments({ from: data, to: data })).filter((o) => o.time && o.status !== 'cancelado');
+}
+
+async function remarcarSessao({ sessao_id, data, hora }) {
+  const s = sessoesCache.get(sessao_id);
+  if (!s) throw new Error('Sessão não encontrada. Use listar_sessoes antes.');
+  if (s.status !== 'agendado') throw new Error('Só dá para remarcar sessão agendada.');
+  if (!okData(data) || !okHora(hora)) throw new Error('Data AAAA-MM-DD e hora HH:MM.');
+  const dur = s.duration_min || 50, ini = minutos(hora), fim = ini + dur;
+  const conflito = (await sessoesDoDia(data)).filter((o) => o.id !== s.id && minutos(o.time) < fim && ini < minutos(o.time) + (o.duration_min || 50));
+  const nova = await api.updateAppointment(s.id, { date: data, time: hora, confirm_status: null });
+  sessoesCache.set(s.id, { ...s, ...nova });
+  return { ok: true, data, hora, aviso_conflito: conflito.length ? `Atenção: já havia ${conflito.length} sessão(ões) nesse horário.` : undefined, lembrete: 'Avise o paciente da nova data.' };
+}
+
+async function horarioLivre({ data, inicio = '08:00', fim = '18:00', duracao_min }) {
+  if (!okData(data) || !okHora(inicio) || !okHora(fim)) throw new Error('Data AAAA-MM-DD e horários HH:MM.');
+  const dur = Math.min(600, Math.max(5, Number(duracao_min) || 50)), a = minutos(inicio), b = minutos(fim);
+  const ocup = (await sessoesDoDia(data)).map((o) => [minutos(o.time), minutos(o.time) + (o.duration_min || 50)]).sort((x, y) => x[0] - y[0]);
+  const livres = [];
+  let t = a;
+  for (const [i, f] of ocup) { if (i - t >= dur) livres.push(`${deMin(t)}–${deMin(i)}`); t = Math.max(t, f); }
+  if (b - t >= dur) livres.push(`${deMin(t)}–${deMin(b)}`);
+  return { data, dia: diaSemana(data), expediente: `${inicio}–${fim}`, sessoes_marcadas: ocup.length, livres, aviso: livres.length ? undefined : 'Nenhum horário livre com essa duração.' };
+}
+
+async function visaoDoDia() {
+  const h = hoje();
+  const [sess, prox, pend, adms] = await Promise.all([api.listAppointments({ from: h, to: h }), api.listAppointments({ from: h, to: somaDias(h, 30) }),
+    listarPendencias(), api.listPatientAdmins().catch(() => [])]);
+  const pats = await pacientes(), byId = Object.fromEntries(pats.map((p) => [p.id, p]));
+  const cod = (id) => codigo(byId[id] || { id, name: 'Paciente' });
+  const hojeLista = sess.filter((s) => s.status !== 'cancelado').sort((a, b) => hhmm(a.time).localeCompare(hhmm(b.time)))
+    .map((s) => { sessoesCache.set(s.id, s); return { id: s.id, hora: hhmm(s.time), paciente: cod(s.patient_id), situacao: s.status, confirmacao: s.confirm_status || undefined }; });
+  const pedidos = prox.filter((s) => s.status === 'agendado' && s.confirm_status === 'remarcar')
+    .map((s) => { sessoesCache.set(s.id, s); return { id: s.id, data: s.date, hora: hhmm(s.time), paciente: cod(s.patient_id) }; });
+  const devedores = new Set(pend.em_aberto.map((x) => x.paciente));
+  const cobrarHoje = adms.filter((ad) => cobrancaVencida(ad, h) && devedores.has(cod(ad.patient_id))).map((ad) => cod(ad.patient_id));
+  return { hoje: h, dia: diaSemana(h), sessoes_hoje: hojeLista, pacientes_pediram_remarcar: pedidos, evolucoes_pendentes: pend.sessoes_sem_evolucao,
+    cobrancas_a_fazer_hoje: cobrarHoje, em_aberto_total: pend.em_aberto.reduce((s, x) => s + x.total, 0) };
+}
+
+async function cobrarPaciente({ paciente }) {
+  const p = pacienteDe(paciente);
+  const [aps, avulsas, adm] = await Promise.all([api.listAppointments({ patientId: p.id }), api.listCharges({ open: true, patientId: p.id }).catch(() => []), api.getPatientAdmin(p.id).catch(() => null)]);
+  const preco = Number(adm?.session_price) || 0;
+  const itens = [...aps.filter((a) => cobravel(a, state.profile) && a.payment_status !== 'pago').map((a) => ({ id: a.id, date: a.date, time: a.time, amount: a.amount != null ? Number(a.amount) : preco })),
+    ...avulsas.map((c) => ({ id: 'c:' + c.id, date: c.due_date, amount: Number(c.amount || 0), label: c.description }))];
+  if (!itens.length) return { nada_em_aberto: true };
+  const full = (await pacientes()).find((x) => x.id === p.id) || p;
+  fechar();
+  abrirCobranca({ profile: state.profile, patient: { id: p.id, name: p.name, phone: full.whatsapp || full.phone }, items: itens });
+  return { janela_aberta: true, itens: itens.length, total: itens.reduce((s, i) => s + i.amount, 0), lembrete: 'O profissional revisa e envia pela janela; registrar o pagamento depois.' };
+}
+
+async function gerarRecibo({ paciente, mes }) {
+  const p = pacienteDe(paciente);
+  if (!/^\d{4}-\d{2}$/.test(mes || '')) throw new Error('Mês no formato AAAA-MM.');
+  const [y, m] = mes.split('-').map(Number), ultimo = new Date(y, m, 0).getDate();
+  const [aps, adm] = await Promise.all([api.listAppointments({ from: `${mes}-01`, to: `${mes}-${ultimo}`, patientId: p.id }), api.getPatientAdmin(p.id).catch(() => null)]);
+  const preco = Number(adm?.session_price) || 0;
+  const items = aps.filter((a) => cobravel(a, state.profile) && a.payment_status === 'pago').map((a) => ({ date: a.date, time: a.time, amount: a.amount != null ? Number(a.amount) : preco }));
+  if (!items.length) throw new Error(`Nenhuma sessão paga em ${mesTxt(mes)} para este paciente. Nenhum recibo foi emitido.`);
+  const total = items.reduce((s, i) => s + i.amount, 0), pay = state.profile?.branding?.payment || {}, specialty = state.profile?.specialty || '';
+  const numero = await api.nextReceiptNumber();
+  state.profile = { ...state.profile, branding: { ...(state.profile.branding || {}), recibo_seq: numero } };
+  exportReciboPdf({ professional: state.profile, patientName: p.name, specialty, monthLabel: mesTxt(mes), items, total, payment: pay, numero });
+  await api.saveReceipt({ patient_id: p.id, numero, total, data: { patientName: p.name, specialty, monthLabel: mesTxt(mes), items, total } }).catch(() => {});
+  api.logExport('recibo', null, { numero, sessoes: items.length, total, origem: 'assistente' });
+  return { ok: true, numero, sessoes: items.length, total };
+}
+
 async function cadastrarPaciente(a) {
   const cpf = soDigitos(a.cpf);
   if (cpf && !cpfValido(cpf)) throw new Error('CPF inválido; peça para conferir.');
@@ -211,7 +304,10 @@ Regras:
 - Use só as ferramentas para obter dados. Nunca invente pacientes, sessões, valores ou conteúdo clínico. Se não souber, diga.
 - Pacientes aparecem como códigos [P1], [P2]. Escreva sempre o código entre colchetes ao citar um paciente: a tela troca pelo nome. Não tente adivinhar nomes.
 - Para agir sobre um paciente, primeiro use buscar_pacientes. Se houver mais de um resultado, pergunte qual antes de agir.
-- Ações (agendar, mudar situação, cadastrar, lançar gasto) já pedem confirmação na tela; chame a ferramenta direto, sem perguntar "posso?". Se o profissional cancelar, não insista.
+- Ações (agendar, remarcar, mudar situação, cadastrar, lançar gasto, emitir recibo) já pedem confirmação na tela; chame a ferramenta direto, sem perguntar "posso?". Se o profissional cancelar, não insista.
+- Remarcar é só uma solicitação: use listar_sessoes para achar a sessão e remarcar_sessao; o profissional aceita ou recusa na tela.
+- "Como está meu dia?": use visao_do_dia e responda em blocos curtos (Hoje, Remarcações pedidas, Evoluções pendentes, Cobrar hoje), omitindo blocos vazios.
+- Cobrar paciente: cobrar_paciente abre a janela de cobrança; nada é enviado sem o profissional. Recibo: gerar_recibo (sessões pagas do mês).
 - Não apague nada, não mexa em chaves de IA e não dê diagnóstico ou conduta clínica.
 - Dúvidas de "como faço" na plataforma: use consultar_ajuda e responda com base nela, indicando onde fica. Se não estiver na ajuda, diga que talvez ainda não exista.
 - Converta datas relativas (amanhã, sexta, mês passado) a partir de hoje e use AAAA-MM-DD nas ferramentas.`;
@@ -291,10 +387,10 @@ function addBolha(quem, html) {
   return box.lastElementChild;
 }
 
-function confirmar(texto) {
+function confirmar(texto, [nao, sim] = ['Cancelar', 'Confirmar']) {
   return new Promise((resolve) => {
-    const el = addBolha('confirma', `<p>${esc(texto)}</p><div class="row"><button type="button" class="btn sm quiet" data-n>Cancelar</button><button type="button" class="btn sm" data-s>Confirmar</button></div>`);
-    const fim = (v) => { el.querySelector('.row').outerHTML = `<p class="muted small">${v ? 'Confirmado.' : 'Cancelado.'}</p>`; resolve(v); };
+    const el = addBolha('confirma', `<p>${esc(texto)}</p><div class="row"><button type="button" class="btn sm quiet" data-n>${nao}</button><button type="button" class="btn sm" data-s>${sim}</button></div>`);
+    const fim = (v) => { el.querySelector('.row').outerHTML = `<p class="muted small">${v ? (sim === 'Aceitar' ? 'Aceito.' : 'Confirmado.') : (nao === 'Recusar' ? 'Recusado.' : 'Cancelado.')}</p>`; resolve(v); };
     el.querySelector('[data-s]').onclick = () => fim(true);
     el.querySelector('[data-n]').onclick = () => fim(false);
     el.querySelector('[data-s]').focus();
@@ -325,7 +421,7 @@ async function enviar(texto) {
         let out;
         try {
           if (!t) throw new Error('Ferramenta desconhecida.');
-          if (t.mutacao && !(await confirmar(t.resumo(c.args)))) out = { cancelado: true, mensagem: 'O profissional cancelou. Não repita a ação.' };
+          if (t.mutacao && !(await confirmar(t.resumo(c.args), t.botoes))) out = { cancelado: true, mensagem: 'O profissional recusou. Não repita a ação.' };
           else { st.textContent = 'Executando…'; out = await t.run(c.args || {}); }
         } catch (e) { out = { erro: e.message || String(e) }; }
         res.push({ id: c.id, name: c.name, out });
@@ -339,7 +435,7 @@ async function enviar(texto) {
   } finally { ocupado = false; st.textContent = ''; btn.disabled = false; painel.querySelector('textarea').focus(); }
 }
 
-const EXEMPLOS = ['Quem eu atendo hoje?', 'Quem está devendo?', 'Quais evoluções estão pendentes?', 'Como importo meus pacientes?'];
+const EXEMPLOS = ['Como está meu dia?', 'Tenho horário livre amanhã?', 'Quem está devendo?', 'Quais evoluções estão pendentes?', 'Como importo meus pacientes?'];
 
 function abrir() {
   if (!painel) {
@@ -371,7 +467,7 @@ function abrir() {
   painel.querySelector('textarea').focus();
 }
 function boasVindas() {
-  addBolha('ia', `Olá! Posso tirar dúvidas de como usar a Potira, consultar sua agenda e o financeiro, e fazer ações como agendar ou marcar falta — sempre pedindo sua confirmação antes.
+  addBolha('ia', `Olá! Posso tirar dúvidas de como usar a Potira, consultar sua agenda e o financeiro, e fazer ações como agendar, remarcar, cobrar ou emitir recibo — sempre pedindo sua confirmação antes.
     <div class="ag-ex">${EXEMPLOS.map((x) => `<button type="button" class="pilula" data-ex="${esc(x)}">${esc(x)}</button>`).join('')}</div>`);
 }
 function fechar() { if (painel) painel.classList.remove('on'); document.body.classList.remove('ag-aberto'); }

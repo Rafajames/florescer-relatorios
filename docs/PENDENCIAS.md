@@ -179,7 +179,7 @@ Situação em 19/11/2026 (tudo testado só no ambiente simulado; conferir no sit
 - **Medicina:** criar conta com área Medicina e ver os modelos médicos.
 
 ### Ainda não feito (próximos passos)
-- Assistente: gerar recibo/cobrança pelo chat, remarcar, horário livre, visão do dia ("Como está meu dia?"), rascunhar evolução e mensagens.
+- Assistente: rascunhar evolução a partir de anotações, mensagens prontas (lembrete e cobrança) e declaração de comparecimento. (Remarcar, horário livre, visão do dia, cobrar e recibo feitos em 20/11 — conferir no site real com o roteiro de CONTA-TESTES.md.)
 - Usar CPF/endereço/responsável em recibo, declarações e na atualização pela anamnese; cadastro completo também para a secretária.
 - Importação: atualizar pacientes repetidos (hoje só pula); coluna "profissional responsável" quando existir a conta de clínica; sugestão de colunas pela IA.
 - Nota fiscal (depende de escolher o provedor e os custos).

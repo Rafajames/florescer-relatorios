@@ -96,10 +96,10 @@ const TOPICS = [
     ['Privacidade', 'A chave fica só neste navegador (em outro computador ou celular é preciso conectar de novo) e o nome do paciente não vai para a IA.'],
   ] },
   { t: 'Assistente', where: 'Botão do Assistente (canto inferior direito)', link: '#/painel', items: [
-    ['O que é', 'Um chat onde você pede em português: tirar dúvidas de como usar a Potira, consultar agenda e financeiro e fazer ações como agendar ou marcar falta.'],
+    ['O que é', 'Um chat onde você pede em português: tirar dúvidas de como usar a Potira, consultar agenda e financeiro, ver o resumo do dia e fazer ações como agendar, remarcar, marcar falta, cobrar e emitir recibo.'],
     ['Quando aparece', 'Só com uma IA de texto conectada em Configurações → Chaves de IA.'],
-    ['Exemplos', '"Quem eu atendo hoje?", "Quem está devendo?", "Agenda a Maria amanhã às 15h", "Resume o último mês do João", "Como importo meus pacientes?".'],
-    ['Segurança', 'Tudo que altera dados (agendar, mudar situação, cadastrar, lançar gasto) mostra um resumo e só acontece depois que você clica em Confirmar. O Assistente não apaga nada.'],
+    ['Exemplos', '"Como está meu dia?", "Tenho horário livre na sexta?", "Remarca a sessão da Maria para quinta às 10h", "Cobra o João", "Recibo de outubro da Ana", "Quem está devendo?", "Agenda a Maria amanhã às 15h", "Resume o último mês do João", "Como importo meus pacientes?".'],
+    ['Segurança', 'Tudo que altera dados (agendar, mudar situação, cadastrar, lançar gasto, emitir recibo) mostra um resumo e só acontece depois que você clica em Confirmar. Remarcar é uma solicitação: só muda se você clicar em Aceitar. Cobrar abre a janela de cobrança, e nada é enviado sem você. O Assistente não apaga nada.'],
     ['Privacidade', 'A busca de pacientes é feita aqui; a IA recebe só o necessário para responder. As evoluções só são enviadas quando você pede um resumo.'],
   ] },
   { t: 'Conforto de leitura', where: 'Configurações → Aparência e marca', link: '#/config?aba=aparencia', items: [

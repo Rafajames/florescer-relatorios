@@ -4,6 +4,16 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 20/11/2026 — Assistente: remarcar, horário livre, visão do dia, cobrar e recibo
+
+- **Remarcar sessão** (`remarcar_sessao`): o Assistente só monta a **solicitação** ("de 20/11 09:00 para 21/11 10:20"); nada muda até o profissional clicar em **Aceitar** (ou Recusar). Só sessões agendadas; avisa conflito de horário; a confirmação do paciente volta a ficar em branco.
+- **Horário livre** (`horario_livre`): horários livres de um dia a partir das sessões marcadas (expediente padrão 08:00–18:00 e 50 min, ajustáveis no pedido).
+- **"Como está meu dia?"** (`visao_do_dia`): sessões de hoje, pacientes que pediram para remarcar pelo link de confirmação (próximos 30 dias), evoluções pendentes, cobranças agendadas que vencem hoje e total em aberto.
+- **Cobrar paciente** (`cobrar_paciente`): abre a mesma janela de cobrança da ficha (PIX e WhatsApp) com tudo em aberto; nada é enviado sem o profissional.
+- **Recibo** (`gerar_recibo`): com confirmação, emite o recibo numerado das sessões pagas do mês (mesmo PDF e mesma lista de "Recibos emitidos" do Financeiro). Sem sessão paga, não gasta número.
+- Ajuda do Assistente e exemplos do painel atualizados.
+- Testado com banco e IA simulados: horário livre, visão do dia, remarcação (resumo, conflito, mudança só após aceitar), cobrança (com e sem valores em aberto) e recibo (com e sem sessão paga). **Não testado com IA real nem com o banco real.**
+
 ## 19/11/2026 (tarde) — Assistente de IA, importação de pacientes, Ajuda nova e Medicina
 
 ### Assistente de IA (`js/agente.js`)
