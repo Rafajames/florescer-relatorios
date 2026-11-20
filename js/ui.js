@@ -154,7 +154,7 @@ const TAB = [
   ['pacientes', '#/pacientes', 'users', 'Pacientes'],
   ['nova', '#/nova', 'plus', 'Novo', true],
   ['administrativo', '#/administrativo', 'calendar', 'Agenda'],
-  ['mais', '#/mais', 'more', 'Mais'],
+  ['mais', '#/mais', 'more', 'Geral'],
 ];
 // itens que ficam no botão "Mais" do celular
 export const NAV_MORE = NAV.filter(([k]) => !['painel', 'pacientes', 'administrativo'].includes(k));

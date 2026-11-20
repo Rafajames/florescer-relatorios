@@ -4,6 +4,13 @@ Histórico do que foi feito, da mudança mais nova para a mais antiga. Cada entr
 
 Sobre o que ainda falta, veja [PENDENCIAS.md](PENDENCIAS.md). Sobre as regras do projeto, veja [DIRETRIZES.md](DIRETRIZES.md).
 
+## 20/11/2026 — Barra do celular no estilo novo
+
+- Barra inferior colada no rodapé, de ponta a ponta, com cantos de cima arredondados e as cores da Potira (petróleo; ativo em rosa claro). Todos os itens no mesmo tamanho.
+- Botão do meio (Nova sessão) virou um círculo rosa maior, um pouco acima da barra, com brilho suave; o texto "Novo" fica só para leitores de tela.
+- "Mais" passou a se chamar **Geral** (barra, título da tela e nome da aba).
+- Conferido em captura de 390 px nos temas claro e escuro. **Não conferido no celular real.**
+
 ## 20/11/2026 — Assistente: remarcar, horário livre, visão do dia, cobrar e recibo
 
 - **Remarcar sessão** (`remarcar_sessao`): o Assistente só monta a **solicitação** ("de 20/11 09:00 para 21/11 10:20"); nada muda até o profissional clicar em **Aceitar** (ou Recusar). Só sessões agendadas; avisa conflito de horário; a confirmação do paciente volta a ficar em branco.
